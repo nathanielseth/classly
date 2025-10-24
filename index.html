@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Room Schedule & Status Monitoring System">
+  <title>Room Scheduler - Login</title>
+
+  <link rel="stylesheet" href="css/main.css">
+  <!-- <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/pages.css"> -->
+</head>
+
+<body>
+  <div id="app">
+    <div id="login-container" class="container">
+      <div class="login-card">
+        <div class="logo-section">
+          <div class="logo-icon"></div>
+          <h1>Room Scheduler</h1>
+          <p class="subtitle">Schedule & Status Monitoring System</p>
+        </div>
+
+        <form id="login-form" class="auth-form">
+          <div class="form-group">
+            <label for="role">Account Type</label>
+            <select id="role" name="role" required>
+              <option value="" disabled selected>Select your role</option>
+              <option value="student">Student</option>
+              <option value="teacher">Teacher</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" placeholder="Enter your username" required
+              autocomplete="username">
+          </div>
+
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" placeholder="Enter your password" required
+              autocomplete="current-password">
+          </div>
+
+          <div id="error-message" class="error-message" style="display: none;"></div>
+
+          <button type="submit" class="btn btn-primary btn-block">
+            Login
+          </button>
+
+          <div class="form-footer">
+            <p>Don't have an account? <a href="#/signup" class="link">Sign Up</a></p>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="content" style="display: none;"></div>
+  </div>
+
+  <div id="loading-spinner" class="spinner-overlay" style="display: none;">
+    <div class="spinner"></div>
+  </div>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- JavaScript -->
+  <script src="js/utils/constants.js"></script>
+  <script src="js/utils/helpers.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/components/navbar.js"></script>
+  <script src="js/components/roomCard.js"></script>
+  <script src="js/components/modal.js"></script>
+  <script src="js/components/notification.js"></script>
+  <script src="js/router.js"></script>
+  <script src="js/pages/student-dashboard.js"></script>
+  <script src="js/pages/teacher-dashboard.js"></script>
+  <script src="js/pages/admin-dashboard.js"></script>
+  <script src="js/pages/schedules.js"></script>
+  <script src="js/pages/reservations.js"></script>
+  <script src="js/main.js"></script>
+</body>
+
+</html>
