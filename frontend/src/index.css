@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+@theme {
+	--color-classly-green: #344f1f;
+	--color-classly-dark: #1a2e0e;
+	--color-classly-gold: #f4991a;
+	--color-bg-canvas: #f3f4f6;
+
+	--shadow-soft: 0 2px 8px -2px rgba(0, 0, 0, 0.05);
+	--shadow-float: 0 10px 30px -5px rgba(0, 0, 0, 0.08);
+
+	--font-sans: "Inter", sans-serif;
+}
+
+body {
+	font-family: var(--font-sans);
+	background-color: var(--color-bg-canvas);
+	color: #1f2937;
+}
