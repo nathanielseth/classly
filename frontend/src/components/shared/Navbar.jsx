@@ -12,7 +12,7 @@ import {
 	MessageSquare,
 } from "lucide-react";
 
-const Navbar = ({ toggleSidebar }) => {
+const Navbar = ({ toggleSidebar, onLogout, userRole, profile }) => {
 	const [isProfileOpen, setIsProfileOpen] = useState(false);
 	const [joinCourseModal, setJoinCourseModal] = useState(false);
 	const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -33,6 +33,11 @@ const Navbar = ({ toggleSidebar }) => {
 		document.addEventListener("mousedown", handleClickOutside);
 		return () => document.removeEventListener("mousedown", handleClickOutside);
 	}, []);
+
+	const handleLogoutClick = () => {
+		setIsProfileOpen(false);
+		onLogout();
+	};
 
 	return (
 		<>
@@ -139,7 +144,9 @@ const Navbar = ({ toggleSidebar }) => {
 							className="flex items-center gap-3 pl-2 pr-1 py-1 rounded-full hover:bg-gray-50 transition-all border border-transparent hover:border-gray-200 cursor-pointer"
 						>
 							<img
-								src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix"
+								src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${
+									profile?.full_name || "User"
+								}`}
 								alt="User"
 								className="w-8 h-8 rounded-full bg-gray-200"
 							/>
@@ -155,10 +162,17 @@ const Navbar = ({ toggleSidebar }) => {
 						{isProfileOpen && (
 							<div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
 								<div className="p-4 border-b border-gray-100">
-									<p className="font-semibold text-gray-900">Student User</p>
-									<p className="text-xs text-gray-500 mt-0.5">
-										student@classly.edu
+									<p className="font-semibold text-gray-900">
+										{profile?.full_name || "User"}
 									</p>
+									<p className="text-xs text-gray-500 mt-0.5">
+										{profile?.email || "user@classly.edu"}
+									</p>
+									{userRole && (
+										<p className="text-xs text-classly-green font-medium mt-1 capitalize">
+											{userRole}
+										</p>
+									)}
 								</div>
 								<div className="py-2">
 									<button
@@ -184,10 +198,7 @@ const Navbar = ({ toggleSidebar }) => {
 								</div>
 								<div className="border-t border-gray-100">
 									<button
-										onClick={() => {
-											setIsProfileOpen(false);
-											// Handle logout
-										}}
+										onClick={handleLogoutClick}
 										className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors cursor-pointer"
 									>
 										<LogOut size={16} />

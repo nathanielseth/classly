@@ -11,7 +11,8 @@ import {
 	HelpCircle,
 } from "lucide-react";
 
-const Sidebar = ({ currentView, setView, isOpen }) => {
+// add userRole
+const Sidebar = ({ currentView, setView, isOpen, onLogout }) => {
 	const [isHovered, setIsHovered] = useState(false);
 	const [enrolledExpanded, setEnrolledExpanded] = useState(true);
 
@@ -157,6 +158,7 @@ const Sidebar = ({ currentView, setView, isOpen }) => {
 				</button>
 
 				<button
+					onClick={onLogout}
 					className={`relative w-full flex items-center ${
 						showFull ? "gap-3 px-3" : "justify-center px-0"
 					} py-2.5 rounded-lg text-gray-600 hover:bg-red-50 hover:text-red-600 transition-all cursor-pointer group`}
