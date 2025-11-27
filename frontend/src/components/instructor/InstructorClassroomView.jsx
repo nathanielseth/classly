@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { db } from "../../lib/supabase";
 
-const ClassroomView = ({
+const InstructorClassroomView = ({
 	userId,
 	userRole,
 	subjectId: propSubjectId,
@@ -45,6 +45,9 @@ const ClassroomView = ({
 			const { data, error: subjectError } = await db.subjects.getById(
 				subjectId
 			);
+
+			console.log("🔍 RAW SUBJECT DATA:", data);
+			console.log("🔍 INSTRUCTOR OBJECT:", data?.instructor);
 
 			if (subjectError) throw subjectError;
 
@@ -119,7 +122,7 @@ const ClassroomView = ({
 	return (
 		<div className="min-h-screen bg-gray-50 flex flex-col">
 			{/* Fixed Header with Banner Background */}
-			<header className="bg-gradient-to-r from-classly-green to-emerald-600 text-white shadow-md">
+			<header className="bg-linear-to-r from-classly-green to-emerald-600 text-white shadow-md">
 				<div className="px-6 py-6 max-w-7xl mx-auto">
 					<div className="flex items-center gap-4 mb-4">
 						<button
@@ -352,7 +355,7 @@ const StreamTab = ({ subjectId, userId, userRole }) => {
 					key={announcement.id}
 					className={`${
 						announcement.pinned
-							? "bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-classly-green"
+							? "bg-linear-to-r from-green-50 to-emerald-50 border-l-4 border-classly-green"
 							: "bg-white border border-gray-200"
 					} rounded-xl p-5 shadow-sm`}
 				>
@@ -474,7 +477,7 @@ const StreamTab = ({ subjectId, userId, userRole }) => {
 };
 
 /* Modules Tab */
-const ModulesTab = ({ subjectId, userId, userRole }) => {
+const ModulesTab = ({ subjectId, userRole }) => {
 	const [assignments, setAssignments] = useState([]);
 	const [loading, setLoading] = useState(true);
 	const [showCreateModal, setShowCreateModal] = useState(false);
@@ -823,6 +826,11 @@ const PeopleTab = ({ subjectId, subject }) => {
 	const loadPeople = async () => {
 		try {
 			const { data, error } = await db.enrollments.getBySubject(subjectId);
+
+			console.log("🔍 RAW ENROLLMENTS DATA:", data);
+			console.log("🔍 FIRST ENROLLMENT:", data?.[0]);
+			console.log("🔍 FIRST STUDENT OBJECT:", data?.[0]?.student);
+
 			if (error) throw error;
 			setEnrollments(data || []);
 		} catch (err) {
@@ -929,4 +937,4 @@ const PeopleTab = ({ subjectId, subject }) => {
 	);
 };
 
-export default ClassroomView;
+export default InstructorClassroomView;

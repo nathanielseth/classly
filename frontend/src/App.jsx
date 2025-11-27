@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from "react";
 import Navbar from "./components/shared/Navbar";
 import Sidebar from "./components/shared/Sidebar";
-import StudentDashboard from "./components/shared/StudentDashboard";
-import ClassroomView from "./components/shared/ClassroomView";
+import StudentDashboard from "./components/student/StudentDashboard";
+import InstructorDashboard from "./components/instructor/InstructorDashboard";
+import StudentClassroomView from "./components/student/StudentClassroomView";
+import InstructorClassroomView from "./components/instructor/InstructorClassroomView";
 import CalendarView from "./components/student/CalendarView";
 import AIAssistant from "./components/shared/AIAssistant";
 import AuthPage from "./components/shared/AuthPage";
@@ -177,22 +179,44 @@ function App() {
 					}`}
 				>
 					{currentView === "dashboard" && (
-						<StudentDashboard
-							onNavigate={(subjectId) => {
-								setSelectedSubjectId(subjectId);
-								setCurrentView("classroom");
-							}}
-							userId={session.user.id}
-							userRole={userRole}
-						/>
+						<>
+							{userRole === "student" && (
+								<StudentDashboard
+									onNavigate={(subjectId) => {
+										setSelectedSubjectId(subjectId);
+										setCurrentView("classroom");
+									}}
+									userId={session.user.id}
+								/>
+							)}
+							{userRole === "instructor" && (
+								<InstructorDashboard
+									onNavigate={(subjectId) => {
+										setSelectedSubjectId(subjectId);
+										setCurrentView("classroom");
+									}}
+									userId={session.user.id}
+								/>
+							)}
+						</>
 					)}
 					{currentView === "classroom" && (
-						<ClassroomView
-							userId={session.user.id}
-							userRole={userRole}
-							subjectId={selectedSubjectId}
-							onBack={() => setCurrentView("dashboard")}
-						/>
+						<>
+							{userRole === "student" && (
+								<StudentClassroomView
+									subjectId={selectedSubjectId}
+									onBack={() => setCurrentView("dashboard")}
+								/>
+							)}
+							{userRole === "instructor" && (
+								<InstructorClassroomView
+									userId={session.user.id}
+									userRole={userRole}
+									subjectId={selectedSubjectId}
+									onBack={() => setCurrentView("dashboard")}
+								/>
+							)}
+						</>
 					)}
 					{currentView === "calendar" && <CalendarView />}
 					{currentView === "ai" && <AIAssistant />}

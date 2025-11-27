@@ -13,7 +13,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 // ============================================
-// AUTH HELPERS (FIXED)
+// AUTH HELPERS
 // ============================================
 
 export const auth = {
@@ -39,7 +39,6 @@ export const auth = {
 		return { data, error };
 	},
 
-	// Simple sign out
 	signOut: async () => {
 		const { error } = await supabase.auth.signOut();
 		return { error };
@@ -57,7 +56,7 @@ export const auth = {
 };
 
 // ============================================
-// DATABASE HELPERS (EXPANDED)
+// DATABASE HELPERS
 // ============================================
 
 export const db = {
@@ -129,7 +128,6 @@ export const db = {
 			return { data, error };
 		},
 
-		// NEW: Get subject by join code
 		getByCode: async (code) => {
 			const { data, error } = await supabase
 				.from("subjects")
@@ -144,7 +142,6 @@ export const db = {
 			return { data, error };
 		},
 
-		// NEW: Get full subject details with stats
 		getDetailedById: async (subjectId) => {
 			const { data, error } = await supabase
 				.from("subjects")
@@ -187,7 +184,7 @@ export const db = {
 		},
 	},
 
-	// ENROLLMENTS
+	// ENROLLMENTS - FIXED WITH EXACT CONSTRAINT NAMES
 	enrollments: {
 		getByStudent: async (studentId) => {
 			const { data, error } = await supabase
@@ -195,7 +192,7 @@ export const db = {
 				.select(
 					`
           *,
-          subject:subjects(
+          subject:subjects!enrollments_subject_id_fkey(
             *,
             instructor:profiles!subjects_instructor_id_fkey(id, full_name, email)
           )
@@ -220,14 +217,13 @@ export const db = {
 			return { data, error };
 		},
 
-		// NEW: Check if student is enrolled
 		checkEnrollment: async (studentId, subjectId) => {
 			const { data, error } = await supabase
 				.from("enrollments")
 				.select("id")
 				.eq("student_id", studentId)
 				.eq("subject_id", subjectId)
-				.single();
+				.maybeSingle();
 			return { data, error };
 		},
 
@@ -250,7 +246,7 @@ export const db = {
 		},
 	},
 
-	// NEW: ASSIGNMENTS
+	// ASSIGNMENTS
 	assignments: {
 		getBySubject: async (subjectId) => {
 			const { data, error } = await supabase
@@ -262,25 +258,32 @@ export const db = {
 		},
 
 		getUpcomingForStudent: async (studentId, limit = 10) => {
+			// First get enrolled subject IDs
+			const { data: enrollments } = await supabase
+				.from("enrollments")
+				.select("subject_id")
+				.eq("student_id", studentId);
+
+			if (!enrollments || enrollments.length === 0) {
+				return { data: [], error: null };
+			}
+
+			const subjectIds = enrollments.map((e) => e.subject_id);
+
+			// Then get assignments for those subjects
 			const { data, error } = await supabase
 				.from("assignments")
 				.select(
 					`
           *,
-          subject:subjects(id, name, code),
-          submission:submissions!left(id, status, submitted_at)
+          subject:subjects(id, name, code)
         `
 				)
 				.gte("due_date", new Date().toISOString())
-				.in(
-					"subject_id",
-					supabase
-						.from("enrollments")
-						.select("subject_id")
-						.eq("student_id", studentId)
-				)
+				.in("subject_id", subjectIds)
 				.order("due_date", { ascending: true })
 				.limit(limit);
+
 			return { data, error };
 		},
 
@@ -326,7 +329,7 @@ export const db = {
 		},
 	},
 
-	// NEW: SUBMISSIONS
+	// SUBMISSIONS
 	submissions: {
 		getByStudent: async (studentId, assignmentId) => {
 			const { data, error } = await supabase
@@ -372,7 +375,7 @@ export const db = {
 		},
 	},
 
-	// NEW: ANNOUNCEMENTS
+	// ANNOUNCEMENTS - FIXED WITH EXACT CONSTRAINT NAMES
 	announcements: {
 		getBySubject: async (subjectId, limit = 20) => {
 			const { data, error } = await supabase
@@ -391,24 +394,30 @@ export const db = {
 		},
 
 		getRecentForStudent: async (studentId, limit = 10) => {
+			const { data: enrollments } = await supabase
+				.from("enrollments")
+				.select("subject_id")
+				.eq("student_id", studentId);
+
+			if (!enrollments || enrollments.length === 0) {
+				return { data: [], error: null };
+			}
+
+			const subjectIds = enrollments.map((e) => e.subject_id);
+
 			const { data, error } = await supabase
 				.from("announcements")
 				.select(
 					`
           *,
-          subject:subjects(id, name, code),
-          author:profiles!announcements_author_id_fkey(id, full_name)
+          subject:subjects!announcements_subject_id_fkey(id, name, code),
+          author:profiles!announcements_author_id_fkey(id, full_name, email)
         `
 				)
-				.in(
-					"subject_id",
-					supabase
-						.from("enrollments")
-						.select("subject_id")
-						.eq("student_id", studentId)
-				)
+				.in("subject_id", subjectIds)
 				.order("created_at", { ascending: false })
 				.limit(limit);
+
 			return { data, error };
 		},
 
@@ -446,7 +455,6 @@ export const db = {
 // ============================================
 
 export const subscriptions = {
-	// Subscribe to new assignments
 	subscribeToAssignments: (subjectId, callback) => {
 		return supabase
 			.channel(`assignments:${subjectId}`)
@@ -463,7 +471,6 @@ export const subscriptions = {
 			.subscribe();
 	},
 
-	// Subscribe to new announcements
 	subscribeToAnnouncements: (subjectId, callback) => {
 		return supabase
 			.channel(`announcements:${subjectId}`)
@@ -480,7 +487,6 @@ export const subscriptions = {
 			.subscribe();
 	},
 
-	// Unsubscribe from a channel
 	unsubscribe: (channel) => {
 		return supabase.removeChannel(channel);
 	},
