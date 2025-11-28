@@ -1,0 +1,85 @@
+import { useState, useEffect, useCallback } from "react";
+import { db } from "../../lib/supabase";
+
+const StudentClassroomView = ({ subjectId, onBack }) => {
+	const [activeTab, setActiveTab] = useState("stream");
+	const [subject, setSubject] = useState(null);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState(null);
+
+	const loadSubject = useCallback(async () => {
+		try {
+			setLoading(true);
+			const { data, error: subjectError } = await db.subjects.getById(
+				subjectId
+			);
+			if (subjectError) throw subjectError;
+			if (!data) throw new Error("Subject not found");
+			setSubject(data);
+		} catch (err) {
+			console.error("Subject load error:", err);
+			setError(err.message);
+		} finally {
+			setLoading(false);
+		}
+	}, [subjectId]);
+
+	useEffect(() => {
+		if (subjectId) loadSubject();
+	}, [subjectId, loadSubject]);
+
+	if (loading) {
+		return (
+			<div className="min-h-screen bg-gray-50 flex items-center justify-center">
+				<Loader2 className="w-8 h-8 text-classly-green animate-spin" />
+			</div>
+		);
+	}
+
+	if (error || !subject) {
+		return (
+			<div className="min-h-screen bg-gray-50 p-6">
+				<div className="max-w-md mx-auto mt-20">
+					<div className="bg-red-50 border border-red-200 rounded-xl p-6 flex items-start gap-3">
+						<AlertCircle className="text-red-600 shrink-0 mt-0.5" size={20} />
+						<div>
+							<h3 className="font-semibold text-red-900 mb-1">
+								Unable to load classroom
+							</h3>
+							<p className="text-sm text-red-700">
+								{error || "No subject found"}
+							</p>
+							<button
+								onClick={onBack}
+								className="mt-3 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+							>
+								Go Back
+							</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		);
+	}
+
+	return (
+		<div className="min-h-screen bg-gray-50 flex flex-col">
+			<div className="bg-linear-to-r from-classly-green to-emerald-600">
+				<ClassroomHeader subject={subject} onBack={onBack} userRole="student" />
+				<ClassroomTabs activeTab={activeTab} setActiveTab={setActiveTab} />
+			</div>
+
+			<div className="flex-1 overflow-y-auto">
+				<div className="max-w-5xl mx-auto py-6">
+					{activeTab === "stream" && <StreamTab subjectId={subject.id} />}
+					{activeTab === "modules" && <ModulesTab subjectId={subject.id} />}
+					{activeTab === "people" && (
+						<PeopleTab subjectId={subject.id} subject={subject} />
+					)}
+				</div>
+			</div>
+		</div>
+	);
+};
+
+export default StudentClassroomView;

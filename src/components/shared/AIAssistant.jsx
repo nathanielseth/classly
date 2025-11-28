@@ -66,8 +66,7 @@ const AIAssistant = () => {
 	const [messages, setMessages] = useState([
 		{
 			role: "assistant",
-			content:
-				"Hi! I'm your AI study assistant powered by Groq. I can help you summarize documents, generate practice quizzes, analyze your performance, and answer questions about your coursework. How can I help you today?",
+			content: "Hi! How can I help you today?",
 			timestamp: new Date(),
 		},
 	]);
@@ -323,9 +322,6 @@ const AIAssistant = () => {
 						<Sparkles className="text-classly-green" size={28} />
 						AI Study Assistant
 					</h1>
-					<p className="text-sm text-gray-500 mt-1">
-						Powered by Groq • Lightning-fast AI responses
-					</p>
 				</div>
 			</div>
 
@@ -512,11 +508,6 @@ const AIAssistant = () => {
 							</button>
 						)}
 					</div>
-
-					<p className="text-xs text-gray-400 mt-2 px-1">
-						<Zap size={12} className="inline mr-1" />
-						Powered by Groq AI • Supports PDF, TXT, DOC, DOCX files
-					</p>
 				</div>
 			</div>
 		</div>
