@@ -5,7 +5,7 @@ import { ClassroomHeader } from "../classroom/shared/ClassroomHeader";
 import { ClassroomTabs } from "../classroom/shared/ClassroomTabs";
 import { ConfirmDialog } from "../classroom/shared/ConfirmDialog";
 import { InstructorStreamTab } from "./tabs/InstructorStreamTab";
-import { InstructorModulesTab } from "./tabs/InstructorModulesTab";
+import { InstructorMaterialsTab } from "./tabs/InstructorMaterialsTab";
 import { InstructorPeopleTab } from "./tabs/InstructorPeopleTab";
 import { EditSubjectModal } from "../classroom/modal/EditSubjectModal";
 
@@ -113,7 +113,7 @@ const InstructorClassroomView = ({ userId, userRole, subjectId, onBack }) => {
 						<InstructorStreamTab subjectId={subject.id} userId={userId} />
 					)}
 					{activeTab === "modules" && (
-						<InstructorModulesTab subjectId={subject.id} />
+						<InstructorMaterialsTab subjectId={subject.id} />
 					)}
 					{activeTab === "people" && (
 						<InstructorPeopleTab subjectId={subject.id} subject={subject} />

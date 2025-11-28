@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { StudentCard } from "../../classroom/shared/StudentCard";
 import { db } from "../../../lib/supabase";
+import { Loader2 } from "lucide-react";
 
 export const InstructorPeopleTab = ({ subjectId, subject }) => {
 	const [enrollments, setEnrollments] = useState([]);

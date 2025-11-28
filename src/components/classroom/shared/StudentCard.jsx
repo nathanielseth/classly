@@ -1,3 +1,5 @@
+import { Loader2, AlertCircle, Trash2 } from "lucide-react";
+
 export const StudentCard = ({ student, userRole, onMessage, onRemove }) => {
 	return (
 		<div className="p-4 hover:bg-gray-50 transition-colors">

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Pin, MoreVertical, MessageSquare } from "lucide-react";
+import { Pin, MoreVertical, MessageSquare, Edit2, Trash2 } from "lucide-react";
 
 export const AnnouncementCard = ({
 	announcement,

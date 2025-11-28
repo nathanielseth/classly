@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Loader2, Send, Paperclip, ImageIcon, Plus } from "lucide-react";
+import { Loader2, Send, Paperclip, ImageIcon } from "lucide-react";
 import { db } from "../../../lib/supabase";
 import { AnnouncementCard } from "../../classroom/shared/AnnouncementCard";
 import { EmptyState } from "../../classroom/shared/EmptyState";
