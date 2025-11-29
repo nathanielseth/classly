@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
 	Clock,
 	MoreHorizontal,
@@ -7,7 +7,6 @@ import {
 	Plus,
 	AlertCircle,
 	BookOpen,
-	Calendar,
 	Loader2,
 	X,
 	Check,
@@ -20,60 +19,77 @@ const StudentDashboard = ({ onNavigate, userId }) => {
 	const [joinLoading, setJoinLoading] = useState(false);
 	const [joinError, setJoinError] = useState("");
 
-	// Data states
-	const [enrollments, setEnrollments] = useState([]);
-	const [upcomingAssignments, setUpcomingAssignments] = useState([]);
-	const [loading, setLoading] = useState(true);
+	const [initialLoading, setInitialLoading] = useState(true);
+	const [refreshing, setRefreshing] = useState(false);
 	const [error, setError] = useState(null);
 
-	// ============================================
-	// FETCH DATA
-	// ============================================
+	const [enrollments, setEnrollments] = useState([]);
+	const [upcomingAssignments, setUpcomingAssignments] = useState([]);
+
+	const loadDashboardData = useCallback(
+		async (isBackgroundRefresh = false) => {
+			try {
+				if (!isBackgroundRefresh) {
+					setInitialLoading(true);
+				} else {
+					setRefreshing(true);
+				}
+
+				setError(null);
+
+				const { data: enrollmentsData, error: enrollError } =
+					await db.enrollments.getByStudent(userId);
+
+				if (enrollError) {
+					console.error("Enrollments error:", enrollError);
+				} else {
+					setEnrollments(enrollmentsData || []);
+				}
+
+				try {
+					const { data: assignmentsData, error: assignError } =
+						await db.assignments.getUpcomingForStudent(userId, 5);
+
+					if (assignError) {
+						console.warn("Assignments error:", assignError);
+						setUpcomingAssignments([]);
+					} else {
+						setUpcomingAssignments(assignmentsData || []);
+					}
+				} catch (assignErr) {
+					console.warn("Assignments feature not available:", assignErr);
+					setUpcomingAssignments([]);
+				}
+			} catch (err) {
+				console.error("Dashboard load error:", err);
+				if (!isBackgroundRefresh) {
+					setError(err.message || "Failed to load dashboard data");
+				}
+			} finally {
+				setInitialLoading(false);
+				setRefreshing(false);
+			}
+		},
+		[userId]
+	);
+
 	useEffect(() => {
 		if (userId) {
-			loadDashboardData();
+			loadDashboardData(false);
 		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [userId]);
+	}, [userId, loadDashboardData]);
 
-	const loadDashboardData = async () => {
-		try {
-			setLoading(true);
-			setError(null);
-
-			// Fetch enrolled subjects
-			const { data: enrollmentsData, error: enrollError } =
-				await db.enrollments.getByStudent(userId);
-
-			if (enrollError) {
-				console.error("Enrollments error:", enrollError);
-				// Continue anyway - show empty state
+	useEffect(() => {
+		const handleVisibilityChange = () => {
+			if (document.visibilityState === "visible" && userId && !initialLoading) {
+				loadDashboardData(true);
 			}
+		};
 
-			setEnrollments(enrollmentsData || []);
-
-			// Fetch upcoming assignments (might fail if table doesn't exist)
-			try {
-				const { data: assignmentsData, error: assignError } =
-					await db.assignments.getUpcomingForStudent(userId, 5);
-
-				if (assignError) {
-					console.warn("Assignments table not ready:", assignError);
-					setUpcomingAssignments([]);
-				} else {
-					setUpcomingAssignments(assignmentsData || []);
-				}
-			} catch (assignErr) {
-				console.warn("Assignments feature not available yet:", assignErr);
-				setUpcomingAssignments([]);
-			}
-		} catch (err) {
-			console.error("Dashboard load error:", err);
-			setError(err.message || "Failed to load dashboard data");
-		} finally {
-			setLoading(false);
-		}
-	};
+		document.addEventListener("visibilitychange", handleVisibilityChange);
+		return () =>
+			document.removeEventListener("visibilitychange", handleVisibilityChange);
+	}, [userId, initialLoading, loadDashboardData]);
 
 	// ============================================
 	// JOIN SUBJECT
@@ -88,7 +104,6 @@ const StudentDashboard = ({ onNavigate, userId }) => {
 			setJoinLoading(true);
 			setJoinError("");
 
-			// Find subject by code
 			const { data: subject, error: subjectError } =
 				await db.subjects.getByCode(joinCode.trim());
 
@@ -98,7 +113,6 @@ const StudentDashboard = ({ onNavigate, userId }) => {
 				return;
 			}
 
-			// Check if already enrolled
 			const { data: existingEnrollment } = await db.enrollments.checkEnrollment(
 				userId,
 				subject.id
@@ -110,7 +124,6 @@ const StudentDashboard = ({ onNavigate, userId }) => {
 				return;
 			}
 
-			// Enroll student
 			const { error: enrollError } = await db.enrollments.enroll(
 				userId,
 				subject.id
@@ -118,8 +131,7 @@ const StudentDashboard = ({ onNavigate, userId }) => {
 
 			if (enrollError) throw enrollError;
 
-			// Success! Reload dashboard
-			await loadDashboardData();
+			await loadDashboardData(true);
 			setJoinModal(false);
 			setJoinCode("");
 		} catch (err) {
@@ -142,21 +154,15 @@ const StudentDashboard = ({ onNavigate, userId }) => {
 
 		try {
 			const { error } = await db.enrollments.unenroll(userId, subjectId);
-
 			if (error) throw error;
-
-			// Reload dashboard
-			await loadDashboardData();
+			await loadDashboardData(true);
 		} catch (err) {
 			console.error("Unenroll error:", err);
 			alert(`Failed to unenroll: ${err.message}`);
 		}
 	};
 
-	// ============================================
-	// LOADING STATE
-	// ============================================
-	if (loading) {
+	if (initialLoading && enrollments.length === 0) {
 		return (
 			<div className="max-w-7xl mx-auto">
 				<LoadingSkeleton />
@@ -164,10 +170,7 @@ const StudentDashboard = ({ onNavigate, userId }) => {
 		);
 	}
 
-	// ============================================
-	// ERROR STATE
-	// ============================================
-	if (error) {
+	if (error && enrollments.length === 0) {
 		return (
 			<div className="max-w-7xl mx-auto">
 				<div className="bg-red-50 border border-red-200 rounded-xl p-6 flex items-start gap-3">
@@ -178,7 +181,7 @@ const StudentDashboard = ({ onNavigate, userId }) => {
 						</h3>
 						<p className="text-sm text-red-700">{error}</p>
 						<button
-							onClick={loadDashboardData}
+							onClick={() => loadDashboardData(false)}
 							className="mt-3 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
 						>
 							Try Again
@@ -194,6 +197,13 @@ const StudentDashboard = ({ onNavigate, userId }) => {
 	// ============================================
 	return (
 		<div className="max-w-7xl mx-auto space-y-6">
+			{refreshing && (
+				<div className="fixed top-20 right-6 bg-white shadow-lg rounded-full px-4 py-2 flex items-center gap-2 z-50 animate-in slide-in-from-right duration-200">
+					<Loader2 size={16} className="animate-spin text-classly-green" />
+					<span className="text-sm text-gray-600">Updating...</span>
+				</div>
+			)}
+
 			{/* Upcoming Assignments Banner */}
 			{upcomingAssignments.length > 0 ? (
 				<div className="flex items-center gap-3 flex-wrap">
@@ -466,7 +476,6 @@ const SubjectCard = ({ enrollment, onNavigate, onUnenroll }) => {
 
 	const currentColors = getColorClasses(accentColor);
 
-	// Update enrollment color (could persist to DB later)
 	const handleColorChange = async (newColor) => {
 		setAccentColor(newColor);
 		// TODO: Persist to database
@@ -478,7 +487,6 @@ const SubjectCard = ({ enrollment, onNavigate, onUnenroll }) => {
 			onClick={() => onNavigate(subject.id)}
 			className={`bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-lg transition-all duration-300 cursor-pointer group relative overflow-hidden border-t-4 ${currentColors.border}`}
 		>
-			{/* Header: Code Badge & Menu */}
 			<div className="flex justify-between items-start mb-4">
 				<span
 					className={`text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wide ${currentColors.badge}`}
@@ -496,7 +504,6 @@ const SubjectCard = ({ enrollment, onNavigate, onUnenroll }) => {
 						<MoreHorizontal size={18} />
 					</button>
 
-					{/* Dropdown Menu */}
 					{menuOpen && (
 						<>
 							<div
@@ -517,7 +524,6 @@ const SubjectCard = ({ enrollment, onNavigate, onUnenroll }) => {
 									Change Color
 								</button>
 
-								{/* Color Picker Submenu */}
 								{colorPickerOpen && (
 									<div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
 										<div className="grid grid-cols-6 gap-2">
@@ -563,13 +569,11 @@ const SubjectCard = ({ enrollment, onNavigate, onUnenroll }) => {
 				</div>
 			</div>
 
-			{/* Title - Remove onClick here since parent div has it */}
 			<div>
 				<h3 className="text-lg font-bold text-gray-900 mb-6 group-hover:text-classly-green transition-colors line-clamp-2">
 					{subject.name}
 				</h3>
 
-				{/* Footer: Instructor & Meta */}
 				<div className="flex items-center gap-3 pt-4 border-t border-gray-50">
 					<img
 						src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${
@@ -598,19 +602,16 @@ const SubjectCard = ({ enrollment, onNavigate, onUnenroll }) => {
 const LoadingSkeleton = () => {
 	return (
 		<div className="space-y-6 animate-pulse">
-			{/* Banner skeleton */}
 			<div className="flex gap-3">
 				<div className="h-10 w-32 bg-gray-200 rounded-lg"></div>
 				<div className="h-10 w-48 bg-gray-200 rounded-lg"></div>
 			</div>
 
-			{/* Header skeleton */}
 			<div className="flex justify-between items-center">
 				<div className="h-8 w-40 bg-gray-200 rounded"></div>
 				<div className="h-10 w-32 bg-gray-200 rounded-lg"></div>
 			</div>
 
-			{/* Cards skeleton */}
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
 				{[1, 2, 3].map((i) => (
 					<div

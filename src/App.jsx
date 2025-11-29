@@ -23,7 +23,6 @@ function App() {
 	// AUTH STATE MANAGEMENT
 	// ============================================
 	useEffect(() => {
-		// Get initial session
 		supabase.auth.getSession().then(({ data: { session } }) => {
 			setSession(session);
 			if (session?.user) {
@@ -33,15 +32,14 @@ function App() {
 			}
 		});
 
-		// Listen for auth changes
 		const {
 			data: { subscription },
-		} = supabase.auth.onAuthStateChange(async (event, session) => {
+		} = supabase.auth.onAuthStateChange((event, session) => {
 			console.log("Auth event:", event);
 			setSession(session);
 
 			if (event === "SIGNED_IN" && session?.user) {
-				await loadUserProfile(session.user.id);
+				loadUserProfile(session.user.id);
 			} else if (event === "SIGNED_OUT") {
 				setUserRole(null);
 				setProfile(null);
@@ -204,6 +202,8 @@ function App() {
 						<>
 							{userRole === "student" && (
 								<StudentClassroomView
+									userId={session.user.id}
+									userRole={userRole}
 									subjectId={selectedSubjectId}
 									onBack={() => setCurrentView("dashboard")}
 								/>

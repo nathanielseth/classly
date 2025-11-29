@@ -17,10 +17,11 @@ import { db } from "../../lib/supabase";
 const InstructorDashboard = ({ onNavigate, userId }) => {
 	const [createModal, setCreateModal] = useState(false);
 	const [subjects, setSubjects] = useState([]);
-	const [loading, setLoading] = useState(true);
+
+	const [initialLoading, setInitialLoading] = useState(true);
+	const [refreshing, setRefreshing] = useState(false);
 	const [error, setError] = useState(null);
 
-	// Form state
 	const [formData, setFormData] = useState({
 		code: "",
 		name: "",
@@ -31,49 +32,73 @@ const InstructorDashboard = ({ onNavigate, userId }) => {
 	const [formLoading, setFormLoading] = useState(false);
 	const [formError, setFormError] = useState("");
 
-	const loadSubjects = useCallback(async () => {
-		try {
-			setLoading(true);
-			setError(null);
+	const loadSubjects = useCallback(
+		async (isBackgroundRefresh = false) => {
+			try {
+				if (!isBackgroundRefresh) {
+					setInitialLoading(true);
+				} else {
+					setRefreshing(true);
+				}
 
-			const { data, error: fetchError } = await db.subjects.getByInstructor(
-				userId
-			);
+				setError(null);
 
-			if (fetchError) throw fetchError;
+				const { data, error: fetchError } = await db.subjects.getByInstructor(
+					userId
+				);
 
-			// Fetch enrollment counts for each subject
-			const subjectsWithStats = await Promise.all(
-				(data || []).map(async (subject) => {
-					const [enrollments, assignments, announcements] = await Promise.all([
-						db.enrollments.getBySubject(subject.id),
-						db.assignments.getBySubject(subject.id),
-						db.announcements.getBySubject(subject.id, 999),
-					]);
+				if (fetchError) throw fetchError;
 
-					return {
-						...subject,
-						studentCount: enrollments.data?.length || 0,
-						assignmentCount: assignments.data?.length || 0,
-						announcementCount: announcements.data?.length || 0,
-					};
-				})
-			);
+				const subjectsWithStats = await Promise.all(
+					(data || []).map(async (subject) => {
+						const [enrollments, assignments, announcements] = await Promise.all(
+							[
+								db.enrollments.getBySubject(subject.id),
+								db.assignments.getBySubject(subject.id),
+								db.announcements.getBySubject(subject.id, 999),
+							]
+						);
 
-			setSubjects(subjectsWithStats);
-		} catch (err) {
-			console.error("Load subjects error:", err);
-			setError(err.message || "Failed to load subjects");
-		} finally {
-			setLoading(false);
-		}
-	}, [userId]);
+						return {
+							...subject,
+							studentCount: enrollments.data?.length || 0,
+							assignmentCount: assignments.data?.length || 0,
+							announcementCount: announcements.data?.length || 0,
+						};
+					})
+				);
+
+				setSubjects(subjectsWithStats);
+			} catch (err) {
+				console.error("Load subjects error:", err);
+				if (!isBackgroundRefresh) {
+					setError(err.message || "Failed to load subjects");
+				}
+			} finally {
+				setInitialLoading(false);
+				setRefreshing(false);
+			}
+		},
+		[userId]
+	);
 
 	useEffect(() => {
 		if (userId) {
-			loadSubjects();
+			loadSubjects(false);
 		}
 	}, [userId, loadSubjects]);
+
+	useEffect(() => {
+		const handleVisibilityChange = () => {
+			if (document.visibilityState === "visible" && userId && !initialLoading) {
+				loadSubjects(true);
+			}
+		};
+
+		document.addEventListener("visibilitychange", handleVisibilityChange);
+		return () =>
+			document.removeEventListener("visibilitychange", handleVisibilityChange);
+	}, [userId, initialLoading, loadSubjects]);
 
 	const generateCode = () => {
 		const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -112,7 +137,7 @@ const InstructorDashboard = ({ onNavigate, userId }) => {
 				throw createError;
 			}
 
-			await loadSubjects();
+			await loadSubjects(true);
 			setCreateModal(false);
 			setFormData({
 				code: "",
@@ -140,14 +165,14 @@ const InstructorDashboard = ({ onNavigate, userId }) => {
 			const { error: deleteError } = await db.subjects.delete(subjectId);
 			if (deleteError) throw deleteError;
 
-			await loadSubjects();
+			await loadSubjects(true);
 		} catch (err) {
 			console.error("Delete subject error:", err);
 			alert(`Failed to delete subject: ${err.message}`);
 		}
 	};
 
-	if (loading) {
+	if (initialLoading && subjects.length === 0) {
 		return (
 			<div className="max-w-7xl mx-auto">
 				<LoadingSkeleton />
@@ -155,7 +180,7 @@ const InstructorDashboard = ({ onNavigate, userId }) => {
 		);
 	}
 
-	if (error) {
+	if (error && subjects.length === 0) {
 		return (
 			<div className="max-w-7xl mx-auto">
 				<div className="bg-red-50 border border-red-200 rounded-xl p-6 flex items-start gap-3">
@@ -166,7 +191,7 @@ const InstructorDashboard = ({ onNavigate, userId }) => {
 						</h3>
 						<p className="text-sm text-red-700">{error}</p>
 						<button
-							onClick={loadSubjects}
+							onClick={() => loadSubjects(false)}
 							className="mt-3 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
 						>
 							Try Again
@@ -179,6 +204,14 @@ const InstructorDashboard = ({ onNavigate, userId }) => {
 
 	return (
 		<div className="max-w-7xl mx-auto space-y-6">
+			{/* Background Refresh Indicator */}
+			{refreshing && (
+				<div className="fixed top-20 right-6 bg-white shadow-lg rounded-full px-4 py-2 flex items-center gap-2 z-50 animate-in slide-in-from-right duration-200">
+					<Loader2 size={16} className="animate-spin text-classly-green" />
+					<span className="text-sm text-gray-600">Updating...</span>
+				</div>
+			)}
+
 			<div className="flex items-center justify-between">
 				<div>
 					<h1 className="text-2xl font-bold text-gray-900">Your Subjects</h1>
