@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from "react";
+import { Loader2 } from "lucide-react";
 import { db } from "../../../lib/supabase";
+import { StudentCard } from "../../classroom/shared/StudentCard";
 
-export const PeopleTab = ({ subjectId, subject }) => {
+export const StudentPeopleTab = ({ subjectId, subject }) => {
 	const [enrollments, setEnrollments] = useState([]);
 	const [loading, setLoading] = useState(true);
 
@@ -32,7 +34,7 @@ export const PeopleTab = ({ subjectId, subject }) => {
 
 	return (
 		<div className="px-6 space-y-6">
-			{/* Instructor */}
+			{/* Instructor Section */}
 			<div>
 				<h2 className="text-lg font-semibold text-gray-900 mb-3">Instructor</h2>
 				<div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
@@ -71,7 +73,7 @@ export const PeopleTab = ({ subjectId, subject }) => {
 				</div>
 			</div>
 
-			{/* Classmates */}
+			{/* Classmates Section */}
 			<div>
 				<h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
 					Classmates

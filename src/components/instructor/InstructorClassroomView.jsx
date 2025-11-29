@@ -112,7 +112,7 @@ const InstructorClassroomView = ({ userId, userRole, subjectId, onBack }) => {
 					{activeTab === "stream" && (
 						<InstructorStreamTab subjectId={subject.id} userId={userId} />
 					)}
-					{activeTab === "modules" && (
+					{activeTab === "materials" && (
 						<InstructorMaterialsTab subjectId={subject.id} />
 					)}
 					{activeTab === "people" && (

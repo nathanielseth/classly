@@ -34,6 +34,7 @@ export const InstructorMaterialsTab = ({ subjectId, onNavigateToMaterial }) => {
 	// Load materials and topics
 	useEffect(() => {
 		loadData();
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [subjectId]);
 
 	const loadData = async () => {

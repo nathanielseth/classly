@@ -1,111 +1,4 @@
-// src/lib/supabase.js
-import { createClient } from "@supabase/supabase-js";
-
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-	auth: {
-		autoRefreshToken: true,
-		persistSession: true,
-		detectSessionInUrl: true,
-	},
-});
-
-// ============================================
-// AUTH HELPERS
-// ============================================
-
-export const auth = {
-	signUp: async ({ email, password, fullName, role }) => {
-		const { data, error } = await supabase.auth.signUp({
-			email,
-			password,
-			options: {
-				data: {
-					full_name: fullName,
-					role: role,
-				},
-			},
-		});
-		return { data, error };
-	},
-
-	signIn: async ({ email, password }) => {
-		const { data, error } = await supabase.auth.signInWithPassword({
-			email,
-			password,
-		});
-		return { data, error };
-	},
-
-	signOut: async () => {
-		const { error } = await supabase.auth.signOut();
-		return { error };
-	},
-
-	getSession: async () => {
-		const { data, error } = await supabase.auth.getSession();
-		return { data, error };
-	},
-
-	getUser: async () => {
-		const { data, error } = await supabase.auth.getUser();
-		return { data, error };
-	},
-};
-
-// ============================================
-// STORAGE HELPERS
-// ============================================
-
-export const storage = {
-	upload: async (bucket, path, file, options = {}) => {
-		const { data, error } = await supabase.storage
-			.from(bucket)
-			.upload(path, file, {
-				cacheControl: "3600",
-				upsert: false,
-				...options,
-			});
-		return { data, error };
-	},
-
-	getPublicUrl: (bucket, path) => {
-		const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-		return data.publicUrl;
-	},
-
-	delete: async (bucket, paths) => {
-		const { data, error } = await supabase.storage
-			.from(bucket)
-			.remove(Array.isArray(paths) ? paths : [paths]);
-		return { data, error };
-	},
-
-	list: async (bucket, path = "", options = {}) => {
-		const { data, error } = await supabase.storage
-			.from(bucket)
-			.list(path, options);
-		return { data, error };
-	},
-
-	download: async (bucket, path) => {
-		const { data, error } = await supabase.storage.from(bucket).download(path);
-		return { data, error };
-	},
-
-	createSignedUrl: async (bucket, path, expiresIn = 3600) => {
-		const { data, error } = await supabase.storage
-			.from(bucket)
-			.createSignedUrl(path, expiresIn);
-		return { data, error };
-	},
-};
-
-// ============================================
-// DATABASE HELPERS
-// ============================================
+import { supabase } from "./client";
 
 export const db = {
 	// PROFILES
@@ -294,7 +187,7 @@ export const db = {
 		},
 	},
 
-	// TOPICS - NEW!
+	// TOPICS
 	topics: {
 		getBySubject: async (subjectId) => {
 			const { data, error } = await supabase
@@ -353,7 +246,7 @@ export const db = {
 		},
 	},
 
-	// ASSIGNMENTS (Course Materials) - ENHANCED!
+	// ASSIGNMENTS (Course Materials)
 	assignments: {
 		getBySubject: async (subjectId) => {
 			const { data, error } = await supabase
@@ -506,7 +399,7 @@ export const db = {
 		},
 	},
 
-	// SUBMISSIONS - ENHANCED!
+	// SUBMISSIONS
 	submissions: {
 		getByStudent: async (studentId, assignmentId) => {
 			const { data, error } = await supabase
@@ -689,7 +582,7 @@ export const db = {
 		},
 	},
 
-	// MATERIAL COMMENTS - NEW!
+	// MATERIAL COMMENTS
 	materialComments: {
 		getByMaterial: async (materialId) => {
 			const { data, error } = await supabase
@@ -843,79 +736,5 @@ export const db = {
 				.eq("id", id);
 			return { error };
 		},
-	},
-};
-
-// ============================================
-// REAL-TIME SUBSCRIPTIONS
-// ============================================
-
-export const subscriptions = {
-	subscribeToAssignments: (subjectId, callback) => {
-		return supabase
-			.channel(`assignments:${subjectId}`)
-			.on(
-				"postgres_changes",
-				{
-					event: "*",
-					schema: "public",
-					table: "assignments",
-					filter: `subject_id=eq.${subjectId}`,
-				},
-				callback
-			)
-			.subscribe();
-	},
-
-	subscribeToAnnouncements: (subjectId, callback) => {
-		return supabase
-			.channel(`announcements:${subjectId}`)
-			.on(
-				"postgres_changes",
-				{
-					event: "*",
-					schema: "public",
-					table: "announcements",
-					filter: `subject_id=eq.${subjectId}`,
-				},
-				callback
-			)
-			.subscribe();
-	},
-
-	subscribeToComments: (materialId, callback) => {
-		return supabase
-			.channel(`comments:${materialId}`)
-			.on(
-				"postgres_changes",
-				{
-					event: "*",
-					schema: "public",
-					table: "material_comments",
-					filter: `assignment_id=eq.${materialId}`,
-				},
-				callback
-			)
-			.subscribe();
-	},
-
-	subscribeToSubmissions: (assignmentId, callback) => {
-		return supabase
-			.channel(`submissions:${assignmentId}`)
-			.on(
-				"postgres_changes",
-				{
-					event: "*",
-					schema: "public",
-					table: "submissions",
-					filter: `assignment_id=eq.${assignmentId}`,
-				},
-				callback
-			)
-			.subscribe();
-	},
-
-	unsubscribe: (channel) => {
-		return supabase.removeChannel(channel);
 	},
 };

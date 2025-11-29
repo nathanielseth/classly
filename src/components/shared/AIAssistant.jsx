@@ -236,7 +236,7 @@ const AIAssistant = () => {
 						return newMessages;
 					});
 				}
-			}, 25);
+			}, 15);
 
 			await getChatCompletionStream(conversationHistory, (chunk) => {
 				if (!stopStreamingRef.current) {

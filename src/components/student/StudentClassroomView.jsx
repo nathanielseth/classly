@@ -1,7 +1,13 @@
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { db } from "../../lib/supabase";
+import { ClassroomHeader } from "../classroom/shared/ClassroomHeader";
+import { ClassroomTabs } from "../classroom/shared/ClassroomTabs";
+import { StudentStreamTab } from "./tabs/StudentStreamTab";
+import { StudentMaterialsTab } from "./tabs/StudentMaterialsTab";
+import { StudentPeopleTab } from "./tabs/StudentPeopleTab";
 
-const StudentClassroomView = ({ subjectId, onBack }) => {
+const StudentClassroomView = ({ userId, userRole, subjectId, onBack }) => {
 	const [activeTab, setActiveTab] = useState("stream");
 	const [subject, setSubject] = useState(null);
 	const [loading, setLoading] = useState(true);
@@ -14,7 +20,6 @@ const StudentClassroomView = ({ subjectId, onBack }) => {
 				subjectId
 			);
 			if (subjectError) throw subjectError;
-			if (!data) throw new Error("Subject not found");
 			setSubject(data);
 		} catch (err) {
 			console.error("Subject load error:", err);
@@ -65,16 +70,24 @@ const StudentClassroomView = ({ subjectId, onBack }) => {
 	return (
 		<div className="min-h-screen bg-gray-50 flex flex-col">
 			<div className="bg-linear-to-r from-classly-green to-emerald-600">
-				<ClassroomHeader subject={subject} onBack={onBack} userRole="student" />
+				<ClassroomHeader
+					subject={subject}
+					onBack={onBack}
+					userRole={userRole}
+				/>
 				<ClassroomTabs activeTab={activeTab} setActiveTab={setActiveTab} />
 			</div>
 
 			<div className="flex-1 overflow-y-auto">
 				<div className="max-w-5xl mx-auto py-6">
-					{activeTab === "stream" && <StreamTab subjectId={subject.id} />}
-					{activeTab === "modules" && <ModulesTab subjectId={subject.id} />}
+					{activeTab === "stream" && (
+						<StudentStreamTab subjectId={subject.id} userId={userId} />
+					)}
+					{activeTab === "materials" && (
+						<StudentMaterialsTab subjectId={subject.id} />
+					)}
 					{activeTab === "people" && (
-						<PeopleTab subjectId={subject.id} subject={subject} />
+						<StudentPeopleTab subjectId={subject.id} subject={subject} />
 					)}
 				</div>
 			</div>

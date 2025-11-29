@@ -1,5 +1,5 @@
 export const ClassroomTabs = ({ activeTab, setActiveTab }) => {
-	const tabs = ["stream", "modules", "people"];
+	const tabs = ["stream", "materials", "people"];
 
 	return (
 		<div className="flex gap-1 border-b border-white/20 px-6 max-w-7xl mx-auto">

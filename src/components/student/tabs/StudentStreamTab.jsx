@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
+import { Loader2, MessageSquare } from "lucide-react";
 import { db } from "../../../lib/supabase";
+import { AnnouncementCard } from "../../classroom/shared/AnnouncementCard";
+import { EmptyState } from "../../classroom/shared/EmptyState";
 
-export const StreamTab = ({ subjectId }) => {
+export const StudentStreamTab = ({ subjectId }) => {
 	const [announcements, setAnnouncements] = useState([]);
 	const [loading, setLoading] = useState(true);
 
@@ -32,21 +35,21 @@ export const StreamTab = ({ subjectId }) => {
 
 	return (
 		<div className="px-6 space-y-4">
-			{announcements.map((announcement) => (
-				<AnnouncementCard
-					key={announcement.id}
-					announcement={announcement}
-					userRole="student"
-					onComment={() => {}}
-				/>
-			))}
-
-			{announcements.length === 0 && (
+			{announcements.length === 0 ? (
 				<EmptyState
-					// icon={MessageSquare}
+					icon={MessageSquare}
 					title="No posts yet"
-					description="Check back later for announcements"
+					description="Check back later for announcements from your instructor"
 				/>
+			) : (
+				announcements.map((announcement) => (
+					<AnnouncementCard
+						key={announcement.id}
+						announcement={announcement}
+						userRole="student"
+						onComment={() => {}}
+					/>
+				))
 			)}
 		</div>
 	);
