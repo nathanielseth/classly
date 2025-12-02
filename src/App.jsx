@@ -6,7 +6,7 @@ import InstructorDashboard from "./components/instructor/InstructorDashboard";
 import StudentClassroomView from "./components/student/StudentClassroomView";
 import InstructorClassroomView from "./components/instructor/InstructorClassroomView";
 import CalendarView from "./components/student/CalendarView";
-import AIAssistant from "./components/shared/AIAssistant";
+import AIAssistant from "./components/ai/AIAssistant";
 import AuthPage from "./components/shared/AuthPage";
 import { supabase, auth, db } from "./lib/supabase";
 
@@ -138,7 +138,6 @@ function App() {
 			<div className="h-screen w-full flex items-center justify-center bg-[#F9FAFB]">
 				<div className="flex flex-col items-center gap-3">
 					<div className="w-12 h-12 border-4 border-classly-green border-t-transparent rounded-full animate-spin" />
-					<p className="text-gray-500 text-sm">Loading...</p>
 				</div>
 			</div>
 		);

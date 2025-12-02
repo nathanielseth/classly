@@ -48,7 +48,7 @@ const StudentDashboard = ({ onNavigate, userId }) => {
 
 				try {
 					const { data: assignmentsData, error: assignError } =
-						await db.assignments.getUpcomingForStudent(userId, 5);
+						await db.materials.getUpcomingForStudent(userId, 5);
 
 					if (assignError) {
 						console.warn("Assignments error:", assignError);

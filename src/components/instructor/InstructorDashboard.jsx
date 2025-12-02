@@ -51,10 +51,10 @@ const InstructorDashboard = ({ onNavigate, userId }) => {
 
 				const subjectsWithStats = await Promise.all(
 					(data || []).map(async (subject) => {
-						const [enrollments, assignments, announcements] = await Promise.all(
+						const [enrollments, materials, announcements] = await Promise.all(
 							[
 								db.enrollments.getBySubject(subject.id),
-								db.assignments.getBySubject(subject.id),
+								db.materials.getBySubject(subject.id),
 								db.announcements.getBySubject(subject.id, 999),
 							]
 						);
@@ -62,7 +62,7 @@ const InstructorDashboard = ({ onNavigate, userId }) => {
 						return {
 							...subject,
 							studentCount: enrollments.data?.length || 0,
-							assignmentCount: assignments.data?.length || 0,
+							assignmentCount: materials.data?.length || 0,
 							announcementCount: announcements.data?.length || 0,
 						};
 					})
@@ -156,7 +156,7 @@ const InstructorDashboard = ({ onNavigate, userId }) => {
 
 	const handleDeleteSubject = async (subjectId, subjectName) => {
 		const confirmed = window.confirm(
-			`Are you sure you want to delete "${subjectName}"? This will remove all assignments, announcements, and enrollments. This action cannot be undone.`
+			`Are you sure you want to delete "${subjectName}"? This will remove all materials, announcements, and enrollments. This action cannot be undone.`
 		);
 
 		if (!confirmed) return;
@@ -216,7 +216,7 @@ const InstructorDashboard = ({ onNavigate, userId }) => {
 				<div>
 					<h1 className="text-2xl font-bold text-gray-900">Your Subjects</h1>
 					<p className="text-sm text-gray-500 mt-1">
-						Manage your classes and assignments
+						Manage your classes and materials
 					</p>
 				</div>
 				<button
@@ -240,7 +240,7 @@ const InstructorDashboard = ({ onNavigate, userId }) => {
 						No subjects yet
 					</h3>
 					<p className="text-sm text-gray-500 mb-4 max-w-sm mx-auto">
-						Create your first subject to start managing classes and assignments
+						Create your first subject to start managing classes and materials
 					</p>
 					<button
 						onClick={() => {

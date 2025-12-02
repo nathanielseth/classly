@@ -91,7 +91,7 @@ export const db = {
           *,
           instructor:profiles!subjects_instructor_id_fkey(id, full_name, email),
           enrollments:enrollments(count),
-          assignments:assignments(count),
+          materials:materials(count),
           announcements:announcements(count)
         `
 				)
@@ -230,7 +230,7 @@ export const db = {
 		delete: async (id) => {
 			// Before deleting, set all materials in this topic to topic_id = null
 			await supabase
-				.from("assignments")
+				.from("materials")
 				.update({ topic_id: null })
 				.eq("topic_id", id);
 
@@ -246,11 +246,11 @@ export const db = {
 		},
 	},
 
-	// ASSIGNMENTS (Course Materials)
-	assignments: {
+	// materials (Course Materials)
+	materials: {
 		getBySubject: async (subjectId) => {
 			const { data, error } = await supabase
-				.from("assignments")
+				.from("materials")
 				.select("*")
 				.eq("subject_id", subjectId)
 				.order("created_at", { ascending: false });
@@ -260,7 +260,7 @@ export const db = {
 		// Get materials with student's submission status
 		getBySubjectWithSubmissions: async (subjectId, studentId) => {
 			const { data, error } = await supabase
-				.from("assignments")
+				.from("materials")
 				.select(
 					`
           *,
@@ -292,7 +292,7 @@ export const db = {
 			const subjectIds = enrollments.map((e) => e.subject_id);
 
 			const { data, error } = await supabase
-				.from("assignments")
+				.from("materials")
 				.select(
 					`
           *,
@@ -309,7 +309,7 @@ export const db = {
 
 		getById: async (id) => {
 			const { data, error } = await supabase
-				.from("assignments")
+				.from("materials")
 				.select(
 					`
           *,
@@ -324,7 +324,7 @@ export const db = {
 		// Get material with student's submission
 		getByIdWithSubmission: async (materialId, studentId) => {
 			const { data, error } = await supabase
-				.from("assignments")
+				.from("materials")
 				.select(
 					`
           *,
@@ -347,7 +347,7 @@ export const db = {
 
 		create: async (assignment) => {
 			const { data, error } = await supabase
-				.from("assignments")
+				.from("materials")
 				.insert(assignment)
 				.select()
 				.single();
@@ -356,7 +356,7 @@ export const db = {
 
 		update: async (id, updates) => {
 			const { data, error } = await supabase
-				.from("assignments")
+				.from("materials")
 				.update(updates)
 				.eq("id", id)
 				.select()
@@ -366,7 +366,7 @@ export const db = {
 
 		delete: async (id) => {
 			const { error } = await supabase
-				.from("assignments")
+				.from("materials")
 				.delete()
 				.eq("id", id);
 			return { error };
@@ -494,7 +494,7 @@ export const db = {
 
 			// Get assignment to check due date
 			const { data: assignment } = await supabase
-				.from("assignments")
+				.from("materials")
 				.select("due_date")
 				.eq("id", assignmentId)
 				.single();

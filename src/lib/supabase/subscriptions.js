@@ -1,15 +1,15 @@
 import { supabase } from "./client";
 
 export const subscriptions = {
-	subscribeToAssignments: (subjectId, callback) => {
+	subscribeTomaterials: (subjectId, callback) => {
 		return supabase
-			.channel(`assignments:${subjectId}`)
+			.channel(`materials:${subjectId}`)
 			.on(
 				"postgres_changes",
 				{
 					event: "*",
 					schema: "public",
-					table: "assignments",
+					table: "materials",
 					filter: `subject_id=eq.${subjectId}`,
 				},
 				callback

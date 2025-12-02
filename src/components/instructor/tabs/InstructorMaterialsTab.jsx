@@ -41,7 +41,7 @@ export const InstructorMaterialsTab = ({ subjectId, onNavigateToMaterial }) => {
 		try {
 			setLoading(true);
 			const [materialsRes, topicsRes] = await Promise.all([
-				db.assignments.getBySubject(subjectId),
+				db.materials.getBySubject(subjectId),
 				db.topics.getBySubject(subjectId),
 			]);
 
@@ -101,7 +101,7 @@ export const InstructorMaterialsTab = ({ subjectId, onNavigateToMaterial }) => {
 	const handleCreateMaterial = async (materialData) => {
 		try {
 			const { data: material, error: createError } =
-				await db.assignments.create({
+				await db.materials.create({
 					subject_id: subjectId,
 					title: materialData.title,
 					description: materialData.description,
@@ -132,7 +132,7 @@ export const InstructorMaterialsTab = ({ subjectId, onNavigateToMaterial }) => {
 
 				const fileUrl = storage.getPublicUrl("course-files", filePath);
 
-				await db.assignments.update(material.id, {
+				await db.materials.update(material.id, {
 					file_url: fileUrl,
 					file_name: materialData.newFile.name,
 					file_size: materialData.newFile.size,
@@ -202,7 +202,7 @@ export const InstructorMaterialsTab = ({ subjectId, onNavigateToMaterial }) => {
 				updates.file_size = materialData.newFile.size;
 			}
 
-			const { error } = await db.assignments.update(
+			const { error } = await db.materials.update(
 				selectedMaterial.id,
 				updates
 			);
@@ -232,7 +232,7 @@ export const InstructorMaterialsTab = ({ subjectId, onNavigateToMaterial }) => {
 				}
 			}
 
-			const { error } = await db.assignments.delete(materialId);
+			const { error } = await db.materials.delete(materialId);
 			if (error) throw error;
 
 			await loadData();
@@ -317,7 +317,7 @@ export const InstructorMaterialsTab = ({ subjectId, onNavigateToMaterial }) => {
 		{ value: "quiz", label: "Quizzes" },
 		{ value: "exam", label: "Exams" },
 		{ value: "project", label: "Projects" },
-		{ value: "material", label: "Materials" },
+		{ value: "module", label: "Modules" },
 	];
 
 	if (loading) {

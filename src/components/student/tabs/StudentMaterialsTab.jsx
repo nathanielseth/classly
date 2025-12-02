@@ -14,7 +14,7 @@ export const StudentMaterialsTab = ({ subjectId }) => {
 		try {
 			setLoading(true);
 			const [materialsRes, topicsRes] = await Promise.all([
-				db.assignments.getBySubject(subjectId),
+				db.materials.getBySubject(subjectId),
 				db.topics.getBySubject(subjectId),
 			]);
 
