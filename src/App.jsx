@@ -131,6 +131,19 @@ function App() {
 	};
 
 	// ============================================
+	// NAVIGATION HANDLERS
+	// ============================================
+	const handleSubjectSelect = (subjectId) => {
+		setSelectedSubjectId(subjectId);
+		setCurrentView("classroom");
+	};
+
+	const handleNavigateToSubject = (subjectId) => {
+		setSelectedSubjectId(subjectId);
+		setCurrentView("classroom");
+	};
+
+	// ============================================
 	// LOADING STATE
 	// ============================================
 	if (loading) {
@@ -169,6 +182,8 @@ function App() {
 					isOpen={isSidebarOpen}
 					onLogout={handleLogout}
 					userRole={userRole}
+					userId={session?.user?.id}
+					onSubjectSelect={handleSubjectSelect}
 				/>
 				<main
 					className={`flex-1 overflow-y-auto transition-all ${
@@ -179,19 +194,13 @@ function App() {
 						<>
 							{userRole === "student" && (
 								<StudentDashboard
-									onNavigate={(subjectId) => {
-										setSelectedSubjectId(subjectId);
-										setCurrentView("classroom");
-									}}
+									onNavigate={handleNavigateToSubject}
 									userId={session.user.id}
 								/>
 							)}
 							{userRole === "instructor" && (
 								<InstructorDashboard
-									onNavigate={(subjectId) => {
-										setSelectedSubjectId(subjectId);
-										setCurrentView("classroom");
-									}}
+									onNavigate={handleNavigateToSubject}
 									userId={session.user.id}
 								/>
 							)}

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
 	LayoutDashboard,
 	BookOpen,
@@ -8,13 +8,15 @@ import {
 	LogOut,
 	ChevronDown,
 	Settings,
-	HelpCircle,
+	Loader2,
 } from "lucide-react";
+import { db } from "../../lib/supabase";
 
-// add userRole
-const Sidebar = ({ currentView, setView, isOpen, onLogout }) => {
+const Sidebar = ({ currentView, setView, isOpen, onLogout, userRole, userId, onSubjectSelect }) => {
 	const [isHovered, setIsHovered] = useState(false);
-	const [enrolledExpanded, setEnrolledExpanded] = useState(true);
+	const [subjectsExpanded, setSubjectsExpanded] = useState(true);
+	const [subjects, setSubjects] = useState([]);
+	const [loading, setLoading] = useState(true);
 
 	const showFull = isOpen || isHovered;
 
@@ -25,11 +27,49 @@ const Sidebar = ({ currentView, setView, isOpen, onLogout }) => {
 		{ id: "ai", name: "AI Assistant", icon: Bot },
 	];
 
-	const courses = [
-		{ id: "it101", code: "IT 101", name: "Intro to Computing" },
-		{ id: "math104", code: "MATH 104", name: "Calculus I" },
-		{ id: "hist12", code: "HIST 12", name: "Readings in PH History" },
-	];
+	// Get appropriate label based on role
+	const subjectsLabel = userRole === "instructor" ? "My Subjects" : "Enrolled";
+
+	// Load subjects based on user role
+	useEffect(() => {
+		const loadSubjects = async () => {
+			if (!userId) return;
+
+			try {
+				setLoading(true);
+				
+				if (userRole === "instructor") {
+					// Load subjects taught by instructor
+					const { data, error } = await db.subjects.getByInstructor(userId);
+					if (error) throw error;
+					setSubjects(data || []);
+				} else if (userRole === "student") {
+					// Load enrolled subjects
+					const { data, error } = await db.enrollments.getByStudent(userId);
+					if (error) throw error;
+					// Extract subjects from enrollments
+					const subjectsList = (data || [])
+						.map(enrollment => enrollment.subject)
+						.filter(Boolean);
+					setSubjects(subjectsList);
+				}
+			} catch (err) {
+				console.error("Error loading subjects:", err);
+				setSubjects([]);
+			} finally {
+				setLoading(false);
+			}
+		};
+
+		loadSubjects();
+	}, [userId, userRole]);
+
+	const handleSubjectClick = (subjectId) => {
+		setView("classroom");
+		if (onSubjectSelect) {
+			onSubjectSelect(subjectId);
+		}
+	};
 
 	return (
 		<aside
@@ -61,7 +101,7 @@ const Sidebar = ({ currentView, setView, isOpen, onLogout }) => {
 							/>
 
 							<span
-								className={`text-sm whitespace-nowrap ${
+								className={`text-sm whitespace-nowrap transition-opacity ${
 									showFull ? "opacity-100" : "opacity-0 w-0"
 								}`}
 							>
@@ -78,10 +118,10 @@ const Sidebar = ({ currentView, setView, isOpen, onLogout }) => {
 					))}
 				</div>
 
-				{/* Enrolled Courses Section */}
+				{/* Subjects Section */}
 				<div className="mt-6">
 					<button
-						onClick={() => setEnrolledExpanded(!enrolledExpanded)}
+						onClick={() => setSubjectsExpanded(!subjectsExpanded)}
 						className={`relative w-full flex items-center py-2.5 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all cursor-pointer group ${
 							showFull ? "justify-between px-3 gap-3" : "justify-center"
 						}`}
@@ -89,47 +129,60 @@ const Sidebar = ({ currentView, setView, isOpen, onLogout }) => {
 						<div className={`flex items-center ${showFull ? "gap-3" : ""}`}>
 							<BookOpen size={20} strokeWidth={2} className="shrink-0" />
 							<span
-								className={`text-sm font-medium ${
+								className={`text-sm font-medium transition-opacity ${
 									showFull ? "opacity-100" : "opacity-0 w-0"
 								}`}
 							>
-								Enrolled
+								{subjectsLabel}
 							</span>
 						</div>
 						<ChevronDown
 							size={16}
 							className={`transition-all duration-200 ${
-								enrolledExpanded ? "rotate-0" : "-rotate-90"
+								subjectsExpanded ? "rotate-0" : "-rotate-90"
 							} ${showFull ? "opacity-100" : "opacity-0 w-0"}`}
 						/>
 
 						{/* Tooltip for collapsed state */}
 						{!showFull && (
 							<div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
-								Enrolled
+								{subjectsLabel}
 							</div>
 						)}
 					</button>
 
 					<div
 						className={`overflow-hidden transition-all duration-300 ${
-							enrolledExpanded && showFull
+							subjectsExpanded && showFull
 								? "max-h-96 opacity-100"
 								: "max-h-0 opacity-0"
 						}`}
 					>
-						<div className="space-y-0.5 mt-1">
-							{courses.map((course) => (
-								<button
-									key={course.id}
-									onClick={() => setView(course.id)}
-									className="w-full flex items-center gap-3 pl-9 pr-3 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-classly-green rounded-lg transition-colors cursor-pointer group"
-								>
-									<div className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-classly-green transition-colors shrink-0"></div>
-									<span className="truncate text-left">{course.name}</span>
-								</button>
-							))}
-						</div>
+						{loading ? (
+							<div className="flex items-center justify-center py-4">
+								<Loader2 size={16} className="animate-spin text-gray-400" />
+							</div>
+						) : subjects.length === 0 ? (
+							<div className="px-3 py-2 text-xs text-gray-400 text-center">
+								{userRole === "instructor" ? "No subjects created" : "No enrollments"}
+							</div>
+						) : (
+							<div className="space-y-0.5 mt-1">
+								{subjects.map((subject) => (
+									<button
+										key={subject.id}
+										onClick={() => handleSubjectClick(subject.id)}
+										className="w-full flex items-center gap-3 pl-9 pr-3 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-classly-green rounded-lg transition-colors cursor-pointer group"
+										title={subject.name}
+									>
+										<div className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-classly-green transition-colors shrink-0"></div>
+										<span className="truncate text-left">
+											{subject.name}
+										</span>
+									</button>
+								))}
+							</div>
+						)}
 					</div>
 				</div>
 			</nav>
@@ -143,7 +196,7 @@ const Sidebar = ({ currentView, setView, isOpen, onLogout }) => {
 				>
 					<Settings size={20} className="shrink-0" />
 					<span
-						className={`text-sm whitespace-nowrap ${
+						className={`text-sm whitespace-nowrap transition-opacity ${
 							showFull ? "opacity-100" : "opacity-0 w-0"
 						}`}
 					>
@@ -165,7 +218,7 @@ const Sidebar = ({ currentView, setView, isOpen, onLogout }) => {
 				>
 					<LogOut size={20} className="shrink-0" />
 					<span
-						className={`text-sm whitespace-nowrap ${
+						className={`text-sm whitespace-nowrap transition-opacity ${
 							showFull ? "opacity-100" : "opacity-0 w-0"
 						}`}
 					>
