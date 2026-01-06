@@ -218,7 +218,7 @@ const FlashcardTab = () => {
 
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
 						<div className="space-y-2">
-							<label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+							<label className="flex items-center gap-2 text-sm font-medium text-gray-700">
 								<BookOpen size={16} className="text-gray-400" />
 								Select Subject
 							</label>
@@ -252,7 +252,7 @@ const FlashcardTab = () => {
 						</div>
 
 						<div className="space-y-2">
-							<label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+							<label className="flex items-center gap-2 text-sm font-medium text-gray-700">
 								<GraduationCap size={16} className="text-gray-400" />
 								Select Material
 							</label>
@@ -348,16 +348,16 @@ const FlashcardTab = () => {
 
 					{viewMode === "deck" ? (
 						/* Deck View (Study Mode) */
-						<div className="max-w-2xl mx-auto">
-							<div className="relative h-80 w-full [perspective:1000px] mb-6">
+						<div className="max-w-4xl mx-auto">
+							<div className="relative h-120 w-full perspective-[1000px] mb-6">
 								<div
-									className={`relative w-full h-full transition-all duration-500 [transform-style:preserve-3d] cursor-pointer ${
-										isFlipped ? "[transform:rotateY(180deg)]" : ""
+									className={`relative w-full h-full transition-all duration-500 transform-3d cursor-pointer ${
+										isFlipped ? "transform-[rotateY(180deg)]" : ""
 									}`}
 									onClick={() => setIsFlipped(!isFlipped)}
 								>
 									{/* Front (Question) */}
-									<div className="absolute inset-0 w-full h-full bg-white rounded-2xl border border-gray-200 shadow-sm [backface-visibility:hidden] flex flex-col items-center justify-center p-8 text-center hover:shadow-md transition-shadow">
+									<div className="absolute inset-0 w-full h-full bg-white rounded-2xl border border-gray-200 shadow-sm backface-hidden flex flex-col items-center justify-center p-8 text-center hover:shadow-md transition-shadow">
 										<span className="absolute top-4 left-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
 											Question
 										</span>
@@ -373,7 +373,7 @@ const FlashcardTab = () => {
 									</div>
 
 									{/* Back (Answer) */}
-									<div className="absolute inset-0 w-full h-full bg-gray-50 rounded-2xl border border-classly-green/30 shadow-sm [transform:rotateY(180deg)] [backface-visibility:hidden] flex flex-col items-center justify-center p-8 text-center">
+									<div className="absolute inset-0 w-full h-full bg-gray-50 rounded-2xl border border-classly-green/30 shadow-sm transform-[rotateY(180deg)] backface-hidden flex flex-col items-center justify-center p-8 text-center">
 										<span className="absolute top-4 left-4 text-xs font-semibold text-classly-green uppercase tracking-wider">
 											Answer
 										</span>

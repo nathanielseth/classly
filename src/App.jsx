@@ -3,6 +3,8 @@ import Navbar from "./components/shared/Navbar";
 import Sidebar from "./components/shared/Sidebar";
 import StudentDashboard from "./components/student/StudentDashboard";
 import InstructorDashboard from "./components/instructor/InstructorDashboard";
+import AdminDashboard from "./components/admin/AdminDashboard";
+import AdminUserManagement from "./components/admin/AdminUserManagement";
 import StudentClassroomView from "./components/student/StudentClassroomView";
 import InstructorClassroomView from "./components/instructor/InstructorClassroomView";
 import CalendarView from "./components/student/CalendarView";
@@ -143,6 +145,10 @@ function App() {
 		setCurrentView("classroom");
 	};
 
+	const handleNavigate = (view) => {
+		setCurrentView(view);
+	};
+
 	// ============================================
 	// LOADING STATE
 	// ============================================
@@ -190,25 +196,47 @@ function App() {
 						currentView === "classroom" ? "" : "p-6 md:p-8"
 					}`}
 				>
-					{currentView === "dashboard" && (
+					{/* ADMIN VIEWS */}
+					{userRole === "admin" && (
 						<>
-							{userRole === "student" && (
+							{currentView === "dashboard" && (
+								<AdminDashboard onNavigate={handleNavigate} />
+							)}
+							{currentView === "admin-users" && (
+								<AdminUserManagement
+									onBack={() => setCurrentView("dashboard")}
+								/>
+							)}
+							{currentView === "admin-subjects" && (
+								<div className="h-full flex flex-col items-center justify-center text-gray-400">
+									<p>Subject Management - Coming Soon</p>
+								</div>
+							)}
+							{currentView === "admin-analytics" && (
+								<div className="h-full flex flex-col items-center justify-center text-gray-400">
+									<p>Analytics - Coming Soon</p>
+								</div>
+							)}
+							{currentView === "calendar" && <CalendarView />}
+							{currentView === "ai" && <AIAssistant />}
+							{currentView === "messages" && (
+								<div className="h-full flex flex-col items-center justify-center text-gray-400">
+									<p>Messages - Coming Soon</p>
+								</div>
+							)}
+						</>
+					)}
+
+					{/* STUDENT VIEWS */}
+					{userRole === "student" && (
+						<>
+							{currentView === "dashboard" && (
 								<StudentDashboard
 									onNavigate={handleNavigateToSubject}
 									userId={session.user.id}
 								/>
 							)}
-							{userRole === "instructor" && (
-								<InstructorDashboard
-									onNavigate={handleNavigateToSubject}
-									userId={session.user.id}
-								/>
-							)}
-						</>
-					)}
-					{currentView === "classroom" && (
-						<>
-							{userRole === "student" && (
+							{currentView === "classroom" && (
 								<StudentClassroomView
 									userId={session.user.id}
 									userRole={userRole}
@@ -216,7 +244,26 @@ function App() {
 									onBack={() => setCurrentView("dashboard")}
 								/>
 							)}
-							{userRole === "instructor" && (
+							{currentView === "calendar" && <CalendarView />}
+							{currentView === "ai" && <AIAssistant />}
+							{currentView === "messages" && (
+								<div className="h-full flex flex-col items-center justify-center text-gray-400">
+									<p>Messages - Coming Soon</p>
+								</div>
+							)}
+						</>
+					)}
+
+					{/* INSTRUCTOR VIEWS */}
+					{userRole === "instructor" && (
+						<>
+							{currentView === "dashboard" && (
+								<InstructorDashboard
+									onNavigate={handleNavigateToSubject}
+									userId={session.user.id}
+								/>
+							)}
+							{currentView === "classroom" && (
 								<InstructorClassroomView
 									userId={session.user.id}
 									userRole={userRole}
@@ -224,14 +271,14 @@ function App() {
 									onBack={() => setCurrentView("dashboard")}
 								/>
 							)}
+							{currentView === "calendar" && <CalendarView />}
+							{currentView === "ai" && <AIAssistant />}
+							{currentView === "messages" && (
+								<div className="h-full flex flex-col items-center justify-center text-gray-400">
+									<p>Messages - Coming Soon</p>
+								</div>
+							)}
 						</>
-					)}
-					{currentView === "calendar" && <CalendarView />}
-					{currentView === "ai" && <AIAssistant />}
-					{currentView === "messages" && (
-						<div className="h-full flex flex-col items-center justify-center text-gray-400">
-							<p>Module under construction.</p>
-						</div>
 					)}
 				</main>
 			</div>

@@ -9,10 +9,19 @@ import {
 	ChevronDown,
 	Settings,
 	Loader2,
+	Users,
 } from "lucide-react";
 import { db } from "../../lib/supabase";
 
-const Sidebar = ({ currentView, setView, isOpen, onLogout, userRole, userId, onSubjectSelect }) => {
+const Sidebar = ({
+	currentView,
+	setView,
+	isOpen,
+	onLogout,
+	userRole,
+	userId,
+	onSubjectSelect,
+}) => {
 	const [isHovered, setIsHovered] = useState(false);
 	const [subjectsExpanded, setSubjectsExpanded] = useState(true);
 	const [subjects, setSubjects] = useState([]);
@@ -20,12 +29,25 @@ const Sidebar = ({ currentView, setView, isOpen, onLogout, userRole, userId, onS
 
 	const showFull = isOpen || isHovered;
 
-	const menuItems = [
+	// Base menu items (for students and instructors)
+	const baseMenuItems = [
 		{ id: "dashboard", name: "Dashboard", icon: LayoutDashboard },
 		{ id: "calendar", name: "Calendar", icon: Calendar },
 		{ id: "messages", name: "Messages", icon: MessageSquare },
 		{ id: "ai", name: "AI Assistant", icon: Bot },
 	];
+
+	// Admin-specific menu items
+	const adminMenuItems = [
+		{ id: "dashboard", name: "Dashboard", icon: LayoutDashboard },
+		{ id: "admin-users", name: "Users", icon: Users },
+		{ id: "calendar", name: "Calendar", icon: Calendar },
+		{ id: "messages", name: "Messages", icon: MessageSquare },
+		{ id: "ai", name: "AI Assistant", icon: Bot },
+	];
+
+	// Select menu items based on role
+	const menuItems = userRole === "admin" ? adminMenuItems : baseMenuItems;
 
 	// Get appropriate label based on role
 	const subjectsLabel = userRole === "instructor" ? "My Subjects" : "Enrolled";
@@ -37,7 +59,7 @@ const Sidebar = ({ currentView, setView, isOpen, onLogout, userRole, userId, onS
 
 			try {
 				setLoading(true);
-				
+
 				if (userRole === "instructor") {
 					// Load subjects taught by instructor
 					const { data, error } = await db.subjects.getByInstructor(userId);
@@ -49,7 +71,7 @@ const Sidebar = ({ currentView, setView, isOpen, onLogout, userRole, userId, onS
 					if (error) throw error;
 					// Extract subjects from enrollments
 					const subjectsList = (data || [])
-						.map(enrollment => enrollment.subject)
+						.map((enrollment) => enrollment.subject)
 						.filter(Boolean);
 					setSubjects(subjectsList);
 				}
@@ -61,7 +83,12 @@ const Sidebar = ({ currentView, setView, isOpen, onLogout, userRole, userId, onS
 			}
 		};
 
-		loadSubjects();
+		// Only load subjects for students and instructors (not admins)
+		if (userRole === "student" || userRole === "instructor") {
+			loadSubjects();
+		} else {
+			setLoading(false);
+		}
 	}, [userId, userRole]);
 
 	const handleSubjectClick = (subjectId) => {
@@ -118,73 +145,75 @@ const Sidebar = ({ currentView, setView, isOpen, onLogout, userRole, userId, onS
 					))}
 				</div>
 
-				{/* Subjects Section */}
-				<div className="mt-6">
-					<button
-						onClick={() => setSubjectsExpanded(!subjectsExpanded)}
-						className={`relative w-full flex items-center py-2.5 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all cursor-pointer group ${
-							showFull ? "justify-between px-3 gap-3" : "justify-center"
-						}`}
-					>
-						<div className={`flex items-center ${showFull ? "gap-3" : ""}`}>
-							<BookOpen size={20} strokeWidth={2} className="shrink-0" />
-							<span
-								className={`text-sm font-medium transition-opacity ${
-									showFull ? "opacity-100" : "opacity-0 w-0"
-								}`}
-							>
-								{subjectsLabel}
-							</span>
+				{/* Subjects Section (only for students and instructors) */}
+				{(userRole === "student" || userRole === "instructor") && (
+					<div className="mt-6">
+						<button
+							onClick={() => setSubjectsExpanded(!subjectsExpanded)}
+							className={`relative w-full flex items-center py-2.5 rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all cursor-pointer group ${
+								showFull ? "justify-between px-3 gap-3" : "justify-center"
+							}`}
+						>
+							<div className={`flex items-center ${showFull ? "gap-3" : ""}`}>
+								<BookOpen size={20} strokeWidth={2} className="shrink-0" />
+								<span
+									className={`text-sm font-medium transition-opacity ${
+										showFull ? "opacity-100" : "opacity-0 w-0"
+									}`}
+								>
+									{subjectsLabel}
+								</span>
+							</div>
+							<ChevronDown
+								size={16}
+								className={`transition-all duration-200 ${
+									subjectsExpanded ? "rotate-0" : "-rotate-90"
+								} ${showFull ? "opacity-100" : "opacity-0 w-0"}`}
+							/>
+
+							{/* Tooltip for collapsed state */}
+							{!showFull && (
+								<div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
+									{subjectsLabel}
+								</div>
+							)}
+						</button>
+
+						<div
+							className={`overflow-hidden transition-all duration-300 ${
+								subjectsExpanded && showFull
+									? "max-h-96 opacity-100"
+									: "max-h-0 opacity-0"
+							}`}
+						>
+							{loading ? (
+								<div className="flex items-center justify-center py-4">
+									<Loader2 size={16} className="animate-spin text-gray-400" />
+								</div>
+							) : subjects.length === 0 ? (
+								<div className="px-3 py-2 text-xs text-gray-400 text-center">
+									{userRole === "instructor"
+										? "No subjects created"
+										: "No enrollments"}
+								</div>
+							) : (
+								<div className="space-y-0.5 mt-1">
+									{subjects.map((subject) => (
+										<button
+											key={subject.id}
+											onClick={() => handleSubjectClick(subject.id)}
+											className="w-full flex items-center gap-3 pl-9 pr-3 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-classly-green rounded-lg transition-colors cursor-pointer group"
+											title={subject.name}
+										>
+											<div className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-classly-green transition-colors shrink-0"></div>
+											<span className="truncate text-left">{subject.name}</span>
+										</button>
+									))}
+								</div>
+							)}
 						</div>
-						<ChevronDown
-							size={16}
-							className={`transition-all duration-200 ${
-								subjectsExpanded ? "rotate-0" : "-rotate-90"
-							} ${showFull ? "opacity-100" : "opacity-0 w-0"}`}
-						/>
-
-						{/* Tooltip for collapsed state */}
-						{!showFull && (
-							<div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">
-								{subjectsLabel}
-							</div>
-						)}
-					</button>
-
-					<div
-						className={`overflow-hidden transition-all duration-300 ${
-							subjectsExpanded && showFull
-								? "max-h-96 opacity-100"
-								: "max-h-0 opacity-0"
-						}`}
-					>
-						{loading ? (
-							<div className="flex items-center justify-center py-4">
-								<Loader2 size={16} className="animate-spin text-gray-400" />
-							</div>
-						) : subjects.length === 0 ? (
-							<div className="px-3 py-2 text-xs text-gray-400 text-center">
-								{userRole === "instructor" ? "No subjects created" : "No enrollments"}
-							</div>
-						) : (
-							<div className="space-y-0.5 mt-1">
-								{subjects.map((subject) => (
-									<button
-										key={subject.id}
-										onClick={() => handleSubjectClick(subject.id)}
-										className="w-full flex items-center gap-3 pl-9 pr-3 py-2 text-sm text-gray-600 hover:bg-gray-50 hover:text-classly-green rounded-lg transition-colors cursor-pointer group"
-										title={subject.name}
-									>
-										<div className="w-1.5 h-1.5 rounded-full bg-gray-300 group-hover:bg-classly-green transition-colors shrink-0"></div>
-										<span className="truncate text-left">
-											{subject.name}
-										</span>
-									</button>
-								))}
-							</div>
-						)}
 					</div>
-				</div>
+				)}
 			</nav>
 
 			{/* Footer Actions */}

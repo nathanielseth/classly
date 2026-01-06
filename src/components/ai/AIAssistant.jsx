@@ -21,7 +21,7 @@ const AIAssistant = () => {
 
 	const modes = [
 		{ id: "chat", label: "AI Assistant", icon: MessageSquare },
-		{ id: "summary", label: "Smart Summary", icon: FileText },
+		{ id: "summary", label: "Smart Reviewer", icon: FileText },
 		{ id: "quiz", label: "Quiz Generator", icon: Brain },
 		{ id: "flashcards", label: "Flashcards", icon: Layers },
 	];
@@ -58,8 +58,8 @@ const AIAssistant = () => {
 								isActive
 									? "bg-classly-green text-white shadow-sm"
 									: isComingSoon
-									? "text-gray-400 cursor-not-allowed"
-									: "text-gray-600 hover:bg-gray-50"
+									? "text-gray-400 cursor-default"
+									: "text-gray-600 hover:bg-gray-50 cursor-pointer"
 							}`}
 						>
 							<Icon size={18} />
@@ -93,10 +93,10 @@ const SummaryPlaceholder = () => {
 					<FileText size={32} className="text-gray-400" />
 				</div>
 				<h3 className="text-lg font-semibold text-gray-900 mb-2">
-					Smart Summary
+					Smart Reviewer
 				</h3>
 				<p className="text-gray-500 mb-4">
-					AI-powered summaries of your course materials will be available soon.
+					AI-powered reviewers of your course materials will be available soon.
 				</p>
 				<div className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm">
 					<Sparkles size={16} />
