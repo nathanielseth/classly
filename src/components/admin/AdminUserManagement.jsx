@@ -23,6 +23,7 @@ const AdminUserManagement = ({ onBack }) => {
 
 	const [searchQuery, setSearchQuery] = useState("");
 	const [roleFilter, setRoleFilter] = useState("all");
+	const [statusFilter, setStatusFilter] = useState("all");
 	const [currentPage, setCurrentPage] = useState(1);
 	const [totalCount, setTotalCount] = useState(0);
 	const ITEMS_PER_PAGE = 20;
@@ -49,6 +50,7 @@ const AdminUserManagement = ({ onBack }) => {
 				searchQuery: searchQuery.trim() || null,
 				limit: ITEMS_PER_PAGE,
 				offset: (currentPage - 1) * ITEMS_PER_PAGE,
+				status: statusFilter === "all" ? null : statusFilter,
 			});
 
 			if (fetchError) throw fetchError;
@@ -61,7 +63,7 @@ const AdminUserManagement = ({ onBack }) => {
 		} finally {
 			setLoading(false);
 		}
-	}, [roleFilter, searchQuery, currentPage]);
+	}, [roleFilter, searchQuery, currentPage, statusFilter]);
 
 	useEffect(() => {
 		loadUsers();
@@ -70,7 +72,7 @@ const AdminUserManagement = ({ onBack }) => {
 	// Reset to page 1 when filters change
 	useEffect(() => {
 		setCurrentPage(1);
-	}, [roleFilter, searchQuery]);
+	}, [roleFilter, searchQuery, statusFilter]);
 
 	// ============================================
 	// HANDLERS
@@ -93,6 +95,32 @@ const AdminUserManagement = ({ onBack }) => {
 		} catch (err) {
 			console.error("Delete user error:", err);
 			alert(`Failed to delete user: ${err.message}`);
+		}
+	};
+
+	const handleApprove = async (user) => {
+		try {
+			const { error } = await adminDb.users.approve(user.id);
+			if (error) throw error;
+			loadUsers();
+		} catch (err) {
+			alert(`Failed to approve: ${err.message}`);
+		}
+	};
+
+	const handleReject = async (user) => {
+		if (
+			!window.confirm(
+				`Reject "${user.full_name}"? They won't be able to log in.`,
+			)
+		)
+			return;
+		try {
+			const { error } = await adminDb.users.reject(user.id);
+			if (error) throw error;
+			loadUsers();
+		} catch (err) {
+			alert(`Failed to reject: ${err.message}`);
 		}
 	};
 
@@ -173,6 +201,16 @@ const AdminUserManagement = ({ onBack }) => {
 							<option value="instructor">Instructors</option>
 							<option value="admin">Admins</option>
 						</select>
+						<select
+							value={statusFilter}
+							onChange={(e) => setStatusFilter(e.target.value)}
+							className="px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:border-classly-green focus:ring-2 focus:ring-classly-green/20 transition-all bg-white"
+						>
+							<option value="all">All Status</option>
+							<option value="pending">Pending</option>
+							<option value="approved">Approved</option>
+							<option value="rejected">Rejected</option>
+						</select>
 					</div>
 				</div>
 			</div>
@@ -224,6 +262,8 @@ const AdminUserManagement = ({ onBack }) => {
 										setEditModalOpen(true);
 									}}
 									onDelete={handleDeleteUser}
+									onApprove={handleApprove}
+									onReject={handleReject}
 								/>
 							))}
 						</div>
@@ -303,9 +343,9 @@ const AdminUserManagement = ({ onBack }) => {
 };
 
 // ============================================
-// USER CARD COMPONENT (replaces table row)
+// USER CARD COMPONENT
 // ============================================
-const UserCard = ({ user, onView, onEdit, onDelete }) => {
+const UserCard = ({ user, onView, onEdit, onDelete, onApprove, onReject }) => {
 	const [menuOpen, setMenuOpen] = useState(false);
 
 	const roleColors = {
@@ -313,6 +353,13 @@ const UserCard = ({ user, onView, onEdit, onDelete }) => {
 		instructor: "bg-purple-50 text-purple-700 border-purple-200",
 		admin: "bg-red-50 text-red-700 border-red-200",
 	};
+
+	const statusColors =
+		user.status === "approved"
+			? "bg-green-50 text-green-700 border-green-200"
+			: user.status === "rejected"
+				? "bg-red-50 text-red-700 border-red-200"
+				: "bg-amber-50 text-amber-700 border-amber-200";
 
 	return (
 		<div className="p-4 hover:bg-gray-50 transition-colors">
@@ -339,12 +386,19 @@ const UserCard = ({ user, onView, onEdit, onDelete }) => {
 					{user.role.charAt(0).toUpperCase() + user.role.slice(1)}
 				</span>
 
+				{/* Status Badge */}
+				<span
+					className={`px-3 py-1 rounded-full text-xs font-medium border shrink-0 capitalize ${statusColors}`}
+				>
+					{user.status ?? "pending"}
+				</span>
+
 				{/* Created Date */}
 				<div className="hidden md:block text-sm text-gray-500 shrink-0 w-32">
 					{new Date(user.created_at).toLocaleDateString()}
 				</div>
 
-				{/* Actions Dropdown - FIXED Z-INDEX */}
+				{/* Actions Dropdown */}
 				<div className="relative shrink-0">
 					<button
 						onClick={() => setMenuOpen(!menuOpen)}
@@ -370,7 +424,7 @@ const UserCard = ({ user, onView, onEdit, onDelete }) => {
 								className="fixed inset-0 z-40"
 								onClick={() => setMenuOpen(false)}
 							/>
-							{/* Menu - ABOVE backdrop */}
+							{/* Menu */}
 							<div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden z-50">
 								<button
 									onClick={() => {
@@ -392,6 +446,30 @@ const UserCard = ({ user, onView, onEdit, onDelete }) => {
 									<Edit2 size={14} />
 									Edit
 								</button>
+								{(user.status === "pending" || user.status === "rejected") && (
+									<button
+										onClick={() => {
+											setMenuOpen(false);
+											onApprove(user);
+										}}
+										className="w-full text-left px-4 py-2.5 text-sm text-green-600 hover:bg-green-50 transition-colors flex items-center gap-2"
+									>
+										<Check size={14} />
+										Approve
+									</button>
+								)}
+								{user.status === "approved" && (
+									<button
+										onClick={() => {
+											setMenuOpen(false);
+											onReject(user);
+										}}
+										className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
+									>
+										<X size={14} />
+										Reject
+									</button>
+								)}
 								<button
 									onClick={() => {
 										setMenuOpen(false);
@@ -428,7 +506,6 @@ const CreateUserModal = ({ onClose, onSuccess }) => {
 		e.preventDefault();
 		setError("");
 
-		// Validation
 		if (!formData.email || !formData.password || !formData.fullName) {
 			setError("All fields are required");
 			return;
@@ -768,6 +845,15 @@ const ViewUserModal = ({ user, onClose }) => {
 
 						<div>
 							<label className="text-xs font-medium text-gray-500 uppercase">
+								Status
+							</label>
+							<p className="text-sm text-gray-900 mt-1 capitalize">
+								{user.status ?? "pending"}
+							</p>
+						</div>
+
+						<div>
+							<label className="text-xs font-medium text-gray-500 uppercase">
 								Created
 							</label>
 							<p className="text-sm text-gray-900 mt-1">
@@ -846,6 +932,7 @@ const LoadingSkeleton = () => {
 							<div className="h-4 w-32 bg-gray-200 rounded" />
 							<div className="h-3 w-48 bg-gray-200 rounded" />
 						</div>
+						<div className="h-6 w-16 bg-gray-200 rounded-full shrink-0" />
 						<div className="h-6 w-16 bg-gray-200 rounded-full shrink-0" />
 						<div className="h-4 w-20 bg-gray-200 rounded shrink-0" />
 						<div className="h-8 w-8 bg-gray-200 rounded shrink-0" />

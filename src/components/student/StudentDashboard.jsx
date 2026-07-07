@@ -70,11 +70,12 @@ const StudentDashboard = ({ onNavigate, userId }) => {
 				setRefreshing(false);
 			}
 		},
-		[userId]
+		[userId],
 	);
 
 	useEffect(() => {
 		if (userId) {
+			// eslint-disable-next-line react-hooks/set-state-in-effect
 			loadDashboardData(false);
 		}
 	}, [userId, loadDashboardData]);
@@ -115,7 +116,7 @@ const StudentDashboard = ({ onNavigate, userId }) => {
 
 			const { data: existingEnrollment } = await db.enrollments.checkEnrollment(
 				userId,
-				subject.id
+				subject.id,
 			);
 
 			if (existingEnrollment) {
@@ -126,10 +127,13 @@ const StudentDashboard = ({ onNavigate, userId }) => {
 
 			const { error: enrollError } = await db.enrollments.enroll(
 				userId,
-				subject.id
+				subject.id,
 			);
 
 			if (enrollError) throw enrollError;
+
+			// Auto-join the subject's group chat
+			await db.groupConversations.addMember(subject.id, userId);
 
 			await loadDashboardData(true);
 			setJoinModal(false);
@@ -147,7 +151,7 @@ const StudentDashboard = ({ onNavigate, userId }) => {
 	// ============================================
 	const handleUnenroll = async (subjectId, subjectName) => {
 		const confirmed = window.confirm(
-			`Are you sure you want to unenroll from "${subjectName}"? This action cannot be undone.`
+			`Are you sure you want to unenroll from "${subjectName}"? This action cannot be undone.`,
 		);
 
 		if (!confirmed) return;
@@ -155,6 +159,10 @@ const StudentDashboard = ({ onNavigate, userId }) => {
 		try {
 			const { error } = await db.enrollments.unenroll(userId, subjectId);
 			if (error) throw error;
+
+			// Auto-leave the subject's group chat
+			await db.groupConversations.removeMember(subjectId, userId);
+
 			await loadDashboardData(true);
 		} catch (err) {
 			console.error("Unenroll error:", err);
@@ -225,8 +233,8 @@ const StudentDashboard = ({ onNavigate, userId }) => {
 						const urgency = isToday
 							? "today"
 							: isTomorrow
-							? "tomorrow"
-							: "upcoming";
+								? "tomorrow"
+								: "upcoming";
 						const urgencyColors = {
 							today: "red",
 							tomorrow: "orange",
@@ -256,8 +264,8 @@ const StudentDashboard = ({ onNavigate, userId }) => {
 									{isToday
 										? "Today"
 										: isTomorrow
-										? "Tomorrow"
-										: formatDate(dueDate)}
+											? "Tomorrow"
+											: formatDate(dueDate)}
 								</span>
 							</div>
 						);
@@ -423,7 +431,7 @@ const SubjectCard = ({ enrollment, onNavigate, onUnenroll }) => {
 	const [menuOpen, setMenuOpen] = useState(false);
 	const [colorPickerOpen, setColorPickerOpen] = useState(false);
 	const [accentColor, setAccentColor] = useState(
-		enrollment.accent_color || "classly-green"
+		enrollment.accent_color || "classly-green",
 	);
 
 	const subject = enrollment.subject;

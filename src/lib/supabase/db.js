@@ -40,7 +40,7 @@ export const db = {
 					`
           *,
           instructor:profiles!subjects_instructor_id_fkey(id, full_name, email)
-        `
+        `,
 				)
 				.order("name");
 			return { data, error };
@@ -53,7 +53,7 @@ export const db = {
 					`
           *,
           instructor:profiles!subjects_instructor_id_fkey(id, full_name, email)
-        `
+        `,
 				)
 				.eq("id", id)
 				.single();
@@ -76,7 +76,7 @@ export const db = {
 					`
           *,
           instructor:profiles!subjects_instructor_id_fkey(id, full_name, email)
-        `
+        `,
 				)
 				.eq("code", code.toUpperCase())
 				.single();
@@ -93,7 +93,7 @@ export const db = {
           enrollments:enrollments(count),
           materials:materials(count),
           announcements:announcements(count)
-        `
+        `,
 				)
 				.eq("id", subjectId)
 				.single();
@@ -137,7 +137,7 @@ export const db = {
             *,
             instructor:profiles!subjects_instructor_id_fkey(id, full_name, email)
           )
-        `
+        `,
 				)
 				.eq("student_id", studentId)
 				.order("enrolled_at", { ascending: false });
@@ -151,7 +151,7 @@ export const db = {
 					`
           *,
           student:profiles!enrollments_student_id_fkey(id, full_name, email, role)
-        `
+        `,
 				)
 				.eq("subject_id", subjectId)
 				.order("enrolled_at", { ascending: false });
@@ -271,7 +271,7 @@ export const db = {
             submitted_at,
             is_late
           )
-        `
+        `,
 				)
 				.eq("subject_id", subjectId)
 				.eq("submissions.student_id", studentId)
@@ -297,7 +297,7 @@ export const db = {
 					`
           *,
           subject:subjects(id, name, code)
-        `
+        `,
 				)
 				.gte("due_date", new Date().toISOString())
 				.in("subject_id", subjectIds)
@@ -314,7 +314,7 @@ export const db = {
 					`
           *,
           subject:subjects(*)
-        `
+        `,
 				)
 				.eq("id", id)
 				.single();
@@ -330,7 +330,7 @@ export const db = {
           *,
           subject:subjects(*),
           submissions!left(*)
-        `
+        `,
 				)
 				.eq("id", materialId)
 				.eq("submissions.student_id", studentId)
@@ -365,10 +365,7 @@ export const db = {
 		},
 
 		delete: async (id) => {
-			const { error } = await supabase
-				.from("materials")
-				.delete()
-				.eq("id", id);
+			const { error } = await supabase.from("materials").delete().eq("id", id);
 			return { error };
 		},
 
@@ -388,10 +385,10 @@ export const db = {
 						s.status === "submitted" ||
 						s.status === "late" ||
 						s.status === "graded" ||
-						s.status === "returned"
+						s.status === "returned",
 				).length,
 				graded: submissions.filter(
-					(s) => s.status === "graded" || s.status === "returned"
+					(s) => s.status === "graded" || s.status === "returned",
 				).length,
 			};
 
@@ -418,7 +415,7 @@ export const db = {
 					`
           *,
           student:profiles!submissions_student_id_fkey(id, full_name, email, role)
-        `
+        `,
 				)
 				.eq("assignment_id", assignmentId)
 				.order("submitted_at", { ascending: false });
@@ -433,7 +430,7 @@ export const db = {
 					`
           *,
           student:profiles!submissions_student_id_fkey(id, full_name, email, role)
-        `
+        `,
 				)
 				.eq("assignment_id", assignmentId);
 
@@ -482,7 +479,7 @@ export const db = {
 			content,
 			fileUrl,
 			fileName,
-			fileSize
+			fileSize,
 		) => {
 			// Check if submission exists
 			const { data: existing } = await supabase
@@ -591,7 +588,7 @@ export const db = {
 					`
           *,
           author:profiles!material_comments_author_id_fkey(id, full_name, email, role)
-        `
+        `,
 				)
 				.eq("assignment_id", materialId)
 				.order("created_at", { ascending: true });
@@ -606,7 +603,7 @@ export const db = {
 					`
           *,
           author:profiles!material_comments_author_id_fkey(id, full_name, email, role)
-        `
+        `,
 				)
 				.eq("assignment_id", materialId)
 				.eq("is_private", false)
@@ -622,7 +619,7 @@ export const db = {
 					`
           *,
           author:profiles!material_comments_author_id_fkey(id, full_name, email, role)
-        `
+        `,
 				)
 				.eq("assignment_id", materialId)
 				.eq("is_private", true)
@@ -639,7 +636,7 @@ export const db = {
 					`
           *,
           author:profiles!material_comments_author_id_fkey(id, full_name, email, role)
-        `
+        `,
 				)
 				.single();
 			return { data, error };
@@ -673,7 +670,7 @@ export const db = {
 					`
           *,
           author:profiles!announcements_author_id_fkey(id, full_name, email)
-        `
+        `,
 				)
 				.eq("subject_id", subjectId)
 				.order("pinned", { ascending: false })
@@ -701,7 +698,7 @@ export const db = {
           *,
           subject:subjects!announcements_subject_id_fkey(id, name, code),
           author:profiles!announcements_author_id_fkey(id, full_name, email)
-        `
+        `,
 				)
 				.in("subject_id", subjectIds)
 				.order("created_at", { ascending: false })
@@ -735,6 +732,268 @@ export const db = {
 				.delete()
 				.eq("id", id);
 			return { error };
+		},
+	},
+
+	// CONVERSATIONS & MESSAGES
+	conversations: {
+		getAll: async (userId) => {
+			const { data, error } = await supabase
+				.from("conversations")
+				.select(
+					`
+					*,
+					participant_one_profile:profiles!conversations_participant_one_fkey(id, full_name, email, role, avatar_url),
+					participant_two_profile:profiles!conversations_participant_two_fkey(id, full_name, email, role, avatar_url),
+					messages(content, created_at, sender_id)
+				`,
+				)
+				.or(`participant_one.eq.${userId},participant_two.eq.${userId}`)
+				.order("last_message_at", { ascending: false });
+			return { data, error };
+		},
+
+		getOrCreate: async (myId, otherId) => {
+			// Always store with lower UUID first to respect UNIQUE constraint
+			const [p1, p2] = [myId, otherId].sort();
+
+			const { data: existing } = await supabase
+				.from("conversations")
+				.select("*")
+				.eq("participant_one", p1)
+				.eq("participant_two", p2)
+				.maybeSingle();
+
+			if (existing) return { data: existing, error: null };
+
+			const { data, error } = await supabase
+				.from("conversations")
+				.insert({ participant_one: p1, participant_two: p2 })
+				.select()
+				.single();
+
+			return { data, error };
+		},
+	},
+
+	messages: {
+		getByConversation: async (conversationId) => {
+			const { data, error } = await supabase
+				.from("messages")
+				.select(
+					`
+					*,
+					sender:profiles!messages_sender_id_fkey(id, full_name, avatar_url)
+				`,
+				)
+				.eq("conversation_id", conversationId)
+				.order("created_at", { ascending: true });
+			return { data, error };
+		},
+
+		send: async (conversationId, senderId, content) => {
+			const { data, error } = await supabase
+				.from("messages")
+				.insert({
+					conversation_id: conversationId,
+					sender_id: senderId,
+					content,
+				})
+				.select(
+					`
+					*,
+					sender:profiles!messages_sender_id_fkey(id, full_name, avatar_url)
+				`,
+				)
+				.single();
+
+			if (!error) {
+				await supabase
+					.from("conversations")
+					.update({ last_message_at: new Date().toISOString() })
+					.eq("id", conversationId);
+			}
+
+			return { data, error };
+		},
+
+		markRead: async (conversationId, userId) => {
+			const { error } = await supabase
+				.from("messages")
+				.update({ read_at: new Date().toISOString() })
+				.eq("conversation_id", conversationId)
+				.neq("sender_id", userId)
+				.is("read_at", null);
+			return { error };
+		},
+	},
+
+	// EVENTS
+	events: {
+		getAll: async () => {
+			const { data, error } = await supabase
+				.from("events")
+				.select(
+					`
+					*,
+					creator:profiles!events_created_by_fkey(id, full_name)
+				`,
+				)
+				.order("event_date", { ascending: true });
+			return { data, error };
+		},
+
+		create: async (event) => {
+			const { data, error } = await supabase
+				.from("events")
+				.insert(event)
+				.select()
+				.single();
+			return { data, error };
+		},
+
+		delete: async (id) => {
+			const { error } = await supabase.from("events").delete().eq("id", id);
+			return { error };
+		},
+	},
+
+	// GROUP CONVERSATIONS
+	groupConversations: {
+		getForUser: async (userId, userRole) => {
+			if (userRole === "admin") {
+				const { data, error } = await supabase
+					.from("group_conversations")
+					.select(
+						`
+          *,
+          subject:subjects!group_conversations_subject_id_fkey(id, name, code),
+          group_members(user_id, is_admin),
+          group_messages(content, created_at, sender_id)
+        `,
+					)
+					.order("last_message_at", { ascending: false });
+				return { data, error };
+			}
+			const { data, error } = await supabase
+				.from("group_conversations")
+				.select(
+					`
+        *,
+        subject:subjects!group_conversations_subject_id_fkey(id, name, code),
+        group_members(user_id, is_admin),
+        group_messages(content, created_at, sender_id)
+      `,
+				)
+				.order("last_message_at", { ascending: false });
+			return { data, error };
+		},
+
+		createForSubject: async (subjectId, subjectName, instructorId) => {
+			const { data: convo, error: convoError } = await supabase
+				.from("group_conversations")
+				.insert({ subject_id: subjectId, name: subjectName })
+				.select()
+				.single();
+			if (convoError) return { data: null, error: convoError };
+
+			// Add instructor as admin member
+			const { error: memberError } = await supabase
+				.from("group_members")
+				.insert({
+					conversation_id: convo.id,
+					user_id: instructorId,
+					is_admin: true,
+				});
+
+			if (memberError) return { data: null, error: memberError };
+			return { data: convo, error: null };
+		},
+
+		addMember: async (subjectId, userId) => {
+			const { data: convo } = await supabase
+				.from("group_conversations")
+				.select("id")
+				.eq("subject_id", subjectId)
+				.maybeSingle();
+			if (!convo) return { error: null };
+
+			const { error } = await supabase
+				.from("group_members")
+				.insert({ conversation_id: convo.id, user_id: userId, is_admin: false })
+				.onConflict("conversation_id, user_id")
+				.ignore();
+			return { error };
+		},
+
+		removeMember: async (subjectId, userId) => {
+			const { data: convo } = await supabase
+				.from("group_conversations")
+				.select("id")
+				.eq("subject_id", subjectId)
+				.maybeSingle();
+			if (!convo) return { error: null };
+
+			const { error } = await supabase
+				.from("group_members")
+				.delete()
+				.eq("conversation_id", convo.id)
+				.eq("user_id", userId);
+			return { error };
+		},
+
+		getMembers: async (conversationId) => {
+			const { data, error } = await supabase
+				.from("group_members")
+				.select(
+					`
+        *,
+        profile:profiles!group_members_user_id_fkey(id, full_name, email, role)
+      `,
+				)
+				.eq("conversation_id", conversationId);
+			return { data, error };
+		},
+	},
+
+	groupMessages: {
+		getByConversation: async (conversationId) => {
+			const { data, error } = await supabase
+				.from("group_messages")
+				.select(
+					`
+        *,
+        sender:profiles!group_messages_sender_id_fkey(id, full_name, avatar_url)
+      `,
+				)
+				.eq("conversation_id", conversationId)
+				.order("created_at", { ascending: true });
+			return { data, error };
+		},
+
+		send: async (conversationId, senderId, content) => {
+			const { data, error } = await supabase
+				.from("group_messages")
+				.insert({
+					conversation_id: conversationId,
+					sender_id: senderId,
+					content,
+				})
+				.select(
+					`
+        *,
+        sender:profiles!group_messages_sender_id_fkey(id, full_name, avatar_url)
+      `,
+				)
+				.single();
+
+			if (!error) {
+				await supabase
+					.from("group_conversations")
+					.update({ last_message_at: new Date().toISOString() })
+					.eq("id", conversationId);
+			}
+			return { data, error };
 		},
 	},
 };

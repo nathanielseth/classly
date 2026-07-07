@@ -20,6 +20,7 @@ export const adminDb = {
 				searchQuery = null,
 				limit = 50,
 				offset = 0,
+				status = null,
 			} = options;
 
 			try {
@@ -29,20 +30,15 @@ export const adminDb = {
 					.order("created_at", { ascending: false })
 					.range(offset, offset + limit - 1);
 
-				// Apply role filter
-				if (role) {
-					query = query.eq("role", role);
-				}
-
-				// Apply search filter
-				if (searchQuery && searchQuery.trim()) {
+				if (role) query = query.eq("role", role);
+				if (searchQuery?.trim()) {
 					query = query.or(
-						`full_name.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%`
+						`full_name.ilike.%${searchQuery}%,email.ilike.%${searchQuery}%`,
 					);
 				}
+				if (status) query = query.eq("status", status);
 
 				const { data, error, count } = await query;
-
 				return { data, error, count };
 			} catch (err) {
 				console.error("Admin getAll users error:", err);
@@ -87,7 +83,7 @@ export const adminDb = {
 							total: submissions.data?.length || 0,
 							graded:
 								submissions.data?.filter(
-									(s) => s.status === "graded" || s.status === "returned"
+									(s) => s.status === "graded" || s.status === "returned",
 								).length || 0,
 						},
 					};
@@ -146,6 +142,38 @@ export const adminDb = {
 			}
 		},
 
+		approve: async (userId) => {
+			try {
+				const { data, error } = await supabase
+					.from("profiles")
+					.update({ status: "approved", updated_at: new Date().toISOString() })
+					.eq("id", userId)
+					.select()
+					.single();
+				if (error) throw error;
+				return { data, error: null };
+			} catch (err) {
+				console.error("Admin approve user error:", err);
+				return { data: null, error: err };
+			}
+		},
+
+		reject: async (userId) => {
+			try {
+				const { data, error } = await supabase
+					.from("profiles")
+					.update({ status: "rejected", updated_at: new Date().toISOString() })
+					.eq("id", userId)
+					.select()
+					.single();
+				if (error) throw error;
+				return { data, error: null };
+			} catch (err) {
+				console.error("Admin reject user error:", err);
+				return { data: null, error: err };
+			}
+		},
+
 		/**
 		 * Delete user and all associated data
 		 * WARNING: This is destructive and cascades to related tables
@@ -154,10 +182,12 @@ export const adminDb = {
 		 */
 		delete: async (userId) => {
 			try {
-				// Delete from auth.users will cascade to profiles via foreign key
-				const { error } = await supabase.auth.admin.deleteUser(userId);
+				const { error: profileError } = await supabase
+					.from("profiles")
+					.delete()
+					.eq("id", userId);
 
-				if (error) throw error;
+				if (profileError) throw profileError;
 
 				return { error: null };
 			} catch (err) {
@@ -188,7 +218,7 @@ export const adminDb = {
 							acc.total += 1;
 							return acc;
 						},
-						{ total: 0, student: 0, instructor: 0, admin: 0 }
+						{ total: 0, student: 0, instructor: 0, admin: 0 },
 					);
 
 					return { data: stats, error: null };
@@ -312,7 +342,7 @@ export const adminDb = {
             enrollments(count),
             materials(count)
           `,
-						{ count: "exact" }
+						{ count: "exact" },
 					)
 					.order("created_at", { ascending: false })
 					.range(offset, offset + limit - 1);
@@ -446,7 +476,7 @@ export const adminDb = {
 								`
                 *,
                 instructor:profiles!subjects_instructor_id_fkey(id, full_name, email)
-              `
+              `,
 							)
 							.eq("id", subjectId)
 							.single(),
@@ -472,7 +502,7 @@ export const adminDb = {
 					total: submissions.data?.length || 0,
 					graded:
 						submissions.data?.filter(
-							(s) => s.status === "graded" || s.status === "returned"
+							(s) => s.status === "graded" || s.status === "returned",
 						).length || 0,
 					late: submissions.data?.filter((s) => s.is_late).length || 0,
 					averageGrade:
@@ -523,7 +553,7 @@ export const adminDb = {
             student:profiles!enrollments_student_id_fkey(id, full_name, email),
             subject:subjects!enrollments_subject_id_fkey(id, code, name, instructor:profiles!subjects_instructor_id_fkey(full_name))
           `,
-						{ count: "exact" }
+						{ count: "exact" },
 					)
 					.order("enrolled_at", { ascending: false })
 					.range(offset, offset + limit - 1);
@@ -649,8 +679,8 @@ export const adminDb = {
 							enrollmentCounts.length > 0
 								? Math.round(
 										enrollmentCounts.reduce((a, b) => a + b, 0) /
-											enrollmentCounts.length
-								  )
+											enrollmentCounts.length,
+									)
 								: 0,
 						maxEnrollmentsInSubject: Math.max(...enrollmentCounts, 0),
 						minEnrollmentsInSubject: Math.min(...enrollmentCounts, 0),
@@ -705,7 +735,7 @@ export const adminDb = {
 						acc[user.role] = (acc[user.role] || 0) + 1;
 						return acc;
 					},
-					{ student: 0, instructor: 0, admin: 0 }
+					{ student: 0, instructor: 0, admin: 0 },
 				) || { student: 0, instructor: 0, admin: 0 };
 
 				const submissionStats = submissions.data?.reduce(
@@ -715,7 +745,7 @@ export const adminDb = {
 						}
 						return acc;
 					},
-					{ graded: 0 }
+					{ graded: 0 },
 				) || { graded: 0 };
 
 				return {
@@ -751,7 +781,7 @@ export const adminDb = {
 						`
             *,
             user:profiles!audit_logs_user_id_fkey(full_name, email)
-          `
+          `,
 					)
 					.order("created_at", { ascending: false })
 					.limit(limit);
@@ -809,7 +839,7 @@ export const adminDb = {
 								acc[user.role] = (acc[user.role] || 0) + 1;
 								return acc;
 							},
-							{ student: 0, instructor: 0, admin: 0 }
+							{ student: 0, instructor: 0, admin: 0 },
 						),
 						period: `Last ${days} days`,
 					},
@@ -842,7 +872,7 @@ export const adminDb = {
             *,
             subject:subjects(id, code, name, instructor:profiles(full_name))
           `,
-						{ count: "exact" }
+						{ count: "exact" },
 					)
 					.order("created_at", { ascending: false })
 					.range(offset, offset + limit - 1);
@@ -896,7 +926,7 @@ export const adminDb = {
             student:profiles!submissions_student_id_fkey(full_name, email),
             material:materials(title, subject:subjects(name))
           `,
-						{ count: "exact" }
+						{ count: "exact" },
 					)
 					.order("submitted_at", { ascending: false })
 					.range(offset, offset + limit - 1);

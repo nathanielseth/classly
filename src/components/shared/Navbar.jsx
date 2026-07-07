@@ -1,25 +1,167 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
 	Menu,
-	Plus,
 	Bell,
 	ChevronDown,
 	Sparkles,
-	User,
 	Moon,
 	Settings,
 	LogOut,
-	MessageSquare,
 } from "lucide-react";
+import { supabase } from "../../lib/supabase/client";
 
 const Navbar = ({ toggleSidebar, onLogout, userRole, profile }) => {
 	const [isProfileOpen, setIsProfileOpen] = useState(false);
-	const [joinCourseModal, setJoinCourseModal] = useState(false);
 	const [notificationsOpen, setNotificationsOpen] = useState(false);
+	const [notifications, setNotifications] = useState([]);
+	const [unreadCount, setUnreadCount] = useState(0);
 	const profileRef = useRef(null);
 	const notifRef = useRef(null);
 
-	// Close dropdowns when clicking outside
+	// Track the primitive ID for clean dependencies
+	const profileId = profile?.id;
+
+	// ============================================
+	// 1. PURE DATA FETCHING (No Direct State Updates)
+	// ============================================
+	const fetchNotifications = useCallback(async () => {
+		if (!profileId) return [];
+
+		try {
+			let items = [];
+
+			if (userRole === "student") {
+				// Get announcements from enrolled subjects
+				const { data: enrollments } = await supabase
+					.from("enrollments")
+					.select("subject_id")
+					.eq("student_id", profileId);
+
+				const subjectIds = (enrollments || []).map((e) => e.subject_id);
+
+				if (subjectIds.length > 0) {
+					const { data: announcements } = await supabase
+						.from("announcements")
+						.select(
+							`
+              id, title, content, created_at,
+              subject:subjects!announcements_subject_id_fkey(name, code)
+            `,
+						)
+						.in("subject_id", subjectIds)
+						.order("created_at", { ascending: false })
+						.limit(10);
+
+					items = (announcements || []).map((a) => ({
+						id: a.id,
+						title: a.title || "New Announcement",
+						body: `${a.subject?.name || ""} · ${a.content?.slice(0, 60)}${a.content?.length > 60 ? "..." : ""}`,
+						created_at: a.created_at,
+						type: "announcement",
+					}));
+				}
+			} else if (userRole === "instructor") {
+				// Get recent submissions on their materials
+				const { data: subjects } = await supabase
+					.from("subjects")
+					.select("id, name")
+					.eq("instructor_id", profileId);
+
+				const subjectIds = (subjects || []).map((s) => s.id);
+
+				if (subjectIds.length > 0) {
+					const { data: materials } = await supabase
+						.from("materials")
+						.select("id, title")
+						.in("subject_id", subjectIds);
+
+					const materialIds = (materials || []).map((m) => m.id);
+					const materialMap = Object.fromEntries(
+						(materials || []).map((m) => [m.id, m.title]),
+					);
+
+					if (materialIds.length > 0) {
+						const { data: submissions } = await supabase
+							.from("submissions")
+							.select(
+								`
+                id, submitted_at, material_id,
+                student:profiles!submissions_student_id_fkey(full_name)
+              `,
+							)
+							.in("material_id", materialIds)
+							.eq("status", "submitted")
+							.order("submitted_at", { ascending: false })
+							.limit(10);
+
+						items = (submissions || []).map((s) => ({
+							id: s.id,
+							title: "New Submission",
+							body: `${s.student?.full_name} submitted ${materialMap[s.material_id] || "an assignment"}`,
+							created_at: s.submitted_at,
+							type: "submission",
+						}));
+					}
+				}
+			} else if (userRole === "admin") {
+				// Show pending approval requests
+				const { data: pending } = await supabase
+					.from("profiles")
+					.select("id, full_name, email, role, created_at")
+					.eq("status", "pending")
+					.order("created_at", { ascending: false })
+					.limit(10);
+
+				items = (pending || []).map((u) => ({
+					id: u.id,
+					title: "Pending Approval",
+					body: `${u.full_name} (${u.role}) is waiting for approval`,
+					created_at: u.created_at,
+					type: "pending",
+				}));
+			}
+
+			return items;
+		} catch (err) {
+			console.error("Notification load error:", err);
+			return [];
+		}
+	}, [profileId, userRole]);
+
+	// ============================================
+	// 2. INTERACTION EVENT HANDLER
+	// ============================================
+	const loadNotifications = useCallback(async () => {
+		const items = await fetchNotifications();
+		setNotifications(items);
+		setUnreadCount(items.length);
+	}, [fetchNotifications]);
+
+	// ============================================
+	// 3. SAFE EFFECT SYNCHRONIZATION (Fixes Error & Race Conditions)
+	// ============================================
+	useEffect(() => {
+		let ignore = false;
+
+		const syncNotifications = async () => {
+			const items = await fetchNotifications();
+			// Only set state if the component hasn't unmounted or props haven't changed mid-flight
+			if (!ignore) {
+				setNotifications(items);
+				setUnreadCount(items.length);
+			}
+		};
+
+		syncNotifications();
+
+		return () => {
+			ignore = true; // Clean up token to discard stale network responses
+		};
+	}, [fetchNotifications]);
+
+	// ============================================
+	// CLICK OUTSIDE
+	// ============================================
 	useEffect(() => {
 		const handleClickOutside = (event) => {
 			if (profileRef.current && !profileRef.current.contains(event.target)) {
@@ -29,7 +171,6 @@ const Navbar = ({ toggleSidebar, onLogout, userRole, profile }) => {
 				setNotificationsOpen(false);
 			}
 		};
-
 		document.addEventListener("mousedown", handleClickOutside);
 		return () => document.removeEventListener("mousedown", handleClickOutside);
 	}, []);
@@ -37,6 +178,23 @@ const Navbar = ({ toggleSidebar, onLogout, userRole, profile }) => {
 	const handleLogoutClick = () => {
 		setIsProfileOpen(false);
 		onLogout();
+	};
+
+	const formatTime = (ts) => {
+		if (!ts) return "";
+		const date = new Date(ts);
+		const now = new Date();
+		const diff = Math.floor((now - date) / 1000);
+		if (diff < 60) return "just now";
+		if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+		if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+		return `${Math.floor(diff / 86400)}d ago`;
+	};
+
+	const notifDotColor = {
+		announcement: "bg-classly-green",
+		submission: "bg-blue-500",
+		pending: "bg-amber-500",
 	};
 
 	return (
@@ -51,7 +209,6 @@ const Navbar = ({ toggleSidebar, onLogout, userRole, profile }) => {
 						>
 							<Menu size={20} />
 						</button>
-
 						<div className="flex items-center gap-2">
 							<div className="w-8 h-8 bg-classly-green rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-sm">
 								C
@@ -62,7 +219,6 @@ const Navbar = ({ toggleSidebar, onLogout, userRole, profile }) => {
 						</div>
 					</div>
 
-					{/* Ask AI */}
 					<button className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all cursor-pointer">
 						<Sparkles size={14} className="text-classly-gold" />
 						<span className="text-sm font-semibold text-gray-700">Ask AI</span>
@@ -70,103 +226,96 @@ const Navbar = ({ toggleSidebar, onLogout, userRole, profile }) => {
 				</div>
 
 				<div className="flex items-center gap-2">
-					{/* Messages */}
-					<button
-						className="relative p-2 text-gray-500 hover:text-classly-green hover:bg-gray-50 rounded-lg transition-all cursor-pointer"
-						aria-label="Messages"
-					>
-						<MessageSquare size={20} />
-						<span className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-500 rounded-full border-2 border-white"></span>
-					</button>
-
 					{/* Notifications */}
 					<div className="relative" ref={notifRef}>
 						<button
-							onClick={() => setNotificationsOpen(!notificationsOpen)}
+							onClick={() => {
+								setNotificationsOpen(!notificationsOpen);
+								if (!notificationsOpen) {
+									setUnreadCount(0);
+									loadNotifications();
+								}
+							}}
 							className="relative p-2 text-gray-500 hover:text-classly-green hover:bg-gray-50 rounded-lg transition-all cursor-pointer"
-							aria-label="Notifications"
 						>
 							<Bell size={20} />
-							<span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+							{unreadCount > 0 && (
+								<span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
+									{unreadCount > 9 ? "9+" : unreadCount}
+								</span>
+							)}
 						</button>
 
-						{/* Notifications Dropdown */}
 						{notificationsOpen && (
-							<div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-								<div className="p-4 border-b border-gray-100">
+							<div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-50">
+								<div className="p-4 border-b border-gray-100 flex items-center justify-between">
 									<h3 className="font-semibold text-gray-900">Notifications</h3>
-									<p className="text-xs text-gray-500 mt-0.5">
-										You have 2 unread notifications
-									</p>
+									<span className="text-xs text-gray-400">
+										{notifications.length === 0
+											? "All caught up"
+											: `${notifications.length} items`}
+									</span>
 								</div>
-								<div className="max-h-96 overflow-y-auto">
-									<div className="p-4 hover:bg-gray-50 border-b border-gray-50 cursor-pointer transition-colors">
-										<div className="flex gap-3">
-											<div className="w-2 h-2 rounded-full bg-classly-green mt-2 shrink-0"></div>
-											<div className="flex-1">
-												<p className="text-sm font-medium text-gray-900">
-													Assignment Due Soon
-												</p>
-												<p className="text-xs text-gray-500 mt-1">
-													Final Project Proposal is due in 2 hours
-												</p>
-												<p className="text-xs text-gray-400 mt-1">
-													2 hours ago
-												</p>
-											</div>
+								<div className="max-h-80 overflow-y-auto divide-y divide-gray-50">
+									{notifications.length === 0 ? (
+										<div className="p-6 text-center text-sm text-gray-400">
+											Nothing new right now
 										</div>
-									</div>
-									<div className="p-4 hover:bg-gray-50 cursor-pointer transition-colors">
-										<div className="flex gap-3">
-											<div className="w-2 h-2 rounded-full bg-gray-300 mt-2 shrink-0"></div>
-											<div className="flex-1">
-												<p className="text-sm font-medium text-gray-900">
-													New Announcement
-												</p>
-												<p className="text-xs text-gray-500 mt-1">
-													Prof. Val posted a new announcement in IT 101
-												</p>
-												<p className="text-xs text-gray-400 mt-1">
-													5 hours ago
-												</p>
+									) : (
+										notifications.map((n) => (
+											<div
+												key={n.id}
+												className="p-4 hover:bg-gray-50 cursor-pointer transition-colors"
+											>
+												<div className="flex gap-3">
+													<div
+														className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${notifDotColor[n.type] || "bg-gray-400"}`}
+													/>
+													<div className="flex-1 min-w-0">
+														<p className="text-sm font-medium text-gray-900 truncate">
+															{n.title}
+														</p>
+														<p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
+															{n.body}
+														</p>
+														<p className="text-xs text-gray-400 mt-1">
+															{formatTime(n.created_at)}
+														</p>
+													</div>
+												</div>
 											</div>
-										</div>
-									</div>
+										))
+									)}
 								</div>
 							</div>
 						)}
 					</div>
 
-					{/* Profile Dropdown */}
+					{/* Profile */}
 					<div className="relative" ref={profileRef}>
 						<button
 							onClick={() => setIsProfileOpen(!isProfileOpen)}
 							className="flex items-center gap-3 pl-2 pr-1 py-1 rounded-full hover:bg-gray-50 transition-all border border-transparent hover:border-gray-200 cursor-pointer"
 						>
 							<img
-								src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${
-									profile?.full_name || "User"
-								}`}
+								src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${profile?.full_name || "User"}`}
 								alt="User"
 								className="w-8 h-8 rounded-full bg-gray-200"
 							/>
 							<ChevronDown
 								size={14}
-								className={`text-gray-400 mr-1 transition-transform duration-200 ${
-									isProfileOpen ? "rotate-180" : ""
-								}`}
+								className={`text-gray-400 mr-1 transition-transform duration-200 ${isProfileOpen ? "rotate-180" : ""}`}
 							/>
 						</button>
 
-						{/* Profile Dropdown Menu */}
 						{isProfileOpen && (
-							<div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+							<div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden z-50">
 								<div className="p-4 border-b border-gray-100">
 									<p className="font-semibold text-gray-900">
 										{profile?.full_name || "User"}
 									</p>
 									<p className="text-xs text-gray-500 mt-0.5">
-										{profile?.email || "user@classly.edu"}
+										{profile?.email || ""}
 									</p>
 									{userRole && (
 										<p className="text-xs text-classly-green font-medium mt-1 capitalize">
@@ -176,20 +325,14 @@ const Navbar = ({ toggleSidebar, onLogout, userRole, profile }) => {
 								</div>
 								<div className="py-2">
 									<button
-										onClick={() => {
-											setIsProfileOpen(false);
-											// Handle account settings
-										}}
+										onClick={() => setIsProfileOpen(false)}
 										className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
 									>
 										<Settings size={16} />
 										<span>Account Settings</span>
 									</button>
 									<button
-										onClick={() => {
-											setIsProfileOpen(false);
-											// Handle dark mode toggle
-										}}
+										onClick={() => setIsProfileOpen(false)}
 										className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer"
 									>
 										<Moon size={16} />
@@ -210,114 +353,6 @@ const Navbar = ({ toggleSidebar, onLogout, userRole, profile }) => {
 					</div>
 				</div>
 			</header>
-
-			{/* Join Course Modal */}
-			{joinCourseModal && (
-				<div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 animate-in fade-in duration-200">
-					<div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 animate-in zoom-in-95 duration-200">
-						<div className="p-6 border-b border-gray-100">
-							<h2 className="text-xl font-bold text-gray-900">Join a Course</h2>
-							<p className="text-sm text-gray-500 mt-1">
-								Enter the course code to enroll
-							</p>
-						</div>
-						<div className="p-6">
-							<input
-								type="text"
-								placeholder="Enter course code (e.g., ABC123)"
-								className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-classly-green focus:ring-2 focus:ring-classly-green/20 transition-all"
-								autoFocus
-							/>
-						</div>
-						<div className="p-6 pt-0 flex gap-3">
-							<button
-								onClick={() => setJoinCourseModal(false)}
-								className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-all cursor-pointer"
-							>
-								Cancel
-							</button>
-							<button
-								onClick={() => {
-									// Handle join course
-									setJoinCourseModal(false);
-								}}
-								className="flex-1 px-4 py-2.5 bg-classly-green text-white rounded-lg hover:bg-classly-green/90 font-medium transition-all shadow-sm hover:shadow-md cursor-pointer"
-							>
-								Join Course
-							</button>
-						</div>
-					</div>
-				</div>
-			)}
-
-			<style>{`
-				@keyframes rotate-border {
-					0% {
-						transform: rotate(0deg);
-					}
-					100% {
-						transform: rotate(360deg);
-					}
-				}
-
-				.animate-rotate-border {
-					animation: rotate-border 4s linear infinite;
-				}
-
-				@keyframes in {
-					from {
-						opacity: 0;
-						transform: translateY(-4px) scale(0.96);
-					}
-					to {
-						opacity: 1;
-						transform: translateY(0) scale(1);
-					}
-				}
-
-				.animate-in {
-					animation: in 0.2s ease-out;
-				}
-
-				.fade-in {
-					animation: fade-in 0.2s ease-out;
-				}
-
-				@keyframes fade-in {
-					from { opacity: 0; }
-					to { opacity: 1; }
-				}
-
-				.slide-in-from-top-2 {
-					animation: slide-in-from-top 0.2s ease-out;
-				}
-
-				@keyframes slide-in-from-top {
-					from {
-						transform: translateY(-8px);
-						opacity: 0;
-					}
-					to {
-						transform: translateY(0);
-						opacity: 1;
-					}
-				}
-
-				.zoom-in-95 {
-					animation: zoom-in 0.2s ease-out;
-				}
-
-				@keyframes zoom-in {
-					from {
-						transform: scale(0.95);
-						opacity: 0;
-					}
-					to {
-						transform: scale(1);
-						opacity: 1;
-					}
-				}
-			`}</style>
 		</>
 	);
 };

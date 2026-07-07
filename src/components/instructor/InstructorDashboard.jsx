@@ -43,21 +43,18 @@ const InstructorDashboard = ({ onNavigate, userId }) => {
 
 				setError(null);
 
-				const { data, error: fetchError } = await db.subjects.getByInstructor(
-					userId
-				);
+				const { data, error: fetchError } =
+					await db.subjects.getByInstructor(userId);
 
 				if (fetchError) throw fetchError;
 
 				const subjectsWithStats = await Promise.all(
 					(data || []).map(async (subject) => {
-						const [enrollments, materials, announcements] = await Promise.all(
-							[
-								db.enrollments.getBySubject(subject.id),
-								db.materials.getBySubject(subject.id),
-								db.announcements.getBySubject(subject.id, 999),
-							]
-						);
+						const [enrollments, materials, announcements] = await Promise.all([
+							db.enrollments.getBySubject(subject.id),
+							db.materials.getBySubject(subject.id),
+							db.announcements.getBySubject(subject.id, 999),
+						]);
 
 						return {
 							...subject,
@@ -65,7 +62,7 @@ const InstructorDashboard = ({ onNavigate, userId }) => {
 							assignmentCount: materials.data?.length || 0,
 							announcementCount: announcements.data?.length || 0,
 						};
-					})
+					}),
 				);
 
 				setSubjects(subjectsWithStats);
@@ -79,11 +76,12 @@ const InstructorDashboard = ({ onNavigate, userId }) => {
 				setRefreshing(false);
 			}
 		},
-		[userId]
+		[userId],
 	);
 
 	useEffect(() => {
 		if (userId) {
+			// eslint-disable-next-line react-hooks/set-state-in-effect
 			loadSubjects(false);
 		}
 	}, [userId, loadSubjects]);
@@ -119,23 +117,30 @@ const InstructorDashboard = ({ onNavigate, userId }) => {
 			setFormLoading(true);
 			setFormError("");
 
-			const { error: createError } = await db.subjects.create({
-				code: formData.code.toUpperCase(),
-				name: formData.name,
-				description: formData.description || null,
-				schedule: formData.schedule || null,
-				room: formData.room || null,
-				instructor_id: userId,
-			});
+			const { data: subjectData, error: createError } =
+				await db.subjects.create({
+					code: formData.code.toUpperCase(),
+					name: formData.name,
+					description: formData.description || null,
+					schedule: formData.schedule || null,
+					room: formData.room || null,
+					instructor_id: userId,
+				});
 
 			if (createError) {
 				if (createError.code === "23505") {
 					throw new Error(
-						"Subject code already exists. Please use a different code."
+						"Subject code already exists. Please use a different code.",
 					);
 				}
 				throw createError;
 			}
+
+			await db.groupConversations.createForSubject(
+				subjectData.id,
+				formData.name,
+				userId,
+			);
 
 			await loadSubjects(true);
 			setCreateModal(false);
@@ -156,7 +161,7 @@ const InstructorDashboard = ({ onNavigate, userId }) => {
 
 	const handleDeleteSubject = async (subjectId, subjectName) => {
 		const confirmed = window.confirm(
-			`Are you sure you want to delete "${subjectName}"? This will remove all materials, announcements, and enrollments. This action cannot be undone.`
+			`Are you sure you want to delete "${subjectName}"? This will remove all materials, announcements, and enrollments. This action cannot be undone.`,
 		);
 
 		if (!confirmed) return;

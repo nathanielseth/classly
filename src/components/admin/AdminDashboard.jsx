@@ -58,6 +58,7 @@ const AdminDashboard = ({ onNavigate }) => {
 	}, []);
 
 	useEffect(() => {
+		// eslint-disable-next-line react-hooks/set-state-in-effect
 		loadDashboardData(false);
 	}, [loadDashboardData]);
 
@@ -140,7 +141,7 @@ const AdminDashboard = ({ onNavigate }) => {
 					label="Students"
 					value={stats?.total_students || 0}
 					subtitle={`${Math.round(
-						(stats?.total_students / stats?.total_users) * 100 || 0
+						(stats?.total_students / stats?.total_users) * 100 || 0,
 					)}% of users`}
 					color="green"
 					onClick={() => onNavigate("admin-users")}
@@ -335,7 +336,7 @@ const AdminDashboard = ({ onNavigate }) => {
 // STAT CARD COMPONENT
 // ============================================
 const StatCard = ({
-	icon: IconComponent,
+	icon,
 	label,
 	value,
 	subtitle,
@@ -344,6 +345,10 @@ const StatCard = ({
 	color,
 	onClick,
 }) => {
+	// Assign to a capitalized variable inside the body so ESLint
+	// can unambiguously track its usage as a JSX element.
+	const Icon = icon;
+
 	const colorClasses = {
 		blue: "from-blue-500 to-blue-600",
 		green: "from-green-500 to-green-600",
@@ -368,7 +373,7 @@ const StatCard = ({
 					<div
 						className={`p-3 rounded-xl bg-linear-to-br ${colorClasses[color]} text-white shadow-sm`}
 					>
-						<IconComponent size={24} strokeWidth={2} />
+						<Icon size={24} strokeWidth={2} />
 					</div>
 				</div>
 
