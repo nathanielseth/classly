@@ -39,7 +39,9 @@ function App() {
 				setProfile(data);
 				setUserRole(data.role);
 			} else {
-				await auth.signOut();
+				// keep the session alive for magic link users
+				setProfile(null);
+				setUserRole(null);
 			}
 		} catch (err) {
 			console.error("Profile load error:", err);
@@ -103,7 +105,7 @@ function App() {
 
 	const handleRegister = async (email, password, role, fullName) => {
 		try {
-			const { error } = await auth.signUp({
+			const { data, error } = await auth.signUp({
 				email,
 				password,
 				fullName,
@@ -115,20 +117,22 @@ function App() {
 				return;
 			}
 
-			const isCvsuStudent =
-				role === "student" && email.toLowerCase().endsWith("@cvsu.edu.ph");
-
-			if (isCvsuStudent) {
-				alert("Account created! You can now log in.");
-			} else {
+			if (!data.session) {
 				alert(
-					"Account created! Your account is pending admin approval. You'll be able to log in once approved.",
+					"Account created! Please check your email and click the confirmation link before logging in.",
 				);
+			} else {
+				alert("Account created! You can now log in.");
 			}
 		} catch (err) {
 			console.error("Registration error:", err);
 			alert("Registration failed. Please try again.");
 		}
+	};
+
+	const handleMagicLink = async (email) => {
+		const { error } = await auth.sendMagicLink(email);
+		return { error };
 	};
 
 	const handleLogout = async () => {
@@ -175,7 +179,45 @@ function App() {
 	// AUTH PAGE (not logged in)
 	// ============================================
 	if (!session) {
-		return <AuthPage onLogin={handleLogin} onRegister={handleRegister} />;
+		return (
+			<AuthPage
+				onLogin={handleLogin}
+				onRegister={handleRegister}
+				onMagicLink={handleMagicLink}
+			/>
+		);
+	}
+
+	// ============================================
+	// MAGIC LINK
+	// ============================================
+	if (session && !profile) {
+		return (
+			<CompleteProfileScreen
+				session={session}
+				onComplete={async (fullName, role) => {
+					const isCvsuStudent =
+						role === "student" &&
+						session.user.email.toLowerCase().endsWith("@cvsu.edu.ph");
+
+					const { error } = await supabase.from("profiles").insert({
+						id: session.user.id,
+						email: session.user.email,
+						full_name: fullName,
+						role,
+						status: isCvsuStudent ? "approved" : "pending",
+					});
+
+					if (error) {
+						alert(`Failed to save profile: ${error.message}`);
+						return;
+					}
+
+					await loadUserProfile(session.user.id);
+				}}
+				onLogout={handleLogout}
+			/>
+		);
 	}
 
 	// ============================================
@@ -373,5 +415,113 @@ function App() {
 		</div>
 	);
 }
+
+const CompleteProfileScreen = ({ session, onComplete, onLogout }) => {
+	const [fullName, setFullName] = useState("");
+	const [role, setRole] = useState("student");
+	const [saving, setSaving] = useState(false);
+
+	const handleSubmit = async () => {
+		if (!fullName.trim()) {
+			alert("Please enter your full name.");
+			return;
+		}
+		setSaving(true);
+		await onComplete(fullName.trim(), role);
+		setSaving(false);
+	};
+
+	return (
+		<div className="h-screen w-full flex items-center justify-center bg-[#F9FAFB]">
+			<div className="max-w-md w-full mx-4 bg-white rounded-2xl border border-gray-200 p-8">
+				<div className="text-center mb-6">
+					<div className="w-12 h-12 rounded-2xl bg-classly-green text-white flex items-center justify-center shadow-lg mx-auto mb-4">
+						<svg
+							className="w-6 h-6"
+							fill="none"
+							viewBox="0 0 24 24"
+							stroke="currentColor"
+						>
+							<path
+								strokeLinecap="round"
+								strokeLinejoin="round"
+								strokeWidth={2}
+								d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+							/>
+						</svg>
+					</div>
+					<h2 className="text-xl font-bold text-gray-900">
+						Complete your profile
+					</h2>
+					<p className="text-sm text-gray-500 mt-1">
+						Signed in as{" "}
+						<span className="font-medium">{session.user.email}</span>
+					</p>
+				</div>
+
+				<div className="space-y-4">
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-1.5">
+							Full Name
+						</label>
+						<input
+							type="text"
+							placeholder="Enter your full name"
+							value={fullName}
+							onChange={(e) => setFullName(e.target.value)}
+							className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-classly-green focus:ring-2 focus:ring-classly-green/20 focus:outline-none transition-all"
+							autoFocus
+						/>
+					</div>
+
+					<div>
+						<label className="block text-sm font-medium text-gray-700 mb-2">
+							I am a...
+						</label>
+						<div className="grid grid-cols-3 gap-3">
+							{[
+								{ id: "student", label: "Student" },
+								{ id: "instructor", label: "Instructor" },
+								{ id: "admin", label: "Admin" },
+							].map((r) => (
+								<button
+									key={r.id}
+									type="button"
+									onClick={() => setRole(r.id)}
+									className={`py-2.5 rounded-xl border text-sm font-semibold transition-all ${
+										role === r.id
+											? "bg-classly-green border-classly-green text-white"
+											: "border-gray-200 text-gray-500 hover:bg-gray-50"
+									}`}
+								>
+									{r.label}
+								</button>
+							))}
+						</div>
+					</div>
+
+					<button
+						onClick={handleSubmit}
+						disabled={saving || !fullName.trim()}
+						className="w-full py-3 bg-classly-green text-white font-bold rounded-xl hover:bg-classly-dark transition-all disabled:opacity-50 flex items-center justify-center gap-2 mt-2"
+					>
+						{saving ? (
+							<div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+						) : (
+							"Get Started"
+						)}
+					</button>
+
+					<button
+						onClick={onLogout}
+						className="w-full text-sm text-gray-400 hover:text-gray-600 text-center"
+					>
+						Sign out
+					</button>
+				</div>
+			</div>
+		</div>
+	);
+};
 
 export default App;

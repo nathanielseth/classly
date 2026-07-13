@@ -43,7 +43,9 @@ const StudentDashboard = ({ onNavigate, userId }) => {
 				if (enrollError) {
 					console.error("Enrollments error:", enrollError);
 				} else {
-					setEnrollments(enrollmentsData || []);
+					setEnrollments(
+						(enrollmentsData || []).filter((e) => !e.subject?.archived),
+					);
 				}
 
 				try {

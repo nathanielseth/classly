@@ -167,6 +167,7 @@ export const CreateMaterialModal = ({ topics = [], onClose, onSave }) => {
 								<option value="exam">Exam</option>
 								<option value="project">Project</option>
 								<option value="module">Module</option>
+								<option value="others">Others</option>
 							</select>
 						</div>
 						<div>

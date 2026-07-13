@@ -31,6 +31,7 @@ const InstructorDashboard = ({ onNavigate, userId }) => {
 	});
 	const [formLoading, setFormLoading] = useState(false);
 	const [formError, setFormError] = useState("");
+	const [showArchived, setShowArchived] = useState(false);
 
 	const loadSubjects = useCallback(
 		async (isBackgroundRefresh = false) => {
@@ -43,8 +44,10 @@ const InstructorDashboard = ({ onNavigate, userId }) => {
 
 				setError(null);
 
-				const { data, error: fetchError } =
-					await db.subjects.getByInstructor(userId);
+				const { data, error: fetchError } = await db.subjects.getByInstructor(
+					userId,
+					showArchived,
+				);
 
 				if (fetchError) throw fetchError;
 
@@ -76,7 +79,7 @@ const InstructorDashboard = ({ onNavigate, userId }) => {
 				setRefreshing(false);
 			}
 		},
-		[userId],
+		[userId, showArchived],
 	);
 
 	useEffect(() => {
@@ -84,7 +87,7 @@ const InstructorDashboard = ({ onNavigate, userId }) => {
 			// eslint-disable-next-line react-hooks/set-state-in-effect
 			loadSubjects(false);
 		}
-	}, [userId, loadSubjects]);
+	}, [userId, loadSubjects, showArchived]);
 
 	useEffect(() => {
 		const handleVisibilityChange = () => {
@@ -177,6 +180,30 @@ const InstructorDashboard = ({ onNavigate, userId }) => {
 		}
 	};
 
+	const handleArchiveSubject = async (subjectId, subjectName) => {
+		const confirmed = window.confirm(
+			`Archive "${subjectName}"? Students won't see it anymore, but all data is preserved.`,
+		);
+		if (!confirmed) return;
+		try {
+			const { error } = await db.subjects.archive(subjectId);
+			if (error) throw error;
+			await loadSubjects(true);
+		} catch (err) {
+			alert(`Failed to archive: ${err.message}`);
+		}
+	};
+
+	const handleUnarchiveSubject = async (subjectId) => {
+		try {
+			const { error } = await db.subjects.unarchive(subjectId);
+			if (error) throw error;
+			await loadSubjects(true);
+		} catch (err) {
+			alert(`Failed to unarchive: ${err.message}`);
+		}
+	};
+
 	if (initialLoading && subjects.length === 0) {
 		return (
 			<div className="max-w-7xl mx-auto">
@@ -219,21 +246,37 @@ const InstructorDashboard = ({ onNavigate, userId }) => {
 
 			<div className="flex items-center justify-between">
 				<div>
-					<h1 className="text-2xl font-bold text-gray-900">Your Subjects</h1>
+					<h1 className="text-2xl font-bold text-gray-900">
+						{showArchived ? "Archived Subjects" : "Your Subjects"}
+					</h1>
 					<p className="text-sm text-gray-500 mt-1">
 						Manage your classes and materials
 					</p>
 				</div>
-				<button
-					onClick={() => {
-						setCreateModal(true);
-						setFormData({ ...formData, code: generateCode() });
-					}}
-					className="flex items-center gap-2 px-4 py-2.5 bg-classly-green text-white font-medium rounded-lg hover:bg-classly-green/90 transition-all shadow-sm hover:shadow-md"
-				>
-					<Plus size={18} strokeWidth={2.5} />
-					Create Subject
-				</button>
+				<div className="flex items-center gap-2">
+					<button
+						onClick={() => setShowArchived(!showArchived)}
+						className={`flex items-center gap-2 px-4 py-2.5 border font-medium rounded-lg transition-all text-sm ${
+							showArchived
+								? "bg-amber-50 border-amber-200 text-amber-700 hover:bg-amber-100"
+								: "border-gray-200 text-gray-600 hover:bg-gray-50"
+						}`}
+					>
+						{showArchived ? "View Active" : "View Archived"}
+					</button>
+					{!showArchived && (
+						<button
+							onClick={() => {
+								setCreateModal(true);
+								setFormData({ ...formData, code: generateCode() });
+							}}
+							className="flex items-center gap-2 px-4 py-2.5 bg-classly-green text-white font-medium rounded-lg hover:bg-classly-green/90 transition-all shadow-sm hover:shadow-md"
+						>
+							<Plus size={18} strokeWidth={2.5} />
+							Create Subject
+						</button>
+					)}
+				</div>
 			</div>
 
 			{subjects.length === 0 ? (
@@ -266,6 +309,9 @@ const InstructorDashboard = ({ onNavigate, userId }) => {
 							subject={subject}
 							onNavigate={onNavigate}
 							onDelete={handleDeleteSubject}
+							onArchive={handleArchiveSubject}
+							onUnarchive={handleUnarchiveSubject}
+							showArchived={showArchived}
 						/>
 					))}
 				</div>
@@ -298,7 +344,14 @@ const InstructorDashboard = ({ onNavigate, userId }) => {
 	);
 };
 
-const SubjectCard = ({ subject, onNavigate, onDelete }) => {
+const SubjectCard = ({
+	subject,
+	onNavigate,
+	onDelete,
+	onArchive,
+	onUnarchive,
+	showArchived,
+}) => {
 	const [menuOpen, setMenuOpen] = useState(false);
 	const [copied, setCopied] = useState(false);
 
@@ -341,13 +394,59 @@ const SubjectCard = ({ subject, onNavigate, onDelete }) => {
 								onClick={() => setMenuOpen(false)}
 							/>
 							<div className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden z-20">
+								{!showArchived ? (
+									<button
+										onClick={(e) => {
+											e.stopPropagation();
+											setMenuOpen(false);
+											onArchive(subject.id, subject.name);
+										}}
+										className="w-full text-left px-4 py-2.5 text-sm text-amber-600 hover:bg-amber-50 transition-colors flex items-center gap-2"
+									>
+										<svg
+											width="14"
+											height="14"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											strokeWidth="2"
+										>
+											<polyline points="21 8 21 21 3 21 3 8" />
+											<rect x="1" y="3" width="22" height="5" />
+											<line x1="10" y1="12" x2="14" y2="12" />
+										</svg>
+										Archive
+									</button>
+								) : (
+									<button
+										onClick={(e) => {
+											e.stopPropagation();
+											setMenuOpen(false);
+											onUnarchive(subject.id);
+										}}
+										className="w-full text-left px-4 py-2.5 text-sm text-green-600 hover:bg-green-50 transition-colors flex items-center gap-2"
+									>
+										<svg
+											width="14"
+											height="14"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											strokeWidth="2"
+										>
+											<polyline points="21 8 21 21 3 21 3 8" />
+											<rect x="1" y="3" width="22" height="5" />
+										</svg>
+										Unarchive
+									</button>
+								)}
 								<button
 									onClick={(e) => {
 										e.stopPropagation();
 										setMenuOpen(false);
 										onDelete(subject.id, subject.name);
 									}}
-									className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
+									className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 border-t border-gray-100 transition-colors flex items-center gap-2"
 								>
 									<Trash2 size={14} />
 									Delete

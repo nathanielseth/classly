@@ -60,12 +60,38 @@ export const db = {
 			return { data, error };
 		},
 
-		getByInstructor: async (instructorId) => {
-			const { data, error } = await supabase
+		getByInstructor: async (instructorId, includeArchived = false) => {
+			let query = supabase
 				.from("subjects")
 				.select("*")
 				.eq("instructor_id", instructorId)
 				.order("name");
+
+			if (!includeArchived) {
+				query = query.eq("archived", false);
+			}
+
+			const { data, error } = await query;
+			return { data, error };
+		},
+
+		archive: async (id) => {
+			const { data, error } = await supabase
+				.from("subjects")
+				.update({ archived: true, updated_at: new Date().toISOString() })
+				.eq("id", id)
+				.select()
+				.single();
+			return { data, error };
+		},
+
+		unarchive: async (id) => {
+			const { data, error } = await supabase
+				.from("subjects")
+				.update({ archived: false, updated_at: new Date().toISOString() })
+				.eq("id", id)
+				.select()
+				.single();
 			return { data, error };
 		},
 

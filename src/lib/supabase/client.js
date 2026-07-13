@@ -39,6 +39,16 @@ export const auth = {
 		return { error };
 	},
 
+	sendMagicLink: async (email) => {
+		const { data, error } = await supabase.auth.signInWithOtp({
+			email,
+			options: {
+				shouldCreateUser: true,
+			},
+		});
+		return { data, error };
+	},
+
 	getSession: async () => {
 		const { data, error } = await supabase.auth.getSession();
 		return { data, error };
