@@ -1022,4 +1022,104 @@ export const db = {
 			return { data, error };
 		},
 	},
+
+	// QUIZ QUESTIONS
+	quizQuestions: {
+		getByMaterial: async (materialId) => {
+			const { data, error } = await supabase
+				.from("quiz_questions")
+				.select("*")
+				.eq("material_id", materialId)
+				.order("order_index", { ascending: true });
+			return { data, error };
+		},
+
+		getByMaterialAndStudent: async (materialId, studentId) => {
+			const { data, error } = await supabase
+				.from("submissions")
+				.select("*")
+				.eq("material_id", materialId)
+				.eq("student_id", studentId)
+				.maybeSingle();
+			return { data, error };
+		},
+
+		saveAll: async (materialId, questions) => {
+			// Delete existing questions first
+			await supabase
+				.from("quiz_questions")
+				.delete()
+				.eq("material_id", materialId);
+
+			if (questions.length === 0) return { error: null };
+
+			const { data, error } = await supabase
+				.from("quiz_questions")
+				.insert(
+					questions.map((q, i) => ({
+						material_id: materialId,
+						question: q.question,
+						options: q.options,
+						correct_index: q.correctIndex,
+						order_index: i,
+					})),
+				)
+				.select();
+			return { data, error };
+		},
+
+		delete: async (materialId) => {
+			const { error } = await supabase
+				.from("quiz_questions")
+				.delete()
+				.eq("material_id", materialId);
+			return { error };
+		},
+	},
+
+	// QUIZ ANSWERS
+	quizAnswers: {
+		getByMaterial: async (materialId, studentId) => {
+			const { data, error } = await supabase
+				.from("quiz_answers")
+				.select("*")
+				.eq("material_id", materialId)
+				.eq("student_id", studentId)
+				.maybeSingle();
+			return { data, error };
+		},
+
+		getAllByMaterial: async (materialId) => {
+			const { data, error } = await supabase
+				.from("quiz_answers")
+				.select(
+					`
+					*,
+					student:profiles!quiz_answers_student_id_fkey(id, full_name, email)
+				`,
+				)
+				.eq("material_id", materialId)
+				.order("submitted_at", { ascending: false });
+			return { data, error };
+		},
+
+		submit: async (materialId, studentId, answers, score, total) => {
+			const { data, error } = await supabase
+				.from("quiz_answers")
+				.upsert(
+					{
+						material_id: materialId,
+						student_id: studentId,
+						answers,
+						score,
+						total,
+						submitted_at: new Date().toISOString(),
+					},
+					{ onConflict: "material_id,student_id" },
+				)
+				.select()
+				.single();
+			return { data, error };
+		},
+	},
 };

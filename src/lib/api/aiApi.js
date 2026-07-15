@@ -20,13 +20,13 @@ export const getChatCompletionStream = async (messages, model, onChunk) => {
 				max_tokens: 2048,
 				stream: true,
 			}),
-		}
+		},
 	);
 
 	if (!response.ok) {
 		const errorData = await response.json().catch(() => ({}));
 		throw new Error(
-			errorData.error?.message || "Failed to get response from Groq API"
+			errorData.error?.message || "Failed to get response from Groq API",
 		);
 	}
 
@@ -108,7 +108,7 @@ export const processFiles = async (files) => {
 				text = await readFileAsText(file);
 			}
 			return `\n\n[File: ${file.name}]\n${text}`;
-		})
+		}),
 	);
 	return fileContents.join("");
 };
@@ -147,7 +147,7 @@ export const AI_MODELS = {
  */
 export const generateFlashcardsFromContent = async (
 	materialContent,
-	materialTitle
+	materialTitle,
 ) => {
 	const prompt = `You are an educational flashcard generator. Create 10 high-quality flashcards from the following material.
 
@@ -173,7 +173,7 @@ Format:
 		AI_MODELS.FLASHCARD,
 		(chunk) => {
 			fullResponse += chunk;
-		}
+		},
 	);
 
 	// Clean and parse JSON
@@ -192,6 +192,43 @@ Format:
 };
 
 /**
+ * Fisher–Yates shuffle, returns a new array (does not mutate input).
+ */
+const shuffleArray = (arr) => {
+	const copy = [...arr];
+	for (let i = copy.length - 1; i > 0; i--) {
+		const j = Math.floor(Math.random() * (i + 1));
+		[copy[i], copy[j]] = [copy[j], copy[i]];
+	}
+	return copy;
+};
+
+/**
+ * Randomizes the position of each question's correct answer.
+ *
+ * LLMs reliably default to placing the correct option first (or in
+ * some other fixed slot) regardless of prompting, so `correctIndex`
+ * comes back skewed toward 0 the vast majority of the time. Shuffling
+ * client-side after generation — rather than trying to prompt the bias
+ * away — is the only reliable fix. Each question's options are
+ * reordered independently so the correct-answer position varies
+ * question to question, not just once for the whole quiz.
+ */
+const shuffleQuizOptions = (quiz) => {
+	return quiz.map((q) => {
+		const correctOption = q.options[q.correctIndex];
+		const shuffledOptions = shuffleArray(q.options);
+		const newCorrectIndex = shuffledOptions.indexOf(correctOption);
+
+		return {
+			...q,
+			options: shuffledOptions,
+			correctIndex: newCorrectIndex,
+		};
+	});
+};
+
+/**
  * Generates a quiz from material content (non-streaming for better JSON reliability)
  * @param {string} materialContent - The content to generate quiz from
  * @param {string} materialTitle - Title of the material
@@ -199,7 +236,7 @@ Format:
  */
 export const generateQuizFromContent = async (
 	materialContent,
-	materialTitle
+	materialTitle,
 ) => {
 	const response = await fetch(
 		"https://api.groq.com/openai/v1/chat/completions",
@@ -242,10 +279,10 @@ Requirements:
 					},
 				],
 				response_format: { type: "json_object" },
-				temperature: 0.3,
+				temperature: 0.1,
 				max_tokens: 4096,
 			}),
-		}
+		},
 	);
 
 	if (!response.ok) {
@@ -307,7 +344,7 @@ Requirements:
 
 		console.log(`Valid questions: ${validQuiz.length} out of ${parsed.length}`);
 
-		return validQuiz;
+		return shuffleQuizOptions(validQuiz);
 	} catch (parseError) {
 		console.error("JSON Parse Error:", parseError);
 		console.error("Content:", content);

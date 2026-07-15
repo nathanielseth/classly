@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { supabase } from "../../lib/supabase/client";
 
-const Navbar = ({ toggleSidebar, onLogout, userRole, profile }) => {
+const Navbar = ({ toggleSidebar, onLogout, userRole, profile, onNavigate }) => {
 	const [isProfileOpen, setIsProfileOpen] = useState(false);
 	const [notificationsOpen, setNotificationsOpen] = useState(false);
 	const [notifications, setNotifications] = useState([]);
@@ -219,7 +219,10 @@ const Navbar = ({ toggleSidebar, onLogout, userRole, profile }) => {
 						</div>
 					</div>
 
-					<button className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all cursor-pointer">
+					<button
+						onClick={() => onNavigate?.("ai")}
+						className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all cursor-pointer"
+					>
 						<Sparkles size={14} className="text-classly-gold" />
 						<span className="text-sm font-semibold text-gray-700">Ask AI</span>
 					</button>

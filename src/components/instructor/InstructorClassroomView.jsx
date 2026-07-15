@@ -8,6 +8,7 @@ import { InstructorStreamTab } from "./tabs/InstructorStreamTab";
 import { InstructorMaterialsTab } from "./tabs/InstructorMaterialsTab";
 import { InstructorPeopleTab } from "./tabs/InstructorPeopleTab";
 import { EditSubjectModal } from "../classroom/modal/EditSubjectModal";
+import { MaterialDetailPage } from "../../pages/MaterialDetailPage";
 
 const InstructorClassroomView = ({ userId, userRole, subjectId, onBack }) => {
 	const [activeTab, setActiveTab] = useState("stream");
@@ -16,26 +17,52 @@ const InstructorClassroomView = ({ userId, userRole, subjectId, onBack }) => {
 	const [error, setError] = useState(null);
 	const [showEditSubject, setShowEditSubject] = useState(false);
 	const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+	const [selectedMaterial, setSelectedMaterial] = useState(null);
+
+	const fetchSubject = useCallback(async () => {
+		const { data, error: subjectError } = await db.subjects.getById(subjectId);
+		if (subjectError) throw subjectError;
+		return data;
+	}, [subjectId]);
 
 	const loadSubject = useCallback(async () => {
 		try {
 			setLoading(true);
-			const { data, error: subjectError } = await db.subjects.getById(
-				subjectId
-			);
-			if (subjectError) throw subjectError;
+			const data = await fetchSubject();
 			setSubject(data);
+			setError(null);
 		} catch (err) {
 			console.error("Subject load error:", err);
 			setError(err.message);
 		} finally {
 			setLoading(false);
 		}
-	}, [subjectId]);
+	}, [fetchSubject]);
 
 	useEffect(() => {
-		if (subjectId) loadSubject();
-	}, [subjectId, loadSubject]);
+		if (!subjectId) return;
+		let cancelled = false;
+
+		(async () => {
+			setLoading(true);
+			try {
+				const data = await fetchSubject();
+				if (cancelled) return;
+				setSubject(data);
+				setError(null);
+			} catch (err) {
+				if (cancelled) return;
+				console.error("Subject load error:", err);
+				setError(err.message);
+			} finally {
+				if (!cancelled) setLoading(false);
+			}
+		})();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [subjectId, fetchSubject]);
 
 	const handleEditSubject = async (updates) => {
 		try {
@@ -58,6 +85,10 @@ const InstructorClassroomView = ({ userId, userRole, subjectId, onBack }) => {
 			console.error("Delete error:", err);
 			alert("Failed to delete subject");
 		}
+	};
+
+	const handleNavigateToMaterial = (material) => {
+		setSelectedMaterial(material);
 	};
 
 	if (loading) {
@@ -94,6 +125,19 @@ const InstructorClassroomView = ({ userId, userRole, subjectId, onBack }) => {
 		);
 	}
 
+	if (selectedMaterial) {
+		return (
+			<MaterialDetailPage
+				material={selectedMaterial}
+				subject={subject}
+				subjectId={subject.id}
+				userRole={userRole}
+				userId={userId}
+				onBack={() => setSelectedMaterial(null)}
+			/>
+		);
+	}
+
 	return (
 		<div className="min-h-screen bg-gray-50 flex flex-col">
 			<div className="bg-linear-to-r from-classly-green to-emerald-600">
@@ -113,7 +157,10 @@ const InstructorClassroomView = ({ userId, userRole, subjectId, onBack }) => {
 						<InstructorStreamTab subjectId={subject.id} userId={userId} />
 					)}
 					{activeTab === "materials" && (
-						<InstructorMaterialsTab subjectId={subject.id} />
+						<InstructorMaterialsTab
+							subjectId={subject.id}
+							onNavigateToMaterial={handleNavigateToMaterial}
+						/>
 					)}
 					{activeTab === "people" && (
 						<InstructorPeopleTab subjectId={subject.id} subject={subject} />

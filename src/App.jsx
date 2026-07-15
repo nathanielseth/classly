@@ -308,6 +308,7 @@ function App() {
 				onLogout={handleLogout}
 				userRole={userRole}
 				profile={profile}
+				onNavigate={handleNavigate}
 			/>
 			<div className="flex flex-1 overflow-hidden">
 				<Sidebar
@@ -350,7 +351,7 @@ function App() {
 							{currentView === "calendar" && (
 								<CalendarView userId={session.user.id} userRole={userRole} />
 							)}
-							{currentView === "ai" && <AIAssistant />}
+							{currentView === "ai" && <AIAssistant userRole={userRole} />}
 							{currentView === "messages" && (
 								<MessagesView userId={session.user.id} userRole={userRole} />
 							)}
@@ -377,7 +378,7 @@ function App() {
 							{currentView === "calendar" && (
 								<CalendarView userId={session.user.id} userRole={userRole} />
 							)}
-							{currentView === "ai" && <AIAssistant />}
+							{currentView === "ai" && <AIAssistant userRole={userRole} />}
 							{currentView === "messages" && (
 								<MessagesView userId={session.user.id} userRole={userRole} />
 							)}
@@ -404,7 +405,7 @@ function App() {
 							{currentView === "calendar" && (
 								<CalendarView userId={session.user.id} userRole={userRole} />
 							)}
-							{currentView === "ai" && <AIAssistant />}
+							{currentView === "ai" && <AIAssistant userRole={userRole} />}
 							{currentView === "messages" && (
 								<MessagesView userId={session.user.id} userRole={userRole} />
 							)}

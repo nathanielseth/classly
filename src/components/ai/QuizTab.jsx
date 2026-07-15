@@ -9,6 +9,7 @@ import {
 	ChevronRight,
 	BookOpen,
 	GraduationCap,
+	Sparkles,
 } from "lucide-react";
 import { db } from "../../lib/supabase/db";
 import { supabase } from "../../lib/supabase/client";
@@ -17,7 +18,9 @@ import {
 	generateQuizFromContent,
 } from "../../lib/api/aiApi";
 
-const QuizTab = () => {
+const PDF_JS_VERSION = "3.11.174";
+
+const QuizTab = ({ userRole }) => {
 	const [subjects, setSubjects] = useState([]);
 	const [materials, setMaterials] = useState([]);
 	const [selectedSubject, setSelectedSubject] = useState(null);
@@ -30,116 +33,144 @@ const QuizTab = () => {
 	const [userAnswers, setUserAnswers] = useState({});
 	const [isSubmitted, setIsSubmitted] = useState(false);
 	const [loadingMaterials, setLoadingMaterials] = useState(false);
+	const [savingToClassroom, setSavingToClassroom] = useState(false);
+	const [savedToClassroom, setSavedToClassroom] = useState(false);
 
 	useEffect(() => {
-		loadUser();
-		loadPDFLib();
+		if (window.pdfjsLib) return;
+
+		const script = document.createElement("script");
+		script.src = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDF_JS_VERSION}/pdf.min.js`;
+		script.onload = () => {
+			window.pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDF_JS_VERSION}/pdf.worker.min.js`;
+		};
+		document.head.appendChild(script);
 	}, []);
 
 	useEffect(() => {
-		if (currentUser) {
-			loadSubjects();
-		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [currentUser]);
+		let cancelled = false;
+
+		(async () => {
+			try {
+				const {
+					data: { user },
+					error: authError,
+				} = await supabase.auth.getUser();
+
+				if (cancelled) return;
+
+				if (authError) {
+					console.error("Error loading user:", authError);
+					setError("Authentication error. Please log in again.");
+					return;
+				}
+
+				if (user) {
+					setCurrentUser(user);
+				} else {
+					setError("No user session found. Please log in.");
+				}
+			} catch (err) {
+				if (cancelled) return;
+				console.error("Error loading user:", err);
+				setError("Failed to load user session.");
+			}
+		})();
+
+		return () => {
+			cancelled = true;
+		};
+	}, []);
+
+	// Load the instructor's own subjects, or the student's enrolled
+	// subjects, depending on role. Instructors need their own subjects
+	// here (not enrollments) since the generated quiz gets saved as a
+	// material into one of them.
+	useEffect(() => {
+		if (!currentUser) return;
+		let cancelled = false;
+
+		(async () => {
+			try {
+				let subjectsData = [];
+
+				if (userRole === "instructor") {
+					const { data, error: subjectsError } =
+						await db.subjects.getByInstructor(currentUser.id);
+					if (subjectsError) throw subjectsError;
+					subjectsData = data || [];
+				} else {
+					const { data: enrollmentsData, error: enrollError } =
+						await db.enrollments.getByStudent(currentUser.id);
+					if (enrollError) throw enrollError;
+					subjectsData = enrollmentsData.map((e) => e.subject).filter(Boolean);
+				}
+
+				if (cancelled) return;
+
+				setSubjects(subjectsData);
+
+				if (subjectsData.length === 0) {
+					setError(
+						userRole === "instructor"
+							? "You haven't created any subjects yet."
+							: "You are not enrolled in any subjects yet.",
+					);
+				}
+			} catch (err) {
+				if (cancelled) return;
+				console.error("Error loading subjects:", err);
+				setError("Failed to load subjects. Please try again.");
+			}
+		})();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [currentUser, userRole]);
 
 	useEffect(() => {
-		if (selectedSubject) {
-			loadMaterials();
-		}
-		// eslint-disable-next-line react-hooks/exhaustive-deps
+		if (!selectedSubject) return;
+		let cancelled = false;
+
+		(async () => {
+			setLoadingMaterials(true);
+			setError(null);
+
+			try {
+				const { data, error: materialsError } = await db.materials.getBySubject(
+					selectedSubject.id,
+				);
+
+				if (materialsError) {
+					console.error("Materials error:", materialsError);
+					throw materialsError;
+				}
+
+				if (cancelled) return;
+
+				const materialsWithContent = data.filter(
+					(m) => m.file_url || m.description || m.instructions,
+				);
+
+				setMaterials(materialsWithContent);
+
+				if (materialsWithContent.length === 0) {
+					setError("No materials with content found in this subject.");
+				}
+			} catch (err) {
+				if (cancelled) return;
+				console.error("Error loading materials:", err);
+				setError("Failed to load materials.");
+			} finally {
+				if (!cancelled) setLoadingMaterials(false);
+			}
+		})();
+
+		return () => {
+			cancelled = true;
+		};
 	}, [selectedSubject]);
-
-	const loadPDFLib = () => {
-		if (!window.pdfjsLib) {
-			const script = document.createElement("script");
-			script.src =
-				"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
-			script.onload = () => {
-				window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-					"https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
-			};
-			document.head.appendChild(script);
-		}
-	};
-
-	const loadUser = async () => {
-		try {
-			const {
-				data: { user },
-				error,
-			} = await supabase.auth.getUser();
-
-			if (error) {
-				console.error("Error loading user:", error);
-				setError("Authentication error. Please log in again.");
-				return;
-			}
-
-			if (user) {
-				setCurrentUser(user);
-			} else {
-				setError("No user session found. Please log in.");
-			}
-		} catch (err) {
-			console.error("Error loading user:", err);
-			setError("Failed to load user session.");
-		}
-	};
-
-	const loadSubjects = async () => {
-		try {
-			const { data: enrollmentsData, error: enrollError } =
-				await db.enrollments.getByStudent(currentUser.id);
-
-			if (enrollError) {
-				console.error("Enrollments error:", enrollError);
-				throw enrollError;
-			}
-
-			const subjectsData = enrollmentsData
-				.map((e) => e.subject)
-				.filter(Boolean);
-			setSubjects(subjectsData);
-
-			if (subjectsData.length === 0) {
-				setError("You are not enrolled in any subjects yet.");
-			}
-		} catch (err) {
-			console.error("Error loading subjects:", err);
-			setError("Failed to load subjects. Please try again.");
-		}
-	};
-
-	const loadMaterials = async () => {
-		setLoadingMaterials(true);
-		setError(null);
-		try {
-			const { data, error } = await db.materials.getBySubject(
-				selectedSubject.id
-			);
-
-			if (error) {
-				console.error("Materials error:", error);
-				throw error;
-			}
-
-			const materialsWithContent = data.filter(
-				(m) => m.file_url || m.description || m.instructions
-			);
-
-			setMaterials(materialsWithContent);
-
-			if (materialsWithContent.length === 0) {
-				setError("No materials with content found in this subject.");
-			}
-		} catch (err) {
-			console.error("Error loading materials:", err);
-			setError("Failed to load materials.");
-		} finally {
-			setLoadingMaterials(false);
-		}
-	};
 
 	const fetchMaterialContent = async (material) => {
 		let content = "";
@@ -191,19 +222,20 @@ const QuizTab = () => {
 		setShowAnswers(false);
 		setUserAnswers({});
 		setIsSubmitted(false);
+		setSavedToClassroom(false);
 
 		try {
 			const materialContent = await fetchMaterialContent(selectedMaterial);
 
 			if (!materialContent || materialContent.length < 50) {
 				throw new Error(
-					"Not enough content to generate quiz. Please select a material with more content."
+					"Not enough content to generate quiz. Please select a material with more content.",
 				);
 			}
 
 			const quiz = await generateQuizFromContent(
 				materialContent,
-				selectedMaterial.title
+				selectedMaterial.title,
 			);
 
 			setGeneratedQuiz(quiz);
@@ -212,6 +244,44 @@ const QuizTab = () => {
 			setError(err.message || "Failed to generate quiz. Please try again.");
 		} finally {
 			setIsGenerating(false);
+		}
+	};
+
+	const handleSaveToClassroom = async () => {
+		if (!generatedQuiz || !selectedSubject || !selectedMaterial) return;
+
+		setSavingToClassroom(true);
+		setError(null);
+
+		try {
+			const { data: newMaterial, error: createError } =
+				await db.materials.create({
+					subject_id: selectedSubject.id,
+					title: `${selectedMaterial.title} — Quiz`,
+					description: `AI-generated quiz from ${selectedMaterial.title}`,
+					type: "quiz",
+					max_points: generatedQuiz.length * 10,
+					published: true,
+					allow_late_submission: true,
+					topic_id: selectedMaterial.topic_id || null,
+				});
+			if (createError) throw createError;
+
+			const { error: saveError } = await db.quizQuestions.saveAll(
+				newMaterial.id,
+				generatedQuiz,
+			);
+			if (saveError) throw saveError;
+
+			setSavedToClassroom(true);
+			alert(
+				`Quiz "${newMaterial.title}" saved to ${selectedSubject.name}! Students can now take it in the classroom.`,
+			);
+		} catch (err) {
+			console.error("Error saving quiz to classroom:", err);
+			setError(err.message || "Failed to save quiz to classroom.");
+		} finally {
+			setSavingToClassroom(false);
 		}
 	};
 
@@ -253,6 +323,7 @@ const QuizTab = () => {
 	};
 
 	const score = calculateScore();
+	const isInstructor = userRole === "instructor";
 
 	return (
 		<div className="space-y-6">
@@ -273,7 +344,7 @@ const QuizTab = () => {
 
 					<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
 						<div className="space-y-2">
-							<label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+							<label className="text-sm font-medium text-gray-700 flex items-center gap-2">
 								<BookOpen size={16} className="text-gray-400" />
 								Select Subject
 							</label>
@@ -282,7 +353,7 @@ const QuizTab = () => {
 									value={selectedSubject?.id || ""}
 									onChange={(e) => {
 										const subject = subjects.find(
-											(s) => s.id === e.target.value
+											(s) => s.id === e.target.value,
 										);
 										setSelectedSubject(subject);
 										setSelectedMaterial(null);
@@ -307,7 +378,7 @@ const QuizTab = () => {
 						</div>
 
 						<div className="space-y-2">
-							<label className="block text-sm font-medium text-gray-700 flex items-center gap-2">
+							<label className="text-sm font-medium text-gray-700 flex items-center gap-2">
 								<GraduationCap size={16} className="text-gray-400" />
 								Select Material
 							</label>
@@ -316,7 +387,7 @@ const QuizTab = () => {
 									value={selectedMaterial?.id || ""}
 									onChange={(e) => {
 										const material = materials.find(
-											(m) => m.id === e.target.value
+											(m) => m.id === e.target.value,
 										);
 										setSelectedMaterial(material);
 										setGeneratedQuiz(null);
@@ -331,8 +402,8 @@ const QuizTab = () => {
 										{loadingMaterials
 											? "Loading materials..."
 											: !selectedSubject
-											? "Select a subject first"
-											: "Choose a material..."}
+												? "Select a subject first"
+												: "Choose a material..."}
 									</option>
 									{materials.map((material) => (
 										<option key={material.id} value={material.id}>
@@ -377,11 +448,12 @@ const QuizTab = () => {
 								{selectedMaterial?.title}
 							</h4>
 							<p className="text-sm text-gray-500 mt-1">
-								{generatedQuiz.length} Questions • Practice Mode
+								{generatedQuiz.length} Questions •{" "}
+								{isInstructor ? "Preview Mode" : "Practice Mode"}
 							</p>
 						</div>
 
-						{isSubmitted && (
+						{isSubmitted && !isInstructor && (
 							<button
 								onClick={handleRetry}
 								className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all shadow-sm"
@@ -392,7 +464,42 @@ const QuizTab = () => {
 						)}
 					</div>
 
-					{isSubmitted && (
+					{/* Instructors get a save panel instead of taking the quiz
+					    themselves — the point is to push it to the classroom for
+					    students to answer digitally. */}
+					{isInstructor && (
+						<div className="mb-8 bg-classly-green/5 border border-classly-green/20 rounded-xl p-5">
+							<p className="text-sm font-semibold text-gray-900 mb-1">
+								Save to Classroom
+							</p>
+							<p className="text-xs text-gray-500 mb-4">
+								This will create a new quiz material in{" "}
+								<strong>{selectedSubject?.name}</strong> that students can take
+								digitally.
+							</p>
+							<button
+								onClick={handleSaveToClassroom}
+								disabled={savingToClassroom || savedToClassroom}
+								className="w-full py-2.5 bg-classly-green text-white rounded-lg font-medium hover:bg-classly-green/90 disabled:opacity-50 flex items-center justify-center gap-2 text-sm transition-all"
+							>
+								{savingToClassroom ? (
+									<>
+										<Loader2 size={16} className="animate-spin" /> Saving...
+									</>
+								) : savedToClassroom ? (
+									<>
+										<Check size={16} /> Saved to Classroom
+									</>
+								) : (
+									<>
+										<Sparkles size={16} /> Save Quiz to Classroom
+									</>
+								)}
+							</button>
+						</div>
+					)}
+
+					{isSubmitted && !isInstructor && (
 						<div className="mb-8 p-6 bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6">
 							<div className="flex items-center gap-4">
 								<div
@@ -433,15 +540,15 @@ const QuizTab = () => {
 								key={idx}
 								question={q}
 								index={idx}
-								showAnswer={showAnswers}
+								showAnswer={showAnswers || isInstructor}
 								userAnswer={userAnswers[idx]}
 								onAnswerSelect={handleAnswerSelect}
-								isSubmitted={isSubmitted}
+								isSubmitted={isSubmitted || isInstructor}
 							/>
 						))}
 					</div>
 
-					{!isSubmitted && (
+					{!isSubmitted && !isInstructor && (
 						<div className="mt-8 sticky bottom-6 z-10">
 							<div className="bg-white/80 backdrop-blur-md p-4 rounded-2xl border border-gray-200 shadow-lg max-w-2xl mx-auto flex items-center justify-between gap-4">
 								<div className="text-sm text-gray-600 font-medium pl-2">
@@ -478,7 +585,7 @@ const QuizQuestion = ({
 		<div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden transition-all hover:shadow-md">
 			<div className="p-6">
 				<div className="flex gap-4">
-					<span className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-gray-50 text-gray-500 font-medium text-sm">
+					<span className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-gray-50 text-gray-500 font-medium text-sm">
 						{index + 1}
 					</span>
 					<p className="font-medium text-gray-900 text-lg flex-1 pt-0.5">
@@ -523,8 +630,8 @@ const QuizQuestion = ({
 								disabled={isSubmitted}
 								className={`w-full text-left p-4 rounded-xl border transition-all duration-200 relative group
                   ${borderClass} ${bgClass} ${
-									isDimmed ? "opacity-50" : "opacity-100"
-								}
+										isDimmed ? "opacity-50" : "opacity-100"
+									}
                   ${
 										!isSubmitted && !isSelected
 											? "hover:border-classly-green hover:bg-gray-50"

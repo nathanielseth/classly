@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
 	Loader2,
 	BookOpen,
@@ -16,6 +16,40 @@ import { EditMaterialModal } from "../../classroom/modal/EditMaterialModal";
 import { CreateTopicModal } from "../../classroom/modal/CreateTopicModal";
 import { EmptyState } from "../../classroom/shared/EmptyState";
 
+const TYPE_FILTER_OPTIONS = [
+	{ value: "all", label: "All Materials" },
+	{ value: "assignment", label: "Assignments" },
+	{ value: "quiz", label: "Quizzes" },
+	{ value: "exam", label: "Exams" },
+	{ value: "project", label: "Projects" },
+	{ value: "module", label: "Modules" },
+];
+
+const NO_TOPIC = { id: "no-topic", name: "No Topic", description: null };
+
+function groupMaterialsByTopic(materials, topics) {
+	const groups = {};
+
+	topics.forEach((topic) => {
+		groups[topic.id] = { topic, materials: [] };
+	});
+	groups["no-topic"] = { topic: NO_TOPIC, materials: [] };
+
+	materials.forEach((material) => {
+		const topicId = material.topic_id || "no-topic";
+		(groups[topicId] ?? groups["no-topic"]).materials.push(material);
+	});
+
+	return Object.values(groups).sort((a, b) => {
+		if (a.topic.id === "no-topic") return 1;
+		if (b.topic.id === "no-topic") return -1;
+		if (a.topic.created_at && b.topic.created_at) {
+			return new Date(a.topic.created_at) - new Date(b.topic.created_at);
+		}
+		return 0;
+	});
+}
+
 export const InstructorMaterialsTab = ({ subjectId, onNavigateToMaterial }) => {
 	const [materials, setMaterials] = useState([]);
 	const [topics, setTopics] = useState([]);
@@ -31,32 +65,58 @@ export const InstructorMaterialsTab = ({ subjectId, onNavigateToMaterial }) => {
 	const [selectedMaterial, setSelectedMaterial] = useState(null);
 	const [selectedTopic, setSelectedTopic] = useState(null);
 
-	// Load materials and topics
-	useEffect(() => {
-		loadData();
-		// eslint-disable-next-line react-hooks/exhaustive-deps
+	const fetchMaterialsAndTopics = useCallback(async () => {
+		const [materialsRes, topicsRes] = await Promise.all([
+			db.materials.getBySubject(subjectId),
+			db.topics.getBySubject(subjectId),
+		]);
+
+		if (materialsRes.error) throw materialsRes.error;
+		if (topicsRes.error) throw topicsRes.error;
+
+		return {
+			materials: materialsRes.data || [],
+			topics: topicsRes.data || [],
+		};
 	}, [subjectId]);
 
-	const loadData = async () => {
+	const loadData = useCallback(async () => {
 		try {
 			setLoading(true);
-			const [materialsRes, topicsRes] = await Promise.all([
-				db.materials.getBySubject(subjectId),
-				db.topics.getBySubject(subjectId),
-			]);
-
-			if (materialsRes.error) throw materialsRes.error;
-			if (topicsRes.error) throw topicsRes.error;
-
-			setMaterials(materialsRes.data || []);
-			setTopics(topicsRes.data || []);
+			const { materials, topics } = await fetchMaterialsAndTopics();
+			setMaterials(materials);
+			setTopics(topics);
 		} catch (err) {
 			console.error("Load data error:", err);
 			alert("Failed to load materials");
 		} finally {
 			setLoading(false);
 		}
-	};
+	}, [fetchMaterialsAndTopics]);
+
+	useEffect(() => {
+		let cancelled = false;
+
+		(async () => {
+			setLoading(true);
+			try {
+				const { materials, topics } = await fetchMaterialsAndTopics();
+				if (cancelled) return;
+				setMaterials(materials);
+				setTopics(topics);
+			} catch (err) {
+				if (cancelled) return;
+				console.error("Load data error:", err);
+				alert("Failed to load materials");
+			} finally {
+				if (!cancelled) setLoading(false);
+			}
+		})();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [fetchMaterialsAndTopics]);
 
 	// Filter materials by type
 	const filteredMaterials = materials.filter((material) => {
@@ -64,55 +124,23 @@ export const InstructorMaterialsTab = ({ subjectId, onNavigateToMaterial }) => {
 		return material.type === typeFilter;
 	});
 
-	// Group materials by topic
-	const groupedMaterials = {};
-
-	topics.forEach((topic) => {
-		groupedMaterials[topic.id] = {
-			topic,
-			materials: [],
-		};
-	});
-
-	groupedMaterials["no-topic"] = {
-		topic: { id: "no-topic", name: "No Topic", description: null },
-		materials: [],
-	};
-
-	filteredMaterials.forEach((material) => {
-		const topicId = material.topic_id || "no-topic";
-		if (groupedMaterials[topicId]) {
-			groupedMaterials[topicId].materials.push(material);
-		} else {
-			groupedMaterials["no-topic"].materials.push(material);
-		}
-	});
-
-	const sortedGroups = Object.values(groupedMaterials).sort((a, b) => {
-		if (a.topic.id === "no-topic") return 1;
-		if (b.topic.id === "no-topic") return -1;
-		if (a.topic.created_at && b.topic.created_at) {
-			return new Date(a.topic.created_at) - new Date(b.topic.created_at);
-		}
-		return 0;
-	});
+	const sortedGroups = groupMaterialsByTopic(filteredMaterials, topics);
 
 	// Material handlers
 	const handleCreateMaterial = async (materialData) => {
 		try {
-			const { data: material, error: createError } =
-				await db.materials.create({
-					subject_id: subjectId,
-					title: materialData.title,
-					description: materialData.description,
-					instructions: materialData.instructions,
-					due_date: materialData.due_date || null,
-					max_points: materialData.max_points,
-					type: materialData.type,
-					topic_id: materialData.topic_id || null,
-					allow_late_submission: materialData.allow_late_submission ?? true,
-					published: materialData.published ?? true,
-				});
+			const { data: material, error: createError } = await db.materials.create({
+				subject_id: subjectId,
+				title: materialData.title,
+				description: materialData.description,
+				instructions: materialData.instructions,
+				due_date: materialData.due_date || null,
+				max_points: materialData.max_points,
+				type: materialData.type,
+				topic_id: materialData.topic_id || null,
+				allow_late_submission: materialData.allow_late_submission ?? true,
+				published: materialData.published ?? true,
+			});
 
 			if (createError) throw createError;
 
@@ -125,7 +153,7 @@ export const InstructorMaterialsTab = ({ subjectId, onNavigateToMaterial }) => {
 				const { error: uploadError } = await storage.upload(
 					"course-files",
 					filePath,
-					materialData.newFile
+					materialData.newFile,
 				);
 
 				if (uploadError) throw uploadError;
@@ -164,7 +192,6 @@ export const InstructorMaterialsTab = ({ subjectId, onNavigateToMaterial }) => {
 
 			// Handle file changes
 			if (materialData.removeFile && selectedMaterial.file_url) {
-				// Delete old file
 				const oldPath = selectedMaterial.file_url.split("/course-files/")[1];
 				if (oldPath) {
 					await storage.delete("course-files", oldPath);
@@ -175,7 +202,6 @@ export const InstructorMaterialsTab = ({ subjectId, onNavigateToMaterial }) => {
 			}
 
 			if (materialData.newFile) {
-				// Delete old file if exists
 				if (selectedMaterial.file_url) {
 					const oldPath = selectedMaterial.file_url.split("/course-files/")[1];
 					if (oldPath) {
@@ -183,7 +209,6 @@ export const InstructorMaterialsTab = ({ subjectId, onNavigateToMaterial }) => {
 					}
 				}
 
-				// Upload new file
 				const fileExt = materialData.newFile.name.split(".").pop();
 				const fileName = `${selectedMaterial.id}_${Date.now()}.${fileExt}`;
 				const filePath = `materials/${subjectId}/${fileName}`;
@@ -191,7 +216,7 @@ export const InstructorMaterialsTab = ({ subjectId, onNavigateToMaterial }) => {
 				const { error: uploadError } = await storage.upload(
 					"course-files",
 					filePath,
-					materialData.newFile
+					materialData.newFile,
 				);
 
 				if (uploadError) throw uploadError;
@@ -202,10 +227,7 @@ export const InstructorMaterialsTab = ({ subjectId, onNavigateToMaterial }) => {
 				updates.file_size = materialData.newFile.size;
 			}
 
-			const { error } = await db.materials.update(
-				selectedMaterial.id,
-				updates
-			);
+			const { error } = await db.materials.update(selectedMaterial.id, updates);
 			if (error) throw error;
 
 			await loadData();
@@ -221,10 +243,8 @@ export const InstructorMaterialsTab = ({ subjectId, onNavigateToMaterial }) => {
 		if (!window.confirm("Delete this material? This cannot be undone.")) return;
 
 		try {
-			// Get material to check for file
 			const material = materials.find((m) => m.id === materialId);
 
-			// Delete file if exists
 			if (material?.file_url) {
 				const filePath = material.file_url.split("/course-files/")[1];
 				if (filePath) {
@@ -283,7 +303,7 @@ export const InstructorMaterialsTab = ({ subjectId, onNavigateToMaterial }) => {
 		const topic = topics.find((t) => t.id === topicId);
 		if (
 			!window.confirm(
-				`Delete topic "${topic.name}"? Materials will be moved to "No Topic".`
+				`Delete topic "${topic.name}"? Materials will be moved to "No Topic".`,
 			)
 		) {
 			return;
@@ -310,15 +330,6 @@ export const InstructorMaterialsTab = ({ subjectId, onNavigateToMaterial }) => {
 			handleDeleteTopic(topic.id);
 		}
 	};
-
-	const typeFilterOptions = [
-		{ value: "all", label: "All Materials" },
-		{ value: "assignment", label: "Assignments" },
-		{ value: "quiz", label: "Quizzes" },
-		{ value: "exam", label: "Exams" },
-		{ value: "project", label: "Projects" },
-		{ value: "module", label: "Modules" },
-	];
 
 	if (loading) {
 		return (
@@ -359,7 +370,7 @@ export const InstructorMaterialsTab = ({ subjectId, onNavigateToMaterial }) => {
 			{/* Type Filter */}
 			<div className="flex items-center gap-2 overflow-x-auto pb-2">
 				<Filter size={16} className="text-gray-400 shrink-0" />
-				{typeFilterOptions.map((option) => (
+				{TYPE_FILTER_OPTIONS.map((option) => (
 					<button
 						key={option.value}
 						onClick={() => setTypeFilter(option.value)}
@@ -442,7 +453,7 @@ export const InstructorMaterialsTab = ({ subjectId, onNavigateToMaterial }) => {
 													<button
 														onClick={() =>
 															setShowTopicMenu(
-																showTopicMenu === topic.id ? null : topic.id
+																showTopicMenu === topic.id ? null : topic.id,
 															)
 														}
 														className="p-1.5 text-gray-600 hover:bg-white rounded-lg transition-colors"
@@ -451,7 +462,7 @@ export const InstructorMaterialsTab = ({ subjectId, onNavigateToMaterial }) => {
 													</button>
 
 													{showTopicMenu === topic.id && (
-														<div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-10 min-w-[140px]">
+														<div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-10 min-w-35">
 															<button
 																onClick={() => handleTopicAction("edit", topic)}
 																className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"

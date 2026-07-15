@@ -6,7 +6,7 @@ import {
 	AI_MODELS,
 } from "../../lib/api/aiApi";
 
-const ChatTab = () => {
+const ChatTab = ({ userRole }) => {
 	const [messages, setMessages] = useState([
 		{
 			role: "assistant",
@@ -69,11 +69,17 @@ const ChatTab = () => {
 		setIsTyping(true);
 
 		try {
+			const systemPrompt =
+				userRole === "instructor"
+					? "You are an intelligent teaching assistant helping university instructors prepare lessons, create assessments, explain concepts clearly, and manage their classes. Provide practical, educator-focused responses."
+					: userRole === "admin"
+						? "You are an intelligent system assistant helping a university LMS administrator manage users, subjects, and platform operations. Provide clear, administrative guidance."
+						: "You are an intelligent academic assistant helping students with their coursework. Provide clear, accurate, and helpful responses. Be concise but thorough.";
+
 			const conversationHistory = [
 				{
 					role: "system",
-					content:
-						"You are an intelligent academic assistant helping students with their coursework. Provide clear, accurate, and helpful responses. Be concise but thorough.",
+					content: systemPrompt,
 				},
 				...messages.map((msg) => ({
 					role: msg.role,
@@ -128,7 +134,7 @@ const ChatTab = () => {
 					if (!stopStreamingRef.current) {
 						buffer += chunk;
 					}
-				}
+				},
 			);
 
 			const waitForBuffer = setInterval(() => {
@@ -342,7 +348,7 @@ const Message = ({ message }) => {
 									className="flex items-center gap-1.5 px-2 py-1 bg-white/20 rounded text-xs"
 								>
 									<Paperclip size={12} />
-									<span className="truncate max-w-[150px]">{file.name}</span>
+									<span className="truncate max-w-37.5">{file.name}</span>
 								</div>
 							))}
 						</div>

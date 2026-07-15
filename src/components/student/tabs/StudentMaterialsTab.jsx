@@ -1,70 +1,34 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Loader2, BookOpen, Filter } from "lucide-react";
 import { db } from "../../../lib/supabase";
 import { MaterialCard } from "../../classroom/shared/MaterialCard";
 import { EmptyState } from "../../classroom/shared/EmptyState";
 
-export const StudentMaterialsTab = ({ subjectId }) => {
-	const [materials, setMaterials] = useState([]);
-	const [topics, setTopics] = useState([]);
-	const [loading, setLoading] = useState(true);
-	const [typeFilter, setTypeFilter] = useState("all");
+const TYPE_FILTER_OPTIONS = [
+	{ value: "all", label: "All Materials" },
+	{ value: "assignment", label: "Assignments" },
+	{ value: "quiz", label: "Quizzes" },
+	{ value: "exam", label: "Exams" },
+	{ value: "project", label: "Projects" },
+	{ value: "material", label: "Materials" },
+];
 
-	const loadData = useCallback(async () => {
-		try {
-			setLoading(true);
-			const [materialsRes, topicsRes] = await Promise.all([
-				db.materials.getBySubject(subjectId),
-				db.topics.getBySubject(subjectId),
-			]);
+const NO_TOPIC = { id: "no-topic", name: "No Topic", description: null };
 
-			if (materialsRes.error) throw materialsRes.error;
-			if (topicsRes.error) throw topicsRes.error;
-
-			setMaterials(materialsRes.data || []);
-			setTopics(topicsRes.data || []);
-		} catch (err) {
-			console.error("Load data error:", err);
-		} finally {
-			setLoading(false);
-		}
-	}, [subjectId]);
-
-	useEffect(() => {
-		loadData();
-	}, [loadData]);
-
-	// Filter materials by type
-	const filteredMaterials = materials.filter((material) => {
-		if (typeFilter === "all") return true;
-		return material.type === typeFilter;
-	});
-
-	// Group materials by topic
-	const groupedMaterials = {};
+function groupMaterialsByTopic(materials, topics) {
+	const groups = {};
 
 	topics.forEach((topic) => {
-		groupedMaterials[topic.id] = {
-			topic,
-			materials: [],
-		};
+		groups[topic.id] = { topic, materials: [] };
 	});
+	groups["no-topic"] = { topic: NO_TOPIC, materials: [] };
 
-	groupedMaterials["no-topic"] = {
-		topic: { id: "no-topic", name: "No Topic", description: null },
-		materials: [],
-	};
-
-	filteredMaterials.forEach((material) => {
+	materials.forEach((material) => {
 		const topicId = material.topic_id || "no-topic";
-		if (groupedMaterials[topicId]) {
-			groupedMaterials[topicId].materials.push(material);
-		} else {
-			groupedMaterials["no-topic"].materials.push(material);
-		}
+		(groups[topicId] ?? groups["no-topic"]).materials.push(material);
 	});
 
-	const sortedGroups = Object.values(groupedMaterials).sort((a, b) => {
+	return Object.values(groups).sort((a, b) => {
 		if (a.topic.id === "no-topic") return 1;
 		if (b.topic.id === "no-topic") return -1;
 		if (a.topic.created_at && b.topic.created_at) {
@@ -72,15 +36,51 @@ export const StudentMaterialsTab = ({ subjectId }) => {
 		}
 		return 0;
 	});
+}
 
-	const typeFilterOptions = [
-		{ value: "all", label: "All Materials" },
-		{ value: "assignment", label: "Assignments" },
-		{ value: "quiz", label: "Quizzes" },
-		{ value: "exam", label: "Exams" },
-		{ value: "project", label: "Projects" },
-		{ value: "material", label: "Materials" },
-	];
+export const StudentMaterialsTab = ({ subjectId, onNavigateToMaterial }) => {
+	const [materials, setMaterials] = useState([]);
+	const [topics, setTopics] = useState([]);
+	const [loading, setLoading] = useState(true);
+	const [typeFilter, setTypeFilter] = useState("all");
+
+	useEffect(() => {
+		let cancelled = false;
+
+		(async () => {
+			setLoading(true);
+			try {
+				const [materialsRes, topicsRes] = await Promise.all([
+					db.materials.getBySubject(subjectId),
+					db.topics.getBySubject(subjectId),
+				]);
+
+				if (materialsRes.error) throw materialsRes.error;
+				if (topicsRes.error) throw topicsRes.error;
+
+				if (cancelled) return;
+				setMaterials(materialsRes.data || []);
+				setTopics(topicsRes.data || []);
+			} catch (err) {
+				if (cancelled) return;
+				console.error("Load data error:", err);
+			} finally {
+				if (!cancelled) setLoading(false);
+			}
+		})();
+
+		return () => {
+			cancelled = true;
+		};
+	}, [subjectId]);
+
+	// Filter materials by type
+	const filteredMaterials = materials.filter((material) => {
+		if (typeFilter === "all") return true;
+		return material.type === typeFilter;
+	});
+
+	const sortedGroups = groupMaterialsByTopic(filteredMaterials, topics);
 
 	if (loading) {
 		return (
@@ -105,7 +105,7 @@ export const StudentMaterialsTab = ({ subjectId }) => {
 			{/* Type Filter */}
 			<div className="flex items-center gap-2 overflow-x-auto pb-2">
 				<Filter size={16} className="text-gray-400 shrink-0" />
-				{typeFilterOptions.map((option) => (
+				{TYPE_FILTER_OPTIONS.map((option) => (
 					<button
 						key={option.value}
 						onClick={() => setTypeFilter(option.value)}
@@ -177,7 +177,7 @@ export const StudentMaterialsTab = ({ subjectId }) => {
 											key={material.id}
 											material={material}
 											userRole="student"
-											onClick={() => {}}
+											onClick={onNavigateToMaterial}
 										/>
 									))}
 								</div>
