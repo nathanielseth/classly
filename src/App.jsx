@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import Navbar from "./components/shared/Navbar";
 import Sidebar from "./components/shared/Sidebar";
 import StudentDashboard from "./components/student/StudentDashboard";
@@ -22,16 +22,21 @@ function App() {
 	const [userRole, setUserRole] = useState(null);
 	const [profile, setProfile] = useState(null);
 
+	const profileLoadedForUserId = useRef(null);
+	const loadingUserId = useRef(null);
+
 	// ============================================
 	// LOAD USER PROFILE
 	// ============================================
 	const loadUserProfile = async (userId) => {
+		if (loadingUserId.current === userId) return;
+		loadingUserId.current = userId;
+
 		try {
 			const { data, error } = await db.profiles.getById(userId);
 
 			if (error) {
 				console.error("Error loading profile:", error);
-				setLoading(false);
 				return;
 			}
 
@@ -39,13 +44,14 @@ function App() {
 				setProfile(data);
 				setUserRole(data.role);
 			} else {
-				// keep the session alive for magic link users
 				setProfile(null);
 				setUserRole(null);
 			}
+			profileLoadedForUserId.current = userId;
 		} catch (err) {
 			console.error("Profile load error:", err);
 		} finally {
+			loadingUserId.current = null;
 			setLoading(false);
 		}
 	};
@@ -67,15 +73,27 @@ function App() {
 			data: { subscription },
 		} = supabase.auth.onAuthStateChange((event, session) => {
 			console.log("Auth event:", event);
-			setSession(session);
+
+			if (event === "INITIAL_SESSION") return;
 
 			if (event === "SIGNED_IN" && session?.user) {
+				if (profileLoadedForUserId.current === session.user.id) {
+					setSession(session);
+					return;
+				}
+				setLoading(true);
+				setSession(session);
 				loadUserProfile(session.user.id);
 			} else if (event === "SIGNED_OUT") {
+				profileLoadedForUserId.current = null;
+				loadingUserId.current = null;
+				setSession(session);
 				setUserRole(null);
 				setProfile(null);
 				setCurrentView("dashboard");
 				setLoading(false);
+			} else {
+				setSession(session);
 			}
 		});
 
@@ -130,11 +148,6 @@ function App() {
 		}
 	};
 
-	const handleMagicLink = async (email) => {
-		const { error } = await auth.sendMagicLink(email);
-		return { error };
-	};
-
 	const handleLogout = async () => {
 		try {
 			const { error } = await auth.signOut();
@@ -179,17 +192,11 @@ function App() {
 	// AUTH PAGE (not logged in)
 	// ============================================
 	if (!session) {
-		return (
-			<AuthPage
-				onLogin={handleLogin}
-				onRegister={handleRegister}
-				onMagicLink={handleMagicLink}
-			/>
-		);
+		return <AuthPage onLogin={handleLogin} onRegister={handleRegister} />;
 	}
 
 	// ============================================
-	// MAGIC LINK
+	// NO PROFILE YET (first login right after email confirmation)
 	// ============================================
 	if (session && !profile) {
 		return (
