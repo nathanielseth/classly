@@ -409,7 +409,7 @@ async function getMaterialSubjectId(
     .single()
 
   if (error || !material) throw new Error('Material not found.')
-  return material.subject_id as string
+  return material.subject_id
 }
 
 async function assertTopicBelongsToSubject(
@@ -530,5 +530,5 @@ async function getTopicSubjectId(
     .single()
 
   if (error || !topic) throw new Error('Topic not found.')
-  return topic.subject_id as string
+  return topic.subject_id
 }

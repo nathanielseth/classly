@@ -12,7 +12,6 @@ function truncate(content: string) {
     ? content.slice(0, PREVIEW_LENGTH) + '...'
     : content
 }
-
 interface ConversationListItem {
   id: string
   last_message_at: string | null
@@ -22,7 +21,7 @@ interface ConversationListItem {
     email: string
     role: string
     avatar_url: string | null
-  } | null
+  }
   preview: string | null
 }
 
@@ -50,8 +49,8 @@ export const listDirectMessages = createServerFn({ method: 'GET' })
       return {
         conversations: (conversations ?? [])
           .map((c) => {
-            const one = c.participant_one_profile[0] ?? null
-            const two = c.participant_two_profile[0] ?? null
+            const one = c.participant_one_profile
+            const two = c.participant_two_profile
 
             // both participant fks cascade on delete; a null embed means we cant resolve who "the other user" is without risking a  wrong match. skip the row instead of guessing
             if (!one || !two) return null
@@ -194,10 +193,7 @@ export const listMessagesInConversation = createServerFn({ method: 'GET' })
       .is('read_at', null)
 
     return {
-      messages: (messages ?? []).map((m) => ({
-        ...m,
-        sender: m.sender[0] ?? null,
-      })),
+      messages: messages ?? [],
     }
   })
 
@@ -235,7 +231,7 @@ export const sendDirectMessage = createServerFn({ method: 'POST' })
       .update({ last_message_at: new Date().toISOString() })
       .eq('id', data.conversationId)
 
-    return { ...message, sender: message.sender[0] ?? null }
+    return message
   })
 
 const searchUsersInput = z.object({
@@ -329,7 +325,7 @@ export const listGroupConversations = createServerFn({ method: 'GET' })
             id: c.id,
             name: c.name,
             last_message_at: c.last_message_at,
-            subject: c.subject[0] ?? null,
+            subject: c.subject,
             preview: last ? truncate(last.content) : null,
             memberCount: c.group_members.length,
           }
@@ -381,10 +377,7 @@ export const listGroupMessages = createServerFn({ method: 'GET' })
     if (error) throw new Error(error.message)
 
     return {
-      messages: (messages ?? []).map((m) => ({
-        ...m,
-        sender: m.sender[0] ?? null,
-      })),
+      messages: messages ?? [],
     }
   })
 
@@ -422,7 +415,7 @@ export const sendGroupMessage = createServerFn({ method: 'POST' })
       .update({ last_message_at: new Date().toISOString() })
       .eq('id', data.conversationId)
 
-    return { ...message, sender: message.sender[0] ?? null }
+    return message
   })
 
 const getGroupMembersInput = z.object({
@@ -431,7 +424,7 @@ const getGroupMembersInput = z.object({
 
 export interface GroupMemberItem {
   id: string
-  is_admin: boolean
+  is_admin: boolean | null
   profile: { id: string; full_name: string; email: string; role: string } | null
 }
 
@@ -456,10 +449,7 @@ export const getGroupMembers = createServerFn({ method: 'GET' })
       if (error) throw new Error(error.message)
 
       return {
-        members: (members ?? []).map((m) => ({
-          ...m,
-          profile: m.profile[0] ?? null,
-        })),
+        members: members ?? [],
       }
     },
   )

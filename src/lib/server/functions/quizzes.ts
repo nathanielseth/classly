@@ -2,11 +2,10 @@ import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { authMiddleware } from '../middleware'
 import { assertSubjectAccess } from '../subject-access'
-import { unwrapEmbed, type EnrolledStudent } from '../supabase-embeds'
 import type { getServerSupabase } from '../supabase'
 
 const QUIZ_QUESTION_COLUMNS =
-  'id, material_id, question, options, correct_index, explanation, order_index'
+  'id, material_id, question, options, correct_index, order_index'
 
 interface MaterialQuizContext {
   subjectId: string
@@ -27,9 +26,9 @@ async function getMaterialQuizContext(
   if (error || !material) throw new Error('Material not found.')
 
   return {
-    subjectId: material.subject_id as string,
-    type: material.type as string,
-    published: material.published as boolean,
+    subjectId: material.subject_id,
+    type: material.type ?? 'material',
+    published: material.published ?? true,
   }
 }
 
@@ -76,7 +75,6 @@ const quizQuestionInput = z.object({
   question: z.string().trim().min(1).max(1000),
   options: z.array(z.string().trim().min(1).max(300)).min(2).max(8),
   correctIndex: z.number().int().min(0),
-  explanation: z.string().trim().max(1000).optional(),
 })
 
 const saveQuizQuestionsInput = z.object({
@@ -124,7 +122,6 @@ export const saveQuizQuestions = createServerFn({ method: 'POST' })
           question: q.question,
           options: q.options,
           correct_index: q.correctIndex,
-          explanation: q.explanation || null,
           order_index: i,
         })),
       )
@@ -181,20 +178,22 @@ export const getOwnQuizAttempt = createServerFn({ method: 'GET' })
     await assertSubjectAccess(supabase, profile, materialCtx.subjectId)
     assertQuizVisibleToCaller(profile, materialCtx)
 
-    const [{ data: attempt, error: attemptError }, { data: questions, error: qError }] =
-      await Promise.all([
-        supabase
-          .from('quiz_answers')
-          .select('id, answers, score, total, submitted_at')
-          .eq('material_id', data.materialId)
-          .eq('student_id', profile.id)
-          .maybeSingle(),
-        supabase
-          .from('quiz_questions')
-          .select(QUIZ_QUESTION_COLUMNS)
-          .eq('material_id', data.materialId)
-          .order('order_index', { ascending: true }),
-      ])
+    const [
+      { data: attempt, error: attemptError },
+      { data: questions, error: qError },
+    ] = await Promise.all([
+      supabase
+        .from('quiz_answers')
+        .select('id, answers, score, total, submitted_at')
+        .eq('material_id', data.materialId)
+        .eq('student_id', profile.id)
+        .maybeSingle(),
+      supabase
+        .from('quiz_questions')
+        .select(QUIZ_QUESTION_COLUMNS)
+        .eq('material_id', data.materialId)
+        .order('order_index', { ascending: true }),
+    ])
 
     if (attemptError) throw new Error(attemptError.message)
     if (qError) throw new Error(qError.message)
@@ -239,7 +238,7 @@ export const submitQuizAttempt = createServerFn({ method: 'POST' })
 
     let score = 0
     orderedQuestions.forEach((q, i) => {
-      if (data.answers[String(i)] === (q.correct_index as number)) score++
+      if (data.answers[String(i)] === q.correct_index) score++
     })
     const total = orderedQuestions.length
 
@@ -281,39 +280,47 @@ export const listQuizAttemptsForMaterial = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
   .validator(listQuizAttemptsInput)
   .handler(
-    async ({ data, context }): Promise<{ roster: QuizAttemptRosterEntry[] }> => {
+    async ({
+      data,
+      context,
+    }): Promise<{ roster: QuizAttemptRosterEntry[] }> => {
       const { supabase, profile } = context
       assertCanManageQuizzes(profile)
 
-      const materialCtx = await getMaterialQuizContext(supabase, data.materialId)
+      const materialCtx = await getMaterialQuizContext(
+        supabase,
+        data.materialId,
+      )
       await assertSubjectAccess(supabase, profile, materialCtx.subjectId)
+
+      const enrollmentsQuery = supabase
+        .from('enrollments')
+        .select(
+          'student:profiles!enrollments_student_id_fkey(id, full_name, email)',
+        )
+        .eq('subject_id', materialCtx.subjectId)
+
+      const attemptsQuery = supabase
+        .from('quiz_answers')
+        .select('id, student_id, score, total, submitted_at')
+        .eq('material_id', data.materialId)
 
       const [
         { data: enrollments, error: enrollError },
         { data: attempts, error: attemptError },
-      ] = await Promise.all([
-        supabase
-          .from('enrollments')
-          .select('student:profiles!enrollments_student_id_fkey(id, full_name, email)')
-          .eq('subject_id', materialCtx.subjectId),
-        supabase
-          .from('quiz_answers')
-          .select('id, student_id, score, total, submitted_at')
-          .eq('material_id', data.materialId),
-      ])
+      ] = await Promise.all([enrollmentsQuery, attemptsQuery])
 
       if (enrollError) throw new Error(enrollError.message)
       if (attemptError) throw new Error(attemptError.message)
 
       const attemptByStudent = new Map(
-        (attempts ?? []).map((a) => [a.student_id as string, a]),
+        (attempts ?? []).map((a): [string, typeof a] => [a.student_id, a]),
       )
 
-      const roster: QuizAttemptRosterEntry[] = (
-        enrollments ?? []
-      ).map((e) => {
-        const student = unwrapEmbed<EnrolledStudent>(e.student)
-        if (!student) throw new Error('Enrollment is missing its student profile.')
+      const roster: QuizAttemptRosterEntry[] = (enrollments ?? []).map((e) => {
+        const student = e.student
+        if (!student)
+          throw new Error('Enrollment is missing its student profile.')
         const attempt = attemptByStudent.get(student.id) ?? null
         return {
           student: {
@@ -323,10 +330,10 @@ export const listQuizAttemptsForMaterial = createServerFn({ method: 'GET' })
           },
           attempt: attempt
             ? {
-                id: attempt.id as string,
-                score: attempt.score as number,
-                total: attempt.total as number,
-                submitted_at: attempt.submitted_at as string,
+                id: attempt.id,
+                score: attempt.score,
+                total: attempt.total,
+                submitted_at: attempt.submitted_at ?? new Date().toISOString(),
               }
             : null,
         }

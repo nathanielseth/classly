@@ -50,11 +50,11 @@ const userIdInput = z.object({
 // uses head-count queries instead of fetching full rows to measure .length
 interface UserDetail {
   id: string
-  full_name: string | null
-  email: string | null
+  full_name: string
+  email: string
   role: string
-  status: string | null
-  created_at: string
+  status: string
+  created_at: string | null
   stats:
     | { enrollmentCount: number; submissionCount: number }
     | { subjectCount: number; materialCount: number }
@@ -214,6 +214,7 @@ export const deleteUser = createServerFn({ method: 'POST' })
       .eq('id', data.userId)
 
     if (error) {
+      // dead
       if (error.code === '23503') {
         throw new Error(
           'This user still has related records that block deletion. This should not happen given the current cascade setup - check for a recent schema change.',
@@ -225,7 +226,7 @@ export const deleteUser = createServerFn({ method: 'POST' })
   })
 
 const createUserInput = z.object({
-  email: z.string().email(),
+  email: z.email(),
   password: z.string().min(6),
   fullName: z.string().trim().min(1).max(200),
   role: z.enum(['student', 'instructor', 'admin']),

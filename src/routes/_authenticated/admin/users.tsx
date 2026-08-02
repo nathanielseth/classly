@@ -22,17 +22,25 @@ const searchSchema = z.object({
 
 type UserRow = {
   id: string
-  full_name: string | null
-  email: string | null
+  full_name: string
+  email: string
   role: string
-  status: string | null
-  created_at: string
+  status: string
+  created_at: string | null
 }
 
 export const Route = createFileRoute('/_authenticated/admin/users')({
   validateSearch: searchSchema,
-  // ux gate: redirect non‑admins early so they don't see a broken shell full of error toasts
-  // the real authorization is enforced server‑side by adminonlymiddleware on every function
+  // Mirrors _authenticated/route.tsx's own comment: this is the UX-level
+  // gate (fast redirect before rendering a shell that would otherwise
+  // just error on every listUsers/getUserDetail call), not the security
+  // boundary - that's adminOnlyMiddleware on every function in
+  // admin-users.ts, which already runs regardless of whether this ever
+  // fires. Sidebar already hides the "Users" nav item from non-admins
+  // (see Sidebar.tsx's adminOnly flag), so the only way to reach this
+  // without being an admin is typing/pasting the URL directly - this
+  // catches that case with a redirect instead of a page full of error
+  // toasts.
   beforeLoad: ({ context }) => {
     const { userState } = context
     const isAdmin =
@@ -41,7 +49,8 @@ export const Route = createFileRoute('/_authenticated/admin/users')({
       throw redirect({ to: '/dashboard' })
     }
   },
-  // refetch the query when filters change, without a full route reload
+  // Search-param changes that only affect filtering (not identity) don't
+  // need a full reload of the route - just refetch the query.
   loaderDeps: ({ search }) => ({ ...search }),
   loader: async ({ deps, context }) => {
     await context.queryClient.ensureQueryData({
@@ -176,11 +185,9 @@ function AdminUsersPage() {
               search: (prev) => ({
                 ...prev,
                 q: e.target.value || undefined,
-                // reset to page 1 on a new search
-                page: 1,
+                page: 1, // reset to page 1 on a new search, same as before
               }),
-              // dont spam browser history on every keystroke
-              replace: true,
+              replace: true, // don't spam browser history on every keystroke
             })
           }
           className="flex-1 px-4 py-2 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-classly-green"
@@ -260,7 +267,9 @@ function AdminUsersPage() {
         ))}
       </div>
 
-      {/* page is a search param, so back/forward and refresh work for free */}
+      {/* Pagination reads/writes `page` the same way - it's just another
+          search param, so browser back/forward and refresh both work
+          correctly for free. */}
       <div className="flex justify-between items-center mt-6 text-sm text-gray-500">
         <span>
           Page {data?.page} · {data?.total ?? 0} total users
@@ -700,7 +709,11 @@ function ViewUserModal({
             />
             <DetailRow
               label="Created"
-              value={new Date(user.created_at).toLocaleString()}
+              value={
+                user.created_at
+                  ? new Date(user.created_at).toLocaleString()
+                  : 'Unknown'
+              }
             />
 
             {user.stats && 'enrollmentCount' in user.stats && (

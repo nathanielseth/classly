@@ -47,7 +47,7 @@ export const listEnrollments = createServerFn({ method: 'GET' })
 
       return {
         enrollments: (enrollments ?? []).map((e) => {
-          const student = e.student[0] ?? null
+          const student = e.student
           return {
             ...e,
             student: student

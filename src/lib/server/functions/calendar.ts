@@ -3,8 +3,8 @@ import { z } from 'zod'
 import { authMiddleware } from '../middleware'
 
 const listCalendarItemsInput = z.object({
-  from: z.string().datetime(),
-  to: z.string().datetime(),
+  from: z.iso.datetime(),
+  to: z.iso.datetime(),
 })
 
 interface CalendarEvent {
@@ -45,6 +45,7 @@ export const listCalendarItems = createServerFn({ method: 'GET' })
 
     const calendarEvents: CalendarEvent[] = (events ?? []).map((e) => ({
       ...e,
+      type: e.type ?? 'event',
       source: 'event',
     }))
 
@@ -75,9 +76,9 @@ export const listCalendarItems = createServerFn({ method: 'GET' })
         id: m.id,
         title: m.title,
         due_date: m.due_date!,
-        type: m.type,
-        subjectName: m.subject[0]?.name ?? '',
-        subjectCode: m.subject[0]?.code ?? '',
+        type: m.type ?? 'material',
+        subjectName: m.subject?.name ?? '',
+        subjectCode: m.subject?.code ?? '',
         source: 'due_date' as const,
       }))
     } else if (profile.role === 'instructor' || profile.role === 'admin') {
@@ -105,9 +106,9 @@ export const listCalendarItems = createServerFn({ method: 'GET' })
         id: m.id,
         title: m.title,
         due_date: m.due_date!,
-        type: m.type,
-        subjectName: m.subject[0]?.name ?? '',
-        subjectCode: m.subject[0]?.code ?? '',
+        type: m.type ?? 'material',
+        subjectName: m.subject?.name ?? '',
+        subjectCode: m.subject?.code ?? '',
         source: 'due_date' as const,
       }))
     }

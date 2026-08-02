@@ -12,7 +12,7 @@ interface CommentListItem {
   material_id: string
   author_id: string
   content: string
-  is_private: boolean
+  is_private: boolean | null
   created_at: string | null
   updated_at: string | null
   author: { id: string; full_name: string; role: string } | null
@@ -29,7 +29,7 @@ async function getMaterialSubjectId(
     .single()
 
   if (error || !material) throw new Error('Material not found.')
-  return material.subject_id as string
+  return material.subject_id
 }
 
 function isInstructorRole(role: string) {
@@ -64,10 +64,7 @@ export const listClassComments = createServerFn({ method: 'GET' })
       if (error) throw new Error(error.message)
 
       return {
-        comments: (comments ?? []).map((c) => ({
-          ...c,
-          author: c.author[0] ?? null,
-        })),
+        comments: comments ?? [],
       }
     },
   )
@@ -102,10 +99,9 @@ export const createClassComment = createServerFn({ method: 'POST' })
       .single()
 
     if (error) throw new Error(error.message)
-    return { ...comment, author: comment.author[0] ?? null }
+    return comment
   })
 
-// resolves which student's private thread the caller is allowed to see
 async function resolvePrivateThreadStudentId(
   supabase: ReturnType<typeof getServerSupabase>,
   profile: { id: string; role: string },
@@ -167,7 +163,7 @@ export const listPrivateComments = createServerFn({ method: 'GET' })
 
       if (subjectError || !subject) throw new Error('Subject not found.')
 
-      const instructorId = subject.instructor_id as string
+      const instructorId = subject.instructor_id
 
       const { data: comments, error } = await supabase
         .from('material_comments')
@@ -185,10 +181,7 @@ export const listPrivateComments = createServerFn({ method: 'GET' })
       if (error) throw new Error(error.message)
 
       return {
-        comments: (comments ?? []).map((c) => ({
-          ...c,
-          author: c.author[0] ?? null,
-        })),
+        comments: comments ?? [],
       }
     },
   )
@@ -232,7 +225,7 @@ export const createPrivateComment = createServerFn({ method: 'POST' })
       .single()
 
     if (error) throw new Error(error.message)
-    return { ...comment, author: comment.author[0] ?? null }
+    return comment
   })
 
 const listPrivateThreadStudentIdsInput = z.object({
@@ -264,12 +257,12 @@ export const listPrivateThreadStudentIds = createServerFn({ method: 'GET' })
       .select('author_id')
       .eq('material_id', data.materialId)
       .eq('is_private', true)
-      .neq('author_id', subject.instructor_id as string)
+      .neq('author_id', subject.instructor_id)
 
     if (error) throw new Error(error.message)
 
     const studentIds = Array.from(
-      new Set((rows ?? []).map((r) => r.author_id as string)),
+      new Set<string>((rows ?? []).map((r) => r.author_id)),
     )
     return { studentIds }
   })
@@ -278,8 +271,6 @@ const deleteCommentInput = z.object({
   commentId: z.uuid(),
 })
 
-// ownership cant be checked in the deletes own .eq chain because "is this my subject" is a column on subjects, not material_comments
-// so we fetch the comment, resolve its subject, then check perms before deleting by explicit id
 export const deleteComment = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
   .validator(deleteCommentInput)
@@ -306,7 +297,7 @@ export const deleteComment = createServerFn({ method: 'POST' })
     if (!isOwnComment && !isAdmin && profile.role === 'instructor') {
       const subjectId = await getMaterialSubjectId(
         supabase,
-        comment.material_id as string,
+        comment.material_id,
       )
       const { data: subject, error: subjectError } = await supabase
         .from('subjects')

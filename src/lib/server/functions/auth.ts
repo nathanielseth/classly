@@ -31,11 +31,23 @@ export const getCurrentUser = createServerFn({ method: 'GET' }).handler(
       .select('id, email, full_name, role, status')
       .eq('id', user.id)
       .single()
-    // after email confirmation, the auth user exists but no profiles row has been inserted yet. completeProfileScreen handles this by inserting one
     if (!profile) {
       return { status: 'no-profile', email: user.email ?? '' }
     }
 
-    return { status: profile.status, profile }
+    const role = profile.role
+    const status = profile.status
+    if (role !== 'student' && role !== 'instructor' && role !== 'admin') {
+      throw new Error(`Unexpected profile role: ${role}`)
+    }
+    if (
+      status !== 'pending' &&
+      status !== 'approved' &&
+      status !== 'rejected'
+    ) {
+      throw new Error(`Unexpected profile status: ${status}`)
+    }
+
+    return { status, profile: { ...profile, role, status } }
   },
 )

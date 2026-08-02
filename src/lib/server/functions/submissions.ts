@@ -2,7 +2,6 @@ import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { authMiddleware } from '../middleware'
 import { assertSubjectAccess } from '../subject-access'
-import { unwrapEmbed, type EnrolledStudent } from '../supabase-embeds'
 import type { getServerSupabase } from '../supabase'
 
 const SUBMISSIONS_BUCKET = 'submission-files'
@@ -58,10 +57,10 @@ async function getMaterialContext(
   if (error || !material) throw new Error('Material not found.')
 
   return {
-    subjectId: material.subject_id as string,
-    dueDate: material.due_date as string | null,
-    maxPoints: material.max_points as number,
-    allowLateSubmission: material.allow_late_submission as boolean,
+    subjectId: material.subject_id,
+    dueDate: material.due_date,
+    maxPoints: material.max_points ?? 100,
+    allowLateSubmission: material.allow_late_submission ?? true,
   }
 }
 
@@ -78,8 +77,8 @@ async function assertSubmissionAccess(
 
   if (error || !submission) throw new Error('Submission not found.')
 
-  const materialId = submission.material_id as string
-  const studentId = submission.student_id as string
+  const materialId = submission.material_id
+  const studentId = submission.student_id
   const materialCtx = await getMaterialContext(supabase, materialId)
 
   if (profile.role === 'student' && studentId !== profile.id) {
@@ -407,7 +406,7 @@ export const getSubmissionFileUrl = createServerFn({ method: 'GET' })
     if (error) throw new Error(error.message)
     return {
       url: signed.signedUrl,
-      fileName: submission.file_name as string | null,
+      fileName: submission.file_name,
     }
   })
 
@@ -423,11 +422,11 @@ interface RosterEntry {
     file_url: string | null
     file_name: string | null
     file_size: number | null
-    status: string
+    status: string | null
     grade: number | null
     grade_percentage: number | null
     feedback: string | null
-    is_late: boolean
+    is_late: boolean | null
     submitted_at: string | null
     graded_at: string | null
     returned_at: string | null
@@ -467,11 +466,11 @@ export const listSubmissionsForMaterial = createServerFn({ method: 'GET' })
     if (subError) throw new Error(subError.message)
 
     const submissionByStudent = new Map(
-      (submissions ?? []).map((s) => [s.student_id as string, s]),
+      (submissions ?? []).map((s): [string, typeof s] => [s.student_id, s]),
     )
 
     const roster: RosterEntry[] = (enrollments ?? []).map((e) => {
-      const student = unwrapEmbed<EnrolledStudent>(e.student)
+      const student = e.student
       if (!student)
         throw new Error('Enrollment is missing its student profile.')
       const submission = submissionByStudent.get(student.id) ?? null

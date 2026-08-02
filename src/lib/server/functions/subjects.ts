@@ -60,7 +60,7 @@ export const listSubjects = createServerFn({ method: 'GET' })
           schedule: row.schedule,
           room: row.room,
           archived: row.archived,
-          instructor: row.instructor[0] ?? null,
+          instructor: row.instructor,
           enrollmentCount: row.enrollments[0].count,
           materialCount: row.materials[0].count,
           announcementCount: row.announcements[0].count,
@@ -94,7 +94,7 @@ export const listSubjects = createServerFn({ method: 'GET' })
       if (error) throw new Error(error.message)
 
       const subjects: SubjectListItem[] = (enrollments ?? []).map((e) => {
-        const row = e.subject[0]
+        const row = e.subject
         return {
           id: row.id,
           code: row.code,
@@ -103,7 +103,7 @@ export const listSubjects = createServerFn({ method: 'GET' })
           schedule: row.schedule,
           room: row.room,
           archived: row.archived,
-          instructor: row.instructor[0] ?? null,
+          instructor: row.instructor,
           enrollmentCount: 0, // students don't need the class roster size here
           materialCount: row.materials[0].count,
           announcementCount: row.announcements[0].count,
@@ -156,8 +156,7 @@ export const getSubject = createServerFn({ method: 'GET' })
       }
     }
 
-    // instructor infers as an array here too
-    return { ...subject, instructor: subject.instructor[0] ?? null }
+    return subject
   })
 
 function generateSubjectCode() {

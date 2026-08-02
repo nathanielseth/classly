@@ -17,7 +17,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 
 interface QuizBuilderPanelProps {
@@ -29,7 +28,6 @@ interface DraftQuestion {
   question: string
   options: string[]
   correctIndex: number
-  explanation: string
 }
 
 function makeKey() {
@@ -42,7 +40,6 @@ function emptyQuestion(): DraftQuestion {
     question: '',
     options: ['', ''],
     correctIndex: 0,
-    explanation: '',
   }
 }
 
@@ -67,10 +64,9 @@ export function QuizBuilderPanel({ materialId }: QuizBuilderPanelProps) {
     if (draft !== null || !questionsQuery.data) return
     const loaded = questionsQuery.data.questions.map((q) => ({
       key: makeKey(),
-      question: q.question as string,
+      question: q.question,
       options: q.options as string[],
-      correctIndex: q.correct_index as number,
-      explanation: (q.explanation as string | null) ?? '',
+      correctIndex: q.correct_index,
     }))
     setDraft(loaded)
   }, [draft, questionsQuery.data])
@@ -84,7 +80,6 @@ export function QuizBuilderPanel({ materialId }: QuizBuilderPanelProps) {
             question: q.question.trim(),
             options: q.options.map((o) => o.trim()),
             correctIndex: q.correctIndex,
-            explanation: q.explanation.trim() || undefined,
           })),
         },
       }),
@@ -328,25 +323,6 @@ export function QuizBuilderPanel({ materialId }: QuizBuilderPanelProps) {
                     </button>
                   )}
                 </div>
-              </div>
-
-              <div className="ml-9 space-y-1.5">
-                <Label
-                  htmlFor={`explanation-${q.key}`}
-                  className="text-xs text-muted-foreground"
-                >
-                  Explanation (optional, shown after a student submits)
-                </Label>
-                <Textarea
-                  id={`explanation-${q.key}`}
-                  value={q.explanation}
-                  onChange={(e) =>
-                    updateQuestion(q.key, { explanation: e.target.value })
-                  }
-                  placeholder="Why is this the correct answer?"
-                  rows={1}
-                  disabled={saveMutation.isPending}
-                />
               </div>
             </div>
           ))}

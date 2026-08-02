@@ -11,7 +11,7 @@ interface AnnouncementListItem {
   id: string
   title: string | null
   content: string
-  pinned: boolean
+  pinned: boolean | null
   created_at: string | null
   updated_at: string | null
   author: { id: string; full_name: string; role: string } | null
@@ -43,10 +43,7 @@ export const listAnnouncements = createServerFn({ method: 'GET' })
       if (error) throw new Error(error.message)
 
       return {
-        announcements: (announcements ?? []).map((a) => ({
-          ...a,
-          author: a.author[0] ?? null,
-        })),
+        announcements: announcements ?? [],
       }
     },
   )
@@ -89,7 +86,7 @@ export const createAnnouncement = createServerFn({ method: 'POST' })
 
     if (error) throw new Error(error.message)
 
-    return { ...announcement, author: announcement.author[0] ?? null }
+    return announcement
   })
 
 const updateAnnouncementInput = z.object({
@@ -133,7 +130,7 @@ export const updateAnnouncement = createServerFn({ method: 'POST' })
       )
     }
 
-    return { ...announcement, author: announcement.author[0] ?? null }
+    return announcement
   })
 
 const setAnnouncementPinnedInput = z.object({

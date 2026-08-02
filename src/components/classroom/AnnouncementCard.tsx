@@ -6,7 +6,7 @@ interface AnnouncementCardProps {
     id: string
     title: string | null
     content: string
-    pinned: boolean
+    pinned: boolean | null
     created_at: string | null
     updated_at: string | null
     author: { id: string; full_name: string; role: string } | null

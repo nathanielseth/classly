@@ -12,12 +12,12 @@ interface MaterialCardProps {
     id: string
     title: string
     description: string | null
-    type: string
+    type: string | null
     due_date: string | null
-    max_points: number
+    max_points: number | null
     file_url: string | null
     created_at: string | null
-    published: boolean
+    published: boolean | null
   }
   canManage: boolean
   onClick?: (material: MaterialCardProps['material']) => void
@@ -68,7 +68,8 @@ export function MaterialCard({
 }: MaterialCardProps) {
   const dueDate = material.due_date ? new Date(material.due_date) : null
   const isOverdue = dueDate ? dueDate < new Date() : false
-  const colors = TYPE_COLORS[material.type] ?? TYPE_COLORS.assignment
+  const colors =
+    TYPE_COLORS[material.type ?? 'assignment'] ?? TYPE_COLORS.assignment
 
   const handleCardClick = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('button')) return
@@ -149,7 +150,7 @@ export function MaterialCard({
               </div>
             )}
 
-            {material.max_points > 0 && (
+            {material.max_points !== null && material.max_points > 0 && (
               <span className="text-xs text-gray-600 font-medium">
                 {material.max_points} points
               </span>

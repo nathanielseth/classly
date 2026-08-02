@@ -100,6 +100,7 @@ export const getWeeklyActivity = createServerFn({ method: 'GET' })
           .gte('submitted_at', sinceIso),
       ])
 
+    // a failed head-count query previously fell through silently
     if (newUsers.error) throw new Error(newUsers.error.message)
     if (newSubjects.error) throw new Error(newSubjects.error.message)
     if (newEnrollments.error) throw new Error(newEnrollments.error.message)

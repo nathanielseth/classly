@@ -47,7 +47,6 @@ export function QuizTakingPanel({ materialId }: QuizTakingPanelProps) {
 
   const questions = questionsQuery.data?.questions ?? []
   const existingAttempt = attemptQuery.data?.attempt ?? null
-  // the review screen uses attemptQuery.data.questions because getOwnQuizAttempt returns correct_index alongside each question
   const gradedQuestions = attemptQuery.data?.questions ?? []
 
   const hasSubmitted = existingAttempt !== null
@@ -221,13 +220,13 @@ export function QuizTakingPanel({ materialId }: QuizTakingPanelProps) {
         </div>
         {gradedQuestions.map((q, i) => {
           const selected = answers[String(i)]
-          const correct = q.correct_index as number
+          const correct = q.correct_index
           const isCorrect = selected === correct
           const options = q.options as string[]
 
           return (
             <Card
-              key={q.id as string}
+              key={q.id}
               className={
                 isCorrect
                   ? 'border-success/30 bg-success/5'
@@ -248,7 +247,7 @@ export function QuizTakingPanel({ materialId }: QuizTakingPanelProps) {
                     )}
                   </div>
                   <p className="text-sm font-medium text-foreground">
-                    {q.question as string}
+                    {q.question}
                   </p>
                 </div>
                 <div className="ml-9 space-y-1.5">
@@ -268,16 +267,6 @@ export function QuizTakingPanel({ materialId }: QuizTakingPanelProps) {
                     </div>
                   ))}
                 </div>
-                {q.explanation && (
-                  <div className="ml-9 mt-3 border-t border-border pt-3">
-                    <p className="text-sm text-muted-foreground">
-                      <span className="font-semibold text-foreground">
-                        Explanation:
-                      </span>{' '}
-                      {q.explanation as string}
-                    </p>
-                  </div>
-                )}
               </CardContent>
             </Card>
           )
@@ -330,7 +319,7 @@ export function QuizTakingPanel({ materialId }: QuizTakingPanelProps) {
       <Card>
         <CardContent className="p-6">
           <p className="mb-6 text-lg font-semibold text-foreground">
-            {currentQ.question as string}
+            {currentQ.question}
           </p>
           <div className="space-y-3">
             {(currentQ.options as string[]).map((option, oi) => {

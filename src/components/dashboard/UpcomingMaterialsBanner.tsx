@@ -4,7 +4,7 @@ interface UpcomingMaterial {
   id: string
   title: string
   due_date: string | null
-  subject: { code: string } | { code: string }[] | null
+  subject: { code: string } | null
 }
 
 interface UpcomingMaterialsBannerProps {
@@ -48,9 +48,9 @@ export function UpcomingMaterialsBanner({
 }: UpcomingMaterialsBannerProps) {
   if (materials.length === 0) {
     return (
-      <div className="flex items-center gap-2 rounded-lg border border-primary/15 bg-primary/5 px-4 py-3">
-        <Check size={16} className="text-primary" />
-        <span className="text-sm font-medium text-primary">
+      <div className="bg-green-50 border border-green-100 rounded-lg px-4 py-3 flex items-center gap-2">
+        <Check size={16} className="text-green-600" />
+        <span className="text-sm text-green-700 font-medium">
           All caught up! No upcoming assignments.
         </span>
       </div>
@@ -58,9 +58,9 @@ export function UpcomingMaterialsBanner({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <CheckCircle size={16} className="text-primary" />
+    <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex items-center gap-2 text-sm text-gray-600">
+        <CheckCircle size={16} className="text-classly-green" />
         <span className="font-medium">Due soon:</span>
       </div>
 
@@ -69,9 +69,7 @@ export function UpcomingMaterialsBanner({
         const dueDate = new Date(material.due_date)
         const urgency = getUrgency(dueDate)
         const styles = URGENCY_STYLES[urgency]
-        const subjectCode = Array.isArray(material.subject)
-          ? material.subject[0]?.code
-          : material.subject?.code
+        const subjectCode = material.subject?.code
 
         return (
           <div
@@ -80,16 +78,14 @@ export function UpcomingMaterialsBanner({
           >
             <div className="flex items-center gap-2">
               <span
-                className={`text-sm font-semibold text-foreground transition-colors ${styles.title}`}
+                className={`text-sm font-semibold text-gray-900 transition-colors ${styles.title}`}
               >
                 {material.title}
               </span>
               {subjectCode && (
                 <>
-                  <span className="text-xs text-muted-foreground/60">•</span>
-                  <span className="text-xs text-muted-foreground">
-                    {subjectCode}
-                  </span>
+                  <span className="text-xs text-gray-400">•</span>
+                  <span className="text-xs text-gray-500">{subjectCode}</span>
                 </>
               )}
             </div>

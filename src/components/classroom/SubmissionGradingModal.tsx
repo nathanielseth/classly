@@ -14,7 +14,7 @@ interface GradingSubmission {
   content: string | null
   file_url: string | null
   file_name: string | null
-  is_late: boolean
+  is_late: boolean | null
   submitted_at: string | null
   grade: number | null
   feedback: string | null
@@ -115,9 +115,7 @@ export function SubmissionGradingModal({
                 {student.full_name[0].toUpperCase()}
               </div>
               <div className="flex-1">
-                <p className="font-medium text-gray-900">
-                  {student.full_name}
-                </p>
+                <p className="font-medium text-gray-900">{student.full_name}</p>
                 <p className="text-sm text-gray-600">{student.email}</p>
               </div>
               {submittedAt && (

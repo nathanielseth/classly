@@ -4,7 +4,7 @@ import { listDirectMessages, listGroupConversations } from '@/lib/server/functio
 import { MessagesView } from '@/components/messages/MessagesView'
 
 const searchSchema = z.object({
-  dmUserId: z.uuid(),.optional().catch(undefined),
+  dmUserId: z.uuid().optional().catch(undefined),
 })
 
 export const Route = createFileRoute('/_authenticated/messages')({

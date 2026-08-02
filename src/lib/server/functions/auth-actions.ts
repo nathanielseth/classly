@@ -25,10 +25,6 @@ export const signIn = createServerFn({ method: 'POST' })
     if (error) throw new Error(error.message)
   })
 
-// admin is excluded from the enum to prevent self-granting via direct
-// api calls. a ui-only fix would still leave the door open. admin
-// accounts are provisioned out-of-band (directly in the database for
-// now)
 const signUpInput = z.object({
   email: z.email(),
   password: z.string().min(6),
@@ -74,10 +70,11 @@ export const completeProfile = createServerFn({ method: 'POST' })
     } = await supabase.auth.getUser()
 
     if (!user) throw new Error('Not signed in.')
+    if (!user.email) throw new Error('Signed-in user has no email on file.')
 
     const isCvsuStudent =
       data.role === 'student' &&
-      (user.email ?? '').toLowerCase().endsWith('@cvsu.edu.ph')
+      user.email.toLowerCase().endsWith('@cvsu.edu.ph')
 
     const { error } = await supabase.from('profiles').insert({
       id: user.id,

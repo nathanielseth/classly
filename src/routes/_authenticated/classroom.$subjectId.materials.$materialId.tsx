@@ -24,8 +24,7 @@ export const Route = createFileRoute(
       }),
       queryClient.ensureQueryData({
         queryKey: ['materials', 'detail', params.materialId],
-        queryFn: () =>
-          getMaterial({ data: { materialId: params.materialId } }),
+        queryFn: () => getMaterial({ data: { materialId: params.materialId } }),
       }),
       userState.status === 'approved' && userState.profile.role === 'student'
         ? queryClient.ensureQueryData({
@@ -43,7 +42,9 @@ export const Route = createFileRoute(
 function MaterialDetailError({ error }: { error: Error }) {
   return (
     <div className="max-w-2xl mx-auto mt-12 bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-      <h1 className="font-semibold text-red-900 mb-1">Can't open this material</h1>
+      <h1 className="font-semibold text-red-900 mb-1">
+        Can't open this material
+      </h1>
       <p className="text-sm text-red-700">{error.message}</p>
     </div>
   )
@@ -107,7 +108,7 @@ function MaterialDetailPage() {
                   </span>
                 </div>
               )}
-              {material.max_points > 0 && (
+              {material.max_points !== null && material.max_points > 0 && (
                 <span>{material.max_points} points</span>
               )}
               <span className="capitalize text-gray-500">
@@ -157,14 +158,14 @@ function MaterialDetailPage() {
         <SubmissionsListPanel
           materialId={materialId}
           materialTitle={material.title}
-          maxPoints={material.max_points}
+          maxPoints={material.max_points ?? 100}
         />
       ) : (
         <SubmissionPanel
           materialId={materialId}
-          maxPoints={material.max_points}
+          maxPoints={material.max_points ?? 100}
           dueDate={material.due_date}
-          allowLateSubmission={material.allow_late_submission}
+          allowLateSubmission={material.allow_late_submission ?? true}
         />
       )}
 
