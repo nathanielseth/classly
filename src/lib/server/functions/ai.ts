@@ -1,0 +1,252 @@
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import Groq from "groq-sdk";
+import { authMiddleware } from "../middleware";
+import { aiRatelimit } from "../ratelimit";
+
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! });
+
+const chatInput = z.object({
+  messages: z.array(
+    z.object({
+      role: z.enum(["system", "user", "assistant"]),
+      content: z.string().max(8000),
+    }),
+  ),
+});
+
+export const sendChatMessage = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator(chatInput)
+  .handler(async ({ data, context }) => {
+    const { success, remaining, reset } = await aiRatelimit.limit(
+      context.user.id,
+    );
+
+    if (!success) {
+      throw new Error(
+        `Rate limit exceeded. Try again after ${new Date(reset).toLocaleTimeString()}.`,
+      );
+    }
+
+    const completion = await groq.chat.completions.create({
+      messages: data.messages,
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.7,
+      max_tokens: 2048,
+    });
+
+    return {
+      content: completion.choices[0]?.message?.content ?? "",
+      remaining,
+    };
+  });
+
+async function consumeAiRateLimit(userId: string) {
+  const { success, remaining, reset } = await aiRatelimit.limit(userId);
+  if (!success) {
+    throw new Error(
+      `Rate limit exceeded. Try again after ${new Date(reset).toLocaleTimeString()}.`,
+    );
+  }
+  return remaining;
+}
+
+const materialContentInput = {
+  materialTitle: z.string().trim().min(1).max(200),
+  materialContent: z.string().trim().min(50).max(8000),
+};
+
+const generateFlashcardsInput = z.object(materialContentInput);
+
+interface Flashcard {
+  question: string;
+  answer: string;
+}
+
+function extractJsonArray(raw: string): unknown {
+  let cleaned = raw.trim();
+  cleaned = cleaned.replace(/```json\n?/g, "").replace(/```\n?/g, "");
+  const start = cleaned.indexOf("[");
+  const end = cleaned.lastIndexOf("]");
+  if (start === -1 || end === -1) {
+    throw new Error("The AI response didn't contain a recognizable list. Please try again.");
+  }
+  cleaned = cleaned.slice(start, end + 1);
+  try {
+    return JSON.parse(cleaned);
+  } catch {
+    throw new Error("Failed to parse the AI's response. Please try again.");
+  }
+}
+
+export const generateFlashcards = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator(generateFlashcardsInput)
+  .handler(async ({ data, context }) => {
+    await consumeAiRateLimit(context.user.id);
+
+    const completion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "user",
+          content: `You are an educational flashcard generator. Create 10 high-quality flashcards from the following material.
+
+Material Title: ${data.materialTitle}
+Content: ${data.materialContent}
+
+Generate flashcards that:
+- Cover key concepts and definitions
+- Are clear and concise
+- Have meaningful questions and accurate short answers
+- Progress from basic to advanced concepts
+
+CRITICAL: Return ONLY a valid JSON array. NO markdown. NO explanations. NO text before or after.
+Start with [ and end with ]
+
+Format:
+[{"question": "Q1", "answer": "A1"}, {"question": "Q2", "answer": "A2"}]`,
+        },
+      ],
+      model: "openai/gpt-oss-120b",
+      temperature: 0.7,
+      max_tokens: 2048,
+    });
+
+    const content = completion.choices[0]?.message?.content;
+    if (!content) throw new Error("No content received from AI.");
+
+    const parsed = extractJsonArray(content);
+    if (!Array.isArray(parsed)) {
+      throw new Error("The AI's response wasn't a list of flashcards. Please try again.");
+    }
+
+    const cards: Flashcard[] = parsed.filter(
+      (c): c is Flashcard =>
+        typeof c === "object" &&
+        c !== null &&
+        typeof (c as Flashcard).question === "string" &&
+        typeof (c as Flashcard).answer === "string",
+    );
+
+    if (cards.length === 0) {
+      throw new Error("No valid flashcards were generated. Please try again.");
+    }
+
+    return { flashcards: cards };
+  });
+
+const generateQuizInput = z.object(materialContentInput);
+
+interface QuizQuestion {
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation?: string;
+}
+
+function shuffleArray<T>(arr: T[]): T[] {
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
+
+function shuffleQuizOptions(quiz: QuizQuestion[]): QuizQuestion[] {
+  return quiz.map((q) => {
+    const correctOption = q.options[q.correctIndex];
+    const shuffledOptions = shuffleArray(q.options);
+    const newCorrectIndex = shuffledOptions.indexOf(correctOption);
+    return { ...q, options: shuffledOptions, correctIndex: newCorrectIndex };
+  });
+}
+
+export const generateQuiz = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator(generateQuizInput)
+  .handler(async ({ data, context }) => {
+    await consumeAiRateLimit(context.user.id);
+
+    const completion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a quiz generator that outputs ONLY valid JSON arrays. Never include markdown, explanations, or any text outside the JSON array.",
+        },
+        {
+          role: "user",
+          content: `Create exactly 10 multiple choice questions from this material.
+
+Material: ${data.materialTitle}
+Content: ${data.materialContent}
+
+Return a JSON array with this exact structure:
+[
+  {
+    "question": "Question text?",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
+    "correctIndex": 0
+  }
+]
+
+Requirements:
+- Exactly 10 questions
+- Each question has exactly 4 options
+- correctIndex is 0, 1, 2, or 3
+- Test key concepts from the material
+- NO markdown, NO explanations, ONLY the JSON array`,
+        },
+      ],
+      model: "llama-3.3-70b-versatile",
+      response_format: { type: "json_object" },
+      temperature: 0.1,
+      max_tokens: 4096,
+    });
+
+    const content = completion.choices[0]?.message?.content;
+    if (!content) throw new Error("No content received from AI.");
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(content);
+    } catch {
+      throw new Error("Failed to parse quiz response. Please try again.");
+    }
+
+    if (!Array.isArray(parsed) && parsed && typeof parsed === "object") {
+      const obj = parsed as Record<string, unknown>;
+      if (Array.isArray(obj.quiz)) parsed = obj.quiz;
+      else if (Array.isArray(obj.questions)) parsed = obj.questions;
+      else {
+        const arrayValue = Object.values(obj).find((v) => Array.isArray(v));
+        if (arrayValue) parsed = arrayValue;
+      }
+    }
+
+    if (!Array.isArray(parsed)) {
+      throw new Error("Failed to parse quiz response. Please try again.");
+    }
+
+    const validQuiz: QuizQuestion[] = parsed.filter((q): q is QuizQuestion => {
+      return (
+        q &&
+        typeof q === "object" &&
+        typeof q.question === "string" &&
+        Array.isArray(q.options) &&
+        q.options.length === 4 &&
+        q.options.every((opt: unknown) => typeof opt === "string") &&
+        typeof q.correctIndex === "number" &&
+        q.correctIndex >= 0 &&
+        q.correctIndex <= 3
+      );
+    });
+
+    if (validQuiz.length === 0) {
+      throw new Error("No valid questions were generated. Please try again.");
+    }
+
+    return { quiz: shuffleQuizOptions(validQuiz) };
+  });
