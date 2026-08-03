@@ -9,16 +9,7 @@ interface ChatMessage {
   timestamp: Date
 }
 
-const SYSTEM_PROMPTS: Record<string, string> = {
-  instructor:
-    'You are an intelligent teaching assistant helping university instructors prepare lessons, create assessments, explain concepts clearly, and manage their classes. Provide practical, educator-focused responses.',
-  admin:
-    'You are an intelligent system assistant helping a university LMS administrator manage users, subjects, and platform operations. Provide clear, administrative guidance.',
-  student:
-    'You are an intelligent academic assistant helping students with their coursework. Provide clear, accurate, and helpful responses. Be concise but thorough.',
-}
-
-export function ChatPanel({ userRole }: { userRole: string }) {
+export function ChatPanel({ userRole: _userRole }: { userRole: string }) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: 'assistant',
@@ -34,17 +25,15 @@ export function ChatPanel({ userRole }: { userRole: string }) {
   }, [messages])
 
   const chatMutation = useMutation({
-    mutationFn: (nextMessages: ChatMessage[]) => {
-      const systemPrompt = SYSTEM_PROMPTS[userRole] ?? SYSTEM_PROMPTS.student
-      return sendChatMessage({
+    mutationFn: (nextMessages: ChatMessage[]) =>
+      sendChatMessage({
         data: {
-          messages: [
-            { role: 'system' as const, content: systemPrompt },
-            ...nextMessages.map((m) => ({ role: m.role, content: m.content })),
-          ],
+          messages: nextMessages.map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
         },
-      })
-    },
+      }),
     onSuccess: (result) => {
       setMessages((prev) => [
         ...prev,

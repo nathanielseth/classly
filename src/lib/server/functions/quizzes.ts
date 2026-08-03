@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { authMiddleware } from '../middleware'
 import { assertSubjectAccess } from '../subject-access'
+import { hasOpenQuizSession } from '../exam-lock'
 import type { getServerSupabase } from '../supabase'
 
 const QUIZ_QUESTION_COLUMNS =
@@ -157,6 +158,27 @@ export const getQuizForTaking = createServerFn({ method: 'GET' })
       .order('order_index', { ascending: true })
 
     if (error) throw new Error(error.message)
+
+    // if the student hasnt submitted, open a session (explicit check‑then‑insert) so the ai guard can track it, since upsert isnt valid with the partial uniqueness constraint
+    const { data: existingAttempt } = await supabase
+      .from('quiz_answers')
+      .select('id')
+      .eq('material_id', data.materialId)
+      .eq('student_id', profile.id)
+      .maybeSingle()
+
+    if (!existingAttempt) {
+      const alreadyOpen = await hasOpenQuizSession(supabase, profile.id)
+      if (!alreadyOpen) {
+        const { error: sessionError } = await supabase
+          .from('quiz_sessions')
+          .insert({ material_id: data.materialId, student_id: profile.id })
+        // failure here wont block quiz access, but it prevents the lock from engaging
+        if (sessionError)
+          console.error('[quiz_sessions] open failed', sessionError)
+      }
+    }
+
     return { questions: questions ?? [] }
   })
 
@@ -202,6 +224,29 @@ export const getOwnQuizAttempt = createServerFn({ method: 'GET' })
       attempt: attempt ?? null,
       questions: questions ?? [],
     }
+  })
+
+const abandonQuizSessionInput = z.object({
+  materialId: z.uuid(),
+})
+
+export const abandonQuizSession = createServerFn({ method: 'POST' })
+  .middleware([authMiddleware])
+  .validator(abandonQuizSessionInput)
+  .handler(async ({ data, context }) => {
+    const { supabase, profile } = context
+    if (profile.role !== 'student') return { closed: false }
+
+    const { error, count } = await supabase
+      .from('quiz_sessions')
+      .update({ ended_at: new Date().toISOString() })
+      .eq('material_id', data.materialId)
+      .eq('student_id', profile.id)
+      .is('ended_at', null)
+      .select('id', { count: 'exact', head: true })
+
+    if (error) throw new Error(error.message)
+    return { closed: (count ?? 0) > 0 }
   })
 
 const submitQuizAttemptInput = z.object({
@@ -259,6 +304,16 @@ export const submitQuizAttempt = createServerFn({ method: 'POST' })
       .single()
 
     if (error) throw new Error(error.message)
+
+    // release the exam lock
+    const { error: closeError } = await supabase
+      .from('quiz_sessions')
+      .update({ ended_at: new Date().toISOString() })
+      .eq('material_id', data.materialId)
+      .eq('student_id', profile.id)
+      .is('ended_at', null)
+    if (closeError) console.error('[quiz_sessions] close failed', closeError)
+
     return attempt
   })
 

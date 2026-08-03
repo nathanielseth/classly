@@ -6,11 +6,10 @@ import {
   listDirectMessages,
   listGroupConversations,
 } from '@/lib/server/functions/messages'
+import { useRealtimeInvalidate } from '@/hooks/useRealtimeInvalidate'
 import { ChatPanel } from './DirectMessageChatPanel'
 import { ConversationList } from './ConversationList'
 import type { ActiveThread, DirectConversation, GroupConversation } from './types'
-
-const CONVERSATION_POLL_MS = 15000
 
 interface MessagesViewProps {
   currentUserId: string
@@ -22,16 +21,39 @@ export function MessagesView({ currentUserId, openDmUserId }: MessagesViewProps)
   const [tab, setTab] = useState<'dms' | 'groups'>('dms')
   const [active, setActive] = useState<ActiveThread | null>(null)
 
+  const directQueryKey = ['messages', 'direct-conversations'] as const
+  const groupQueryKey = ['messages', 'group-conversations'] as const
+
   const directQuery = useQuery({
-    queryKey: ['messages', 'direct-conversations'],
+    queryKey: directQueryKey,
     queryFn: () => listDirectMessages(),
-    refetchInterval: CONVERSATION_POLL_MS,
   })
 
   const groupQuery = useQuery({
-    queryKey: ['messages', 'group-conversations'],
+    queryKey: groupQueryKey,
     queryFn: () => listGroupConversations(),
-    refetchInterval: CONVERSATION_POLL_MS,
+  })
+
+  // since gcs cant be filtered to "mine" at realtime layer, we subscribe unfiltered and rely on access‑controlled list queries to handle filtering on refetch
+  useRealtimeInvalidate({
+    channel: `conversations:${currentUserId}`,
+    table: 'conversations',
+    queryKey: directQueryKey,
+  })
+  useRealtimeInvalidate({
+    channel: `messages:list:${currentUserId}`,
+    table: 'messages',
+    queryKey: directQueryKey,
+  })
+  useRealtimeInvalidate({
+    channel: `group-conversations:${currentUserId}`,
+    table: 'group_conversations',
+    queryKey: groupQueryKey,
+  })
+  useRealtimeInvalidate({
+    channel: `group-messages:list:${currentUserId}`,
+    table: 'group_messages',
+    queryKey: groupQueryKey,
   })
 
   const startDirectMutation = useMutation({
@@ -40,9 +62,7 @@ export function MessagesView({ currentUserId, openDmUserId }: MessagesViewProps)
     onSuccess: async (convo) => {
       setActive({ type: 'dm', id: convo.id, otherUser: convo.otherUser })
       setTab('dms')
-      await queryClient.invalidateQueries({
-        queryKey: ['messages', 'direct-conversations'],
-      })
+      await queryClient.invalidateQueries({ queryKey: directQueryKey })
     },
   })
 
@@ -72,13 +92,10 @@ export function MessagesView({ currentUserId, openDmUserId }: MessagesViewProps)
     setActive(null)
   }
 
+  // kept as an immediate fallback for the sender's own client
   const refreshLists = () => {
-    void queryClient.invalidateQueries({
-      queryKey: ['messages', 'direct-conversations'],
-    })
-    void queryClient.invalidateQueries({
-      queryKey: ['messages', 'group-conversations'],
-    })
+    void queryClient.invalidateQueries({ queryKey: directQueryKey })
+    void queryClient.invalidateQueries({ queryKey: groupQueryKey })
   }
 
   const loading = tab === 'dms' ? directQuery.isPending : groupQuery.isPending

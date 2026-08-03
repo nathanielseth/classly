@@ -3,22 +3,44 @@ import { z } from "zod";
 import Groq from "groq-sdk";
 import { authMiddleware } from "../middleware";
 import { aiRatelimit } from "../ratelimit";
+import { assertNoOpenQuizSession } from "../exam-lock";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! });
 
 const chatInput = z.object({
   messages: z.array(
     z.object({
-      role: z.enum(["system", "user", "assistant"]),
+      role: z.enum(["user", "assistant"]),
       content: z.string().max(8000),
     }),
   ),
 });
 
+const ACADEMIC_ASSISTANT_BASE_RULES = `Stay strictly within these bounds:
+- Only help with academic, educational, or constructive classroom-related requests: explaining concepts, study help, summarizing material, exam/quiz prep (outside of active exams), writing feedback, and similar.
+- Do not write, complete, debug, or explain code, even if framed as a class assignment, homework help, or "just this once." Politely decline and suggest the student consult their instructor or a programming-specific tool.
+- Do not do anything outside an academic context: no general chit-chat, entertainment, personal advice unrelated to school, or tasks that resemble spam, testing your limits, or abusing this tool for non-academic purposes.
+- If a request is ambiguous, prefer the more conservative interpretation and gently redirect back to legitimate academic use.
+
+If a request falls outside these bounds, briefly explain that you're limited to academic assistance and decline, rather than attempting a partial or reframed answer.`
+
+// role framing is always derived from the server‑verified profile role
+const ROLE_SYSTEM_PROMPTS: Record<string, string> = {
+  instructor: `You are Classly's academic assistant, helping instructors prepare lessons, create assessments, and explain concepts to teach with. ${ACADEMIC_ASSISTANT_BASE_RULES}`,
+  admin: `You are Classly's academic assistant, helping an LMS administrator with academic and platform-operations questions. ${ACADEMIC_ASSISTANT_BASE_RULES}`,
+  student: `You are Classly's academic assistant, helping students with their coursework. ${ACADEMIC_ASSISTANT_BASE_RULES}`,
+}
+
+function systemPromptFor(role: string): string {
+  return ROLE_SYSTEM_PROMPTS[role] ?? ROLE_SYSTEM_PROMPTS.student
+}
+
 export const sendChatMessage = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator(chatInput)
   .handler(async ({ data, context }) => {
+    await assertNoOpenQuizSession(context.supabase, context.profile);
+
     const { success, remaining, reset } = await aiRatelimit.limit(
       context.user.id,
     );
@@ -30,7 +52,13 @@ export const sendChatMessage = createServerFn({ method: "POST" })
     }
 
     const completion = await groq.chat.completions.create({
-      messages: data.messages,
+      messages: [
+        {
+          role: "system",
+          content: systemPromptFor(context.profile.role),
+        },
+        ...data.messages,
+      ],
       model: "llama-3.3-70b-versatile",
       temperature: 0.7,
       max_tokens: 2048,
@@ -84,6 +112,7 @@ export const generateFlashcards = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator(generateFlashcardsInput)
   .handler(async ({ data, context }) => {
+    await assertNoOpenQuizSession(context.supabase, context.profile);
     await consumeAiRateLimit(context.user.id);
 
     const completion = await groq.chat.completions.create({
@@ -167,6 +196,7 @@ export const generateQuiz = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator(generateQuizInput)
   .handler(async ({ data, context }) => {
+    await assertNoOpenQuizSession(context.supabase, context.profile);
     await consumeAiRateLimit(context.user.id);
 
     const completion = await groq.chat.completions.create({

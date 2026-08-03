@@ -8,6 +8,7 @@ import {
   sendDirectMessage,
   sendGroupMessage,
 } from '@/lib/server/functions/messages'
+import { useRealtimeInvalidate } from '@/hooks/useRealtimeInvalidate'
 import { formatTime, getInitial, roleColor } from './format'
 import { MembersPanel } from './MembersPanel'
 import type { ActiveThread } from './types'
@@ -19,8 +20,6 @@ interface ChatPanelProps {
   onMessageSent: () => void
 }
 
-const MESSAGE_POLL_MS = 4000
-
 export function ChatPanel({ thread, currentUserId, onBack, onMessageSent }: ChatPanelProps) {
   const queryClient = useQueryClient()
   const [draft, setDraft] = useState('')
@@ -29,16 +28,23 @@ export function ChatPanel({ thread, currentUserId, onBack, onMessageSent }: Chat
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
   const isGroup = thread.type === 'group'
+  const messagesQueryKey = isGroup
+    ? (['messages', 'group', thread.id] as const)
+    : (['messages', 'direct', thread.id] as const)
 
   const messagesQuery = useQuery({
-    queryKey: isGroup
-      ? (['messages', 'group', thread.id] as const)
-      : (['messages', 'direct', thread.id] as const),
+    queryKey: messagesQueryKey,
     queryFn: () =>
       isGroup
         ? listGroupMessages({ data: { conversationId: thread.id } })
         : listMessagesInConversation({ data: { conversationId: thread.id } }),
-    refetchInterval: MESSAGE_POLL_MS,
+  })
+
+  useRealtimeInvalidate({
+    channel: `messages:${thread.type}:${thread.id}`,
+    table: isGroup ? 'group_messages' : 'messages',
+    filter: `conversation_id=eq.${thread.id}`,
+    queryKey: messagesQueryKey,
   })
 
   const membersQuery = useQuery({
@@ -53,9 +59,7 @@ export function ChatPanel({ thread, currentUserId, onBack, onMessageSent }: Chat
         ? sendGroupMessage({ data: { conversationId: thread.id, content } })
         : sendDirectMessage({ data: { conversationId: thread.id, content } }),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: isGroup ? ['messages', 'group', thread.id] : ['messages', 'direct', thread.id],
-      })
+      await queryClient.invalidateQueries({ queryKey: messagesQueryKey })
       onMessageSent()
       inputRef.current?.focus()
     },

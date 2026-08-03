@@ -98,6 +98,10 @@ export const getOrCreateDirectConversation = createServerFn({
     if (otherError) throw new Error(otherError.message)
     if (!other) throw new Error('That user could not be found.')
 
+    if (profile.role === 'student' && other.role === 'student') {
+      throw new Error('Direct messages between students are not allowed.')
+    }
+
     const [p1, p2] = [profile.id, data.otherUserId].sort()
 
     const { data: existing, error: existingError } = await supabase
@@ -254,13 +258,19 @@ export const searchMessageableUsers = createServerFn({ method: 'GET' })
       const { supabase, profile } = context
       const q = data.query.replace(/[%,]/g, '')
 
-      const { data: users, error } = await supabase
+      let query = supabase
         .from('profiles')
         .select('id, full_name, email, role, avatar_url')
         .or(`full_name.ilike.%${q}%,email.ilike.%${q}%`)
         .neq('id', profile.id)
         .eq('status', 'approved')
-        .limit(8)
+
+      // students can only find staff to dm, never other students
+      if (profile.role === 'student') {
+        query = query.neq('role', 'student')
+      }
+
+      const { data: users, error } = await query.limit(8)
 
       if (error) throw new Error(error.message)
 

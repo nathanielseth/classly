@@ -12,6 +12,7 @@ import {
   X,
 } from 'lucide-react'
 import {
+  abandonQuizSession,
   getOwnQuizAttempt,
   getQuizForTaking,
   submitQuizAttempt,
@@ -77,8 +78,12 @@ export function QuizTakingPanel({ materialId }: QuizTakingPanelProps) {
     } else {
       unlockExam()
     }
-    return () => unlockExam()
-  }, [isInProgress, lockExam, unlockExam])
+    return () => {
+      unlockExam()
+      // best-effort: release the server-side lock if the student navigates away without submitting
+      void abandonQuizSession({ data: { materialId } })
+    }
+  }, [isInProgress, lockExam, unlockExam, materialId])
 
   const handleSelect = (optionIndex: number) => {
     if (hasSubmitted) return
