@@ -18,10 +18,13 @@
     "@base-ui/react": "^1.6.0",
     "@supabase/ssr": "^0.12.4",
     "@tailwindcss/vite": "^4.1.18",
+    "pdf-parse": "^2.4.5",
+    "xlsx": "^0.18.5",
     "@tanstack/react-devtools": "latest",
     "@tanstack/react-query": "^5.101.4",
     "@tanstack/react-router": "latest",
     "@tanstack/react-router-devtools": "latest",
+    "@tanstack/react-router-ssr-query": "latest",
     "@tanstack/react-start": "latest",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.0",
@@ -47,13 +50,6 @@
     "eslint": "^10.8.0",
     "prettier": "^3.8.1",
     "typescript": "^7.0.2",
-    "vite": "^8.2.0",
-    "vite-tsconfig-paths": "^6.1.1"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "lightningcss"
-    ]
+    "vite": "^8.2.0"
   }
 }
