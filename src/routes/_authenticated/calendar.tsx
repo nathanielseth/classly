@@ -24,13 +24,17 @@ import {
   Loader2,
   Plus,
   Trash2,
+  UploadCloud,
   X,
 } from 'lucide-react'
 import {
+  bulkCreateEvents,
   createEvent,
   deleteEvent,
   listCalendarItems,
 } from '@/lib/server/functions/calendar'
+import { parseEventsFile } from '@/lib/parse-events-file'
+import type { ParsedEventRow } from '@/lib/parse-events-file'
 
 export const Route = createFileRoute('/_authenticated/calendar')({
   component: CalendarPage,
@@ -63,10 +67,12 @@ function CalendarPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showImportModal, setShowImportModal] = useState(false)
   const queryClient = useQueryClient()
 
   const role = userState.status === 'approved' ? userState.profile.role : null
   const isAdmin = role === 'admin'
+  const canManageEvents = role === 'admin' || role === 'instructor'
 
   const monthStart = startOfMonth(currentMonth)
   const monthEnd = endOfMonth(monthStart)
@@ -137,14 +143,23 @@ function CalendarPage() {
             <p className="text-gray-500 text-sm">Academic schedule</p>
           </div>
           <div className="flex items-center gap-2">
-            {isAdmin && (
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-classly-green text-white text-sm font-medium rounded-lg hover:bg-classly-green/90 transition-all"
-              >
-                <Plus size={16} />
-                Add Event
-              </button>
+            {canManageEvents && (
+              <>
+                <button
+                  onClick={() => setShowImportModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-all"
+                >
+                  <UploadCloud size={16} />
+                  Import
+                </button>
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-classly-green text-white text-sm font-medium rounded-lg hover:bg-classly-green/90 transition-all"
+                >
+                  <Plus size={16} />
+                  Add Event
+                </button>
+              </>
             )}
             <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-gray-200 shadow-sm">
               <button
@@ -337,6 +352,16 @@ function CalendarPage() {
           }}
         />
       )}
+
+      {showImportModal && (
+        <ImportEventsModal
+          onClose={() => setShowImportModal(false)}
+          onSuccess={() => {
+            setShowImportModal(false)
+            invalidate()
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -372,6 +397,162 @@ function getDotColor(item: Item) {
   return 'bg-blue-500'
 }
 
+function ImportEventsModal({
+  onClose,
+  onSuccess,
+}: {
+  onClose: () => void
+  onSuccess: () => void
+}) {
+  const [fileName, setFileName] = useState<string | null>(null)
+  const [rows, setRows] = useState<ParsedEventRow[]>([])
+  const [parseErrors, setParseErrors] = useState<string[]>([])
+  const [isParsing, setIsParsing] = useState(false)
+
+  const mutation = useMutation({
+    mutationFn: () => bulkCreateEvents({ data: { events: rows } }),
+    onSuccess,
+  })
+
+  const handleFile = async (file: File) => {
+    setFileName(file.name)
+    setIsParsing(true)
+    setRows([])
+    setParseErrors([])
+    try {
+      const result = await parseEventsFile(file)
+      setRows(result.rows)
+      setParseErrors(result.errors)
+    } catch {
+      setParseErrors([
+        "Couldn't read that file. Make sure it's a valid .csv or .xlsx file.",
+      ])
+    } finally {
+      setIsParsing(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col">
+        <div className="p-6 border-b border-gray-100 flex items-center justify-between shrink-0">
+          <h2 className="text-lg font-bold text-gray-900">
+            Import Events from File
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="p-6 space-y-4 overflow-y-auto">
+          <div>
+            <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-xl p-6 cursor-pointer hover:border-classly-green/40 hover:bg-classly-green/5 transition-colors">
+              <UploadCloud size={24} className="text-gray-400" />
+              <span className="text-sm font-medium text-gray-700">
+                {fileName ?? 'Choose a .csv or .xlsx file'}
+              </span>
+              <span className="text-xs text-gray-400">
+                Columns: title, date, time, type, description
+              </span>
+              <input
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) void handleFile(file)
+                }}
+              />
+            </label>
+          </div>
+
+          {isParsing && (
+            <div className="flex items-center justify-center gap-2 text-sm text-gray-500 py-4">
+              <Loader2 size={16} className="animate-spin" />
+              Reading file...
+            </div>
+          )}
+
+          {!isParsing && rows.length > 0 && (
+            <div>
+              <p className="text-sm font-medium text-gray-700 mb-2">
+                {rows.length} event{rows.length === 1 ? '' : 's'} ready to
+                import
+              </p>
+              <div className="border border-gray-200 rounded-lg divide-y divide-gray-100 max-h-48 overflow-y-auto">
+                {rows.slice(0, 20).map((row, i) => (
+                  <div
+                    key={i}
+                    className="px-3 py-2 text-sm flex items-center justify-between gap-3"
+                  >
+                    <span className="truncate text-gray-800">
+                      {row.title}
+                    </span>
+                    <span className="text-xs text-gray-400 shrink-0">
+                      {row.eventDate}
+                    </span>
+                  </div>
+                ))}
+                {rows.length > 20 && (
+                  <div className="px-3 py-2 text-xs text-gray-400 text-center">
+                    +{rows.length - 20} more
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {parseErrors.length > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <p className="text-xs font-medium text-amber-800 mb-1">
+                {parseErrors.length} row
+                {parseErrors.length === 1 ? '' : 's'} skipped
+              </p>
+              <ul className="text-xs text-amber-700 space-y-0.5 max-h-24 overflow-y-auto">
+                {parseErrors.map((err, i) => (
+                  <li key={i}>{err}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {mutation.isError && (
+            <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
+              {mutation.error.message}
+            </p>
+          )}
+        </div>
+
+        <div className="p-6 pt-4 border-t border-gray-100 flex gap-3 shrink-0">
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => mutation.mutate()}
+            disabled={rows.length === 0 || mutation.isPending}
+            className="flex-1 px-4 py-2.5 bg-classly-green text-white rounded-lg hover:bg-classly-green/90 text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {mutation.isPending ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <UploadCloud size={16} />
+            )}
+            Import {rows.length > 0 ? rows.length : ''} Event
+            {rows.length === 1 ? '' : 's'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 function AddEventModal({
   onClose,
   onSuccess,

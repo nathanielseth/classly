@@ -130,8 +130,8 @@ export const createEvent = createServerFn({ method: 'POST' })
   .handler(async ({ data, context }) => {
     const { supabase, profile } = context
 
-    if (profile.role !== 'admin') {
-      throw new Error('Only admins can add system events.')
+    if (profile.role !== 'admin' && profile.role !== 'instructor') {
+      throw new Error('Only instructors and admins can add calendar events.')
     }
 
     const { data: event, error } = await supabase
@@ -149,6 +149,50 @@ export const createEvent = createServerFn({ method: 'POST' })
 
     if (error) throw new Error(error.message)
     return event
+  })
+
+const bulkCreateEventsInput = z.object({
+  events: z
+    .array(
+      z.object({
+        title: z.string().trim().min(1).max(200),
+        description: z.string().trim().max(2000).optional(),
+        eventDate: z.string().min(1),
+        eventTime: z.string().trim().max(20).optional(),
+        type: z.enum(['event', 'holiday', 'announcement']).default('event'),
+      }),
+    )
+    .min(1)
+    .max(500),
+})
+
+// backs the Excel/CSV bulk-import flow
+export const bulkCreateEvents = createServerFn({ method: 'POST' })
+  .middleware([authMiddleware])
+  .validator(bulkCreateEventsInput)
+  .handler(async ({ data, context }) => {
+    const { supabase, profile } = context
+
+    if (profile.role !== 'admin' && profile.role !== 'instructor') {
+      throw new Error('Only instructors and admins can add calendar events.')
+    }
+
+    const rows = data.events.map((event) => ({
+      title: event.title,
+      description: event.description || null,
+      event_date: event.eventDate,
+      event_time: event.eventTime || null,
+      type: event.type,
+      created_by: profile.id,
+    }))
+
+    const { data: inserted, error } = await supabase
+      .from('events')
+      .insert(rows)
+      .select('id')
+
+    if (error) throw new Error(error.message)
+    return { count: inserted?.length ?? 0 }
   })
 
 const deleteEventInput = z.object({
