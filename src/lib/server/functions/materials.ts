@@ -2,6 +2,7 @@ import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { authMiddleware } from '../middleware'
 import { assertSubjectAccess } from '../subject-access'
+import { extractFileContent } from '../file-extraction'
 import type { getServerSupabase } from '../supabase'
 
 const upcomingMaterialsInput = z.object({
@@ -133,6 +134,56 @@ export const getMaterial = createServerFn({ method: 'GET' })
     }
 
     return material
+  })
+
+const materialContentForAiInput = z.object({
+  materialId: z.uuid(),
+})
+
+export const getMaterialContentForAi = createServerFn({ method: 'GET' })
+  .middleware([authMiddleware])
+  .validator(materialContentForAiInput)
+  .handler(async ({ data, context }) => {
+    const { supabase, profile } = context
+
+    const { data: material, error } = await supabase
+      .from('materials')
+      .select(
+        'subject_id, title, description, instructions, published, file_url, file_name',
+      )
+      .eq('id', data.materialId)
+      .single()
+
+    if (error || !material) throw new Error('Material not found.')
+
+    await assertSubjectAccess(supabase, profile, material.subject_id)
+
+    if (profile.role === 'student' && !material.published) {
+      throw new Error('Material not found.')
+    }
+
+    const textParts = [material.description, material.instructions].filter(
+      (part): part is string => Boolean(part?.trim()),
+    )
+
+    let fileTruncated = false
+    if (material.file_url && material.file_name) {
+      const extracted = await extractFileContent(
+        material.file_url,
+        material.file_name,
+      )
+      if (extracted) {
+        textParts.push(extracted.text)
+        fileTruncated = extracted.truncated
+      }
+    }
+
+    return {
+      title: material.title,
+      content: textParts.join('\n\n').trim(),
+      hasFileContent: Boolean(material.file_url),
+      fileTruncated,
+    }
   })
 
 function assertCanManageMaterials(profile: { role: string }) {

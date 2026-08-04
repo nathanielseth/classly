@@ -21,6 +21,7 @@ import {
   updateTopic,
   uploadMaterialFile,
 } from '@/lib/server/functions/materials'
+import { listOwnSubmissionStatuses } from '@/lib/server/functions/submissions'
 import { MaterialCard } from './MaterialCard'
 import { CreateMaterialModal } from './CreateMaterialModal'
 import { EditMaterialModal } from './EditMaterialModal'
@@ -119,6 +120,19 @@ export function MaterialsTab({ subjectId, canManage }: MaterialsTabProps) {
     queryFn: () => listMaterialsWithTopics({ data: { subjectId } }),
     refetchInterval: MATERIALS_POLL_MS,
   })
+
+  const submissionStatusesQuery = useQuery({
+    queryKey: ['submissions', 'own-statuses', subjectId],
+    queryFn: () => listOwnSubmissionStatuses({ data: { subjectId } }),
+    enabled: !canManage,
+  })
+
+  const submissionByMaterialId = new Map(
+    (submissionStatusesQuery.data?.statuses ?? []).map((s) => [
+      s.material_id,
+      s,
+    ]),
+  )
 
   const invalidate = () =>
     queryClient.invalidateQueries({
@@ -441,6 +455,9 @@ export function MaterialsTab({ subjectId, canManage }: MaterialsTabProps) {
                       key={material.id}
                       material={material}
                       canManage={canManage}
+                      submission={
+                        submissionByMaterialId.get(material.id) ?? null
+                      }
                       onClick={() =>
                         navigate({
                           to: '/classroom/$subjectId/materials/$materialId',

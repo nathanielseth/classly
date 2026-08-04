@@ -6,6 +6,7 @@ import {
   ClipboardList,
   Loader2,
   Plus,
+  Sparkles,
   Trash2,
   Users,
 } from 'lucide-react'
@@ -14,6 +15,7 @@ import {
   listQuizAttemptsForMaterial,
   saveQuizQuestions,
 } from '@/lib/server/functions/quizzes'
+import { digitizeQuizFromMaterial } from '@/lib/server/functions/ai'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -21,6 +23,7 @@ import { Textarea } from '@/components/ui/textarea'
 
 interface QuizBuilderPanelProps {
   materialId: string
+  hasAttachedFile: boolean
 }
 
 interface DraftQuestion {
@@ -43,7 +46,10 @@ function emptyQuestion(): DraftQuestion {
   }
 }
 
-export function QuizBuilderPanel({ materialId }: QuizBuilderPanelProps) {
+export function QuizBuilderPanel({
+  materialId,
+  hasAttachedFile,
+}: QuizBuilderPanelProps) {
   const queryClient = useQueryClient()
   const [draft, setDraft] = useState<DraftQuestion[] | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
@@ -57,6 +63,21 @@ export function QuizBuilderPanel({ materialId }: QuizBuilderPanelProps) {
   const attemptsQuery = useQuery({
     queryKey: ['quizzes', 'attempts', materialId],
     queryFn: () => listQuizAttemptsForMaterial({ data: { materialId } }),
+  })
+
+  const digitizeMutation = useMutation({
+    mutationFn: () => digitizeQuizFromMaterial({ data: { materialId } }),
+    onSuccess: (result) => {
+      setSaveError(null)
+      setDraft(
+        result.quiz.map((q) => ({
+          key: makeKey(),
+          question: q.question,
+          options: q.options,
+          correctIndex: q.correctIndex,
+        })),
+      )
+    },
   })
 
   // seed the editable draft from the server once, then let local edits own the array
@@ -224,6 +245,40 @@ export function QuizBuilderPanel({ materialId }: QuizBuilderPanelProps) {
           </div>
         </CardHeader>
         <CardContent className="space-y-5">
+          {draft.length === 0 && hasAttachedFile && (
+            <div className="rounded-xl border border-classly-green/30 bg-classly-green/5 p-4">
+              <p className="mb-1 text-sm font-medium text-foreground">
+                Quiz file detected
+              </p>
+              <p className="mb-3 text-xs text-muted-foreground">
+                Let AI read the attached file and convert its questions into
+                a digital quiz you can review below.
+              </p>
+              {digitizeMutation.isError && (
+                <p className="mb-3 text-xs text-destructive">
+                  {digitizeMutation.error.message}
+                </p>
+              )}
+              <Button
+                onClick={() => digitizeMutation.mutate()}
+                disabled={digitizeMutation.isPending}
+                className="w-full"
+              >
+                {digitizeMutation.isPending ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Reading & extracting questions...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={16} />
+                    Digitize this Quiz
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+
           {draft.length === 0 && (
             <div className="rounded-lg border-2 border-dashed border-border p-8 text-center text-sm text-muted-foreground">
               No questions yet. Add your first question below, or generate one

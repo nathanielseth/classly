@@ -11,7 +11,8 @@ import {
   LayoutGrid,
 } from 'lucide-react'
 import { generateFlashcards } from '@/lib/server/functions/ai'
-import { MaterialPicker, materialToContentText } from './MaterialPicker'
+import { getMaterialContentForAi } from '@/lib/server/functions/materials'
+import { MaterialPicker } from './MaterialPicker'
 import type { PickedMaterial } from './MaterialPicker'
 
 export function FlashcardPanel() {
@@ -22,15 +23,17 @@ export function FlashcardPanel() {
   const [viewMode, setViewMode] = useState<'deck' | 'grid'>('deck')
 
   const generateMutation = useMutation({
-    mutationFn: (material: PickedMaterial) => {
-      const materialContent = materialToContentText(material)
-      if (materialContent.length < 50) {
+    mutationFn: async (material: PickedMaterial) => {
+      const { title, content } = await getMaterialContentForAi({
+        data: { materialId: material.id },
+      })
+      if (content.length < 50) {
         throw new Error(
           'Not enough content to generate flashcards. Please select a material with more content.',
         )
       }
       return generateFlashcards({
-        data: { materialTitle: material.title, materialContent },
+        data: { materialTitle: title, materialContent: content },
       })
     },
     onSuccess: () => {

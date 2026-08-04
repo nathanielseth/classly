@@ -4,9 +4,12 @@ import Groq from "groq-sdk";
 import { authMiddleware } from "../middleware";
 import { aiRatelimit } from "../ratelimit";
 import { assertNoOpenQuizSession } from "../exam-lock";
+import { getMaterialContentForAi } from "./materials";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY! });
 
+// only user/assistant turns are accepted
+// the single system prompt comes from the server, preventing students from injecting their own system role to override instructions
 const chatInput = z.object({
   messages: z.array(
     z.object({
@@ -39,35 +42,48 @@ export const sendChatMessage = createServerFn({ method: "POST" })
   .middleware([authMiddleware])
   .validator(chatInput)
   .handler(async ({ data, context }) => {
-    await assertNoOpenQuizSession(context.supabase, context.profile);
+    await assertNoOpenQuizSession(context.supabase, context.profile)
 
-    const { success, remaining, reset } = await aiRatelimit.limit(
-      context.user.id,
-    );
+    const { success, reset } = await aiRatelimit.limit(context.user.id)
 
     if (!success) {
       throw new Error(
         `Rate limit exceeded. Try again after ${new Date(reset).toLocaleTimeString()}.`,
-      );
+      )
     }
 
-    const completion = await groq.chat.completions.create({
+    const groqStream = await groq.chat.completions.create({
       messages: [
         {
-          role: "system",
+          role: 'system',
           content: systemPromptFor(context.profile.role),
         },
         ...data.messages,
       ],
-      model: "llama-3.3-70b-versatile",
+      model: 'llama-3.3-70b-versatile',
       temperature: 0.7,
       max_tokens: 2048,
-    });
+      stream: true,
+    })
 
-    return {
-      content: completion.choices[0]?.message?.content ?? "",
-      remaining,
-    };
+    // server functions can stream chunks directly, letting the client render chat token‑by‑token instead of waiting for the full buffered reply.
+    const encoder = new TextEncoder()
+    const stream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        try {
+          for await (const chunk of groqStream) {
+            const token = chunk.choices[0]?.delta?.content
+            if (token) controller.enqueue(encoder.encode(token))
+          }
+        } catch (err) {
+          controller.error(err)
+          return
+        }
+        controller.close()
+      },
+    })
+
+    return { stream }
   });
 
 async function consumeAiRateLimit(userId: string) {
@@ -279,4 +295,102 @@ Requirements:
     }
 
     return { quiz: shuffleQuizOptions(validQuiz) };
+  });
+
+const digitizeQuizInput = z.object({
+  materialId: z.uuid(),
+});
+
+// digitize extracts existing quiz questions verbatim, unlike generateQuiz, and handles varied option counts without inventing new ones
+export const digitizeQuizFromMaterial = createServerFn({ method: "POST" })
+  .middleware([authMiddleware])
+  .validator(digitizeQuizInput)
+  .handler(async ({ data, context }) => {
+    await assertNoOpenQuizSession(context.supabase, context.profile);
+
+    if (context.profile.role !== "instructor" && context.profile.role !== "admin") {
+      throw new Error("Only instructors can digitize a quiz.");
+    }
+
+    const { content, hasFileContent } = await getMaterialContentForAi({
+      data: { materialId: data.materialId },
+    });
+
+    if (!hasFileContent) {
+      throw new Error(
+        "This material doesn't have an attached file to digitize. Attach a quiz PDF or text file first.",
+      );
+    }
+    if (content.length < 20) {
+      throw new Error(
+        "Couldn't read enough content from the attached file. Try re-uploading it.",
+      );
+    }
+
+    await consumeAiRateLimit(context.user.id);
+
+    const completion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content:
+            "You transcribe existing quiz questions from a document into structured JSON. You do not invent, rephrase, or add new questions - only extract what is already written. Output ONLY a valid JSON array, no markdown, no explanations.",
+        },
+        {
+          role: "user",
+          content: `Extract every multiple-choice or true/false question from this quiz document, exactly as written.
+
+Document: ${content}
+
+Return a JSON array with this exact structure:
+[
+  {
+    "question": "Question text exactly as it appears",
+    "options": ["Option A", "Option B", "..."],
+    "correctIndex": 0
+  }
+]
+
+Requirements:
+- Preserve the original question wording and option text
+- Include every option as written (2 to 8 options per question is fine - do not force a fixed count)
+- If the correct answer is marked in the document (e.g. bolded, starred, an answer key), set correctIndex to match it; otherwise set correctIndex to 0 and the instructor will fix it during review
+- correctIndex must be a valid index into that question's options array
+- NO markdown, NO explanations, ONLY the JSON array`,
+        },
+      ],
+      model: "llama-3.3-70b-versatile",
+      temperature: 0.1,
+      max_tokens: 4096,
+    });
+
+    const responseContent = completion.choices[0]?.message?.content;
+    if (!responseContent) throw new Error("No content received from AI.");
+
+    const parsed = extractJsonArray(responseContent);
+    if (!Array.isArray(parsed)) {
+      throw new Error("The AI's response wasn't a list of questions. Please try again.");
+    }
+
+    const validQuiz: QuizQuestion[] = parsed.filter((q): q is QuizQuestion => {
+      return (
+        q &&
+        typeof q === "object" &&
+        typeof q.question === "string" &&
+        Array.isArray(q.options) &&
+        q.options.length >= 2 &&
+        q.options.every((opt: unknown) => typeof opt === "string") &&
+        typeof q.correctIndex === "number" &&
+        q.correctIndex >= 0 &&
+        q.correctIndex < q.options.length
+      );
+    });
+
+    if (validQuiz.length === 0) {
+      throw new Error(
+        "Couldn't extract any valid questions from this file. It may not be a recognizable quiz format.",
+      );
+    }
+
+    return { quiz: validQuiz };
   });

@@ -11,10 +11,13 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { generateQuiz } from '@/lib/server/functions/ai'
-import { createMaterial } from '@/lib/server/functions/materials'
+import {
+  createMaterial,
+  getMaterialContentForAi,
+} from '@/lib/server/functions/materials'
 import { saveQuizQuestions } from '@/lib/server/functions/quizzes'
 import { useExamLock } from '@/hooks/useExamLock'
-import { MaterialPicker, materialToContentText } from './MaterialPicker'
+import { MaterialPicker } from './MaterialPicker'
 import type { PickedMaterial } from './MaterialPicker'
 
 type QuizQuestion = {
@@ -42,15 +45,17 @@ export function QuizPanel({
   const isInstructor = userRole === 'instructor'
 
   const generateMutation = useMutation({
-    mutationFn: (material: PickedMaterial) => {
-      const materialContent = materialToContentText(material)
-      if (materialContent.length < 50) {
+    mutationFn: async (material: PickedMaterial) => {
+      const { title, content } = await getMaterialContentForAi({
+        data: { materialId: material.id },
+      })
+      if (content.length < 50) {
         throw new Error(
           'Not enough content to generate quiz. Please select a material with more content.',
         )
       }
       return generateQuiz({
-        data: { materialTitle: material.title, materialContent },
+        data: { materialTitle: title, materialContent: content },
       })
     },
     onSuccess: () => {
@@ -85,7 +90,7 @@ export function QuizPanel({
           description: `AI-generated quiz from ${selectedMaterial.title}`,
           type: 'quiz',
           maxPoints: quiz.length * 10,
-          published: true,
+          published: false,
           allowLateSubmission: true,
           topicId: selectedMaterial.topic_id ?? undefined,
         },
@@ -214,8 +219,9 @@ export function QuizPanel({
                 Save to Classroom
               </p>
               <p className="text-xs text-gray-500 mb-4">
-                This will create a new quiz material students can take
-                digitally.
+                This will create a draft quiz material — review it in the
+                classroom and publish when you're ready for students to see
+                it.
               </p>
               {saveMutation.isError && (
                 <p className="text-xs text-red-600 mb-3">
@@ -233,7 +239,7 @@ export function QuizPanel({
                   </>
                 ) : savedToClassroom ? (
                   <>
-                    <Check size={16} /> Saved to Classroom
+                    <Check size={16} /> Saved as Draft
                   </>
                 ) : (
                   <>

@@ -25,20 +25,50 @@ export function ChatPanel({ userRole: _userRole }: { userRole: string }) {
   }, [messages])
 
   const chatMutation = useMutation({
-    mutationFn: (nextMessages: ChatMessage[]) =>
-      sendChatMessage({
+    mutationFn: async (nextMessages: ChatMessage[]) => {
+      const { stream } = await sendChatMessage({
         data: {
           messages: nextMessages.map((m) => ({
             role: m.role,
             content: m.content,
           })),
         },
-      }),
-    onSuccess: (result) => {
+      })
+
+      // placeholder bubble that fills in as tokens arrive
+      const assistantTimestamp = new Date()
       setMessages((prev) => [
         ...prev,
-        { role: 'assistant', content: result.content, timestamp: new Date() },
+        { role: 'assistant', content: '', timestamp: assistantTimestamp },
       ])
+
+      const reader = stream.getReader()
+      const decoder = new TextDecoder()
+      let fullContent = ''
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          fullContent += decoder.decode(value, { stream: true })
+          setMessages((prev) => {
+            const next = [...prev]
+            next[next.length - 1] = {
+              role: 'assistant',
+              content: fullContent,
+              timestamp: assistantTimestamp,
+            }
+            return next
+          })
+        }
+      } catch (err) {
+        if (!fullContent) {
+          setMessages((prev) => prev.slice(0, -1))
+        }
+        throw err
+      }
+
+      return fullContent
     },
   })
 
@@ -63,26 +93,27 @@ export function ChatPanel({ userRole: _userRole }: { userRole: string }) {
           <ChatBubble key={index} message={message} />
         ))}
 
-        {chatMutation.isPending && (
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-classly-green/10 flex items-center justify-center shrink-0">
-              <Sparkles size={16} className="text-classly-green" />
-            </div>
-            <div className="bg-gray-100 rounded-2xl rounded-tl-sm px-4 py-3">
-              <div className="flex gap-1">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                <div
-                  className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                  style={{ animationDelay: '0.2s' }}
-                />
-                <div
-                  className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
-                  style={{ animationDelay: '0.4s' }}
-                />
+        {chatMutation.isPending &&
+          messages[messages.length - 1]?.role !== 'assistant' && (
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 rounded-full bg-classly-green/10 flex items-center justify-center shrink-0">
+                <Sparkles size={16} className="text-classly-green" />
+              </div>
+              <div className="bg-gray-100 rounded-2xl rounded-tl-sm px-4 py-3">
+                <div className="flex gap-1">
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+                  <div
+                    className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                    style={{ animationDelay: '0.2s' }}
+                  />
+                  <div
+                    className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                    style={{ animationDelay: '0.4s' }}
+                  />
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
         <div ref={messagesEndRef} />
       </div>
 

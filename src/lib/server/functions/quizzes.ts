@@ -159,7 +159,7 @@ export const getQuizForTaking = createServerFn({ method: 'GET' })
 
     if (error) throw new Error(error.message)
 
-    // if the student hasnt submitted, open a session (explicit check‑then‑insert) so the ai guard can track it, since upsert isnt valid with the partial uniqueness constraint
+    // if no submission exists, open a session (check‑then‑insert) so the ai guard can track it, since upsert isnt valid with the partial uniqueness constraint
     const { data: existingAttempt } = await supabase
       .from('quiz_answers')
       .select('id')
@@ -230,6 +230,7 @@ const abandonQuizSessionInput = z.object({
   materialId: z.uuid(),
 })
 
+// closes an open quiz session without submitting, so the ai lock clears when a student navigates away, safe no‑op if no session exists
 export const abandonQuizSession = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
   .validator(abandonQuizSessionInput)
@@ -239,11 +240,10 @@ export const abandonQuizSession = createServerFn({ method: 'POST' })
 
     const { error, count } = await supabase
       .from('quiz_sessions')
-      .update({ ended_at: new Date().toISOString() })
+      .update({ ended_at: new Date().toISOString() }, { count: 'exact' })
       .eq('material_id', data.materialId)
       .eq('student_id', profile.id)
       .is('ended_at', null)
-      .select('id', { count: 'exact', head: true })
 
     if (error) throw new Error(error.message)
     return { closed: (count ?? 0) > 0 }
@@ -305,7 +305,7 @@ export const submitQuizAttempt = createServerFn({ method: 'POST' })
 
     if (error) throw new Error(error.message)
 
-    // release the exam lock
+    // release the exam lock - best effort, submission itself already succeeded
     const { error: closeError } = await supabase
       .from('quiz_sessions')
       .update({ ended_at: new Date().toISOString() })

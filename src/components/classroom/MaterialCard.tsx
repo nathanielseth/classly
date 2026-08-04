@@ -5,6 +5,8 @@ import {
   Download,
   Clock,
   Edit,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react'
 
 interface MaterialCardProps {
@@ -23,6 +25,11 @@ interface MaterialCardProps {
   onClick?: (material: MaterialCardProps['material']) => void
   onEdit?: () => void
   onDelete?: () => void
+  submission?: {
+    status: string | null
+    grade: number | null
+    is_late: boolean | null
+  } | null
 }
 
 const TYPE_COLORS: Record<string, { bg: string; text: string; badge: string }> =
@@ -59,17 +66,66 @@ const TYPE_COLORS: Record<string, { bg: string; text: string; badge: string }> =
     },
   }
 
+const SUBMITTABLE_TYPES = new Set(['assignment', 'quiz', 'exam', 'project'])
+
+function submissionBadge(
+  submission: MaterialCardProps['submission'],
+  dueDate: Date | null,
+): { label: string; className: string; icon: typeof CheckCircle2 } {
+  if (!submission) {
+    const overdue = dueDate ? dueDate < new Date() : false
+    return overdue
+      ? {
+          label: 'Missing',
+          className: 'text-red-700 bg-red-50',
+          icon: AlertCircle,
+        }
+      : {
+          label: 'Not submitted',
+          className: 'text-gray-600 bg-gray-100',
+          icon: Clock,
+        }
+  }
+
+  if (submission.status === 'graded' || submission.status === 'returned') {
+    return {
+      label:
+        submission.grade !== null ? `Graded · ${submission.grade}` : 'Graded',
+      className: 'text-green-700 bg-green-50',
+      icon: CheckCircle2,
+    }
+  }
+
+  return submission.is_late
+    ? {
+        label: 'Turned in late',
+        className: 'text-amber-700 bg-amber-50',
+        icon: CheckCircle2,
+      }
+    : {
+        label: 'Turned in',
+        className: 'text-blue-700 bg-blue-50',
+        icon: CheckCircle2,
+      }
+}
+
 export function MaterialCard({
   material,
   canManage,
   onClick,
   onEdit,
   onDelete,
+  submission,
 }: MaterialCardProps) {
   const dueDate = material.due_date ? new Date(material.due_date) : null
   const isOverdue = dueDate ? dueDate < new Date() : false
   const colors =
     TYPE_COLORS[material.type ?? 'assignment'] ?? TYPE_COLORS.assignment
+  const showSubmissionBadge =
+    !canManage && material.type && SUBMITTABLE_TYPES.has(material.type)
+  const badge = showSubmissionBadge
+    ? submissionBadge(submission, dueDate)
+    : null
 
   const handleCardClick = (e: React.MouseEvent) => {
     if ((e.target as HTMLElement).closest('button')) return
@@ -147,6 +203,15 @@ export function MaterialCard({
                 {isOverdue
                   ? 'Overdue'
                   : `Due ${dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
+              </div>
+            )}
+
+            {badge && (
+              <div
+                className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full ${badge.className}`}
+              >
+                <badge.icon size={12} />
+                {badge.label}
               </div>
             )}
 

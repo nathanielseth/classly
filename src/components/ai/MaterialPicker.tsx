@@ -36,7 +36,7 @@ export function MaterialPicker({
 
   const subjects = subjectsQuery.data?.subjects ?? []
   const materials = (materialsQuery.data?.materials ?? []).filter(
-    (m) => m.description || m.instructions,
+    (m) => m.description || m.instructions || m.file_url,
   )
 
   return (
@@ -113,11 +113,4 @@ export function MaterialPicker({
       </div>
     </div>
   )
-}
-
-export function materialToContentText(material: PickedMaterial): string {
-  let content = ''
-  if (material.description) content += material.description + '\n\n'
-  if (material.instructions) content += material.instructions + '\n\n'
-  return content.trim()
 }
