@@ -8,7 +8,8 @@ import {
   sendDirectMessage,
   sendGroupMessage,
 } from '@/lib/server/functions/messages'
-import { useRealtimeInvalidate } from '@/hooks/useRealtimeInvalidate'
+import type { MessageItem } from '@/lib/server/functions/messages'
+import { useRealtimeMessages } from '@/hooks/useRealtimeMessages'
 import { formatTime, getInitial, roleColor } from './format'
 import { MembersPanel } from './MembersPanel'
 import type { ActiveThread } from './types'
@@ -20,7 +21,12 @@ interface ChatPanelProps {
   onMessageSent: () => void
 }
 
-export function ChatPanel({ thread, currentUserId, onBack, onMessageSent }: ChatPanelProps) {
+export function ChatPanel({
+  thread,
+  currentUserId,
+  onBack,
+  onMessageSent,
+}: ChatPanelProps) {
   const queryClient = useQueryClient()
   const [draft, setDraft] = useState('')
   const [showMembers, setShowMembers] = useState(false)
@@ -40,17 +46,40 @@ export function ChatPanel({ thread, currentUserId, onBack, onMessageSent }: Chat
         : listMessagesInConversation({ data: { conversationId: thread.id } }),
   })
 
-  useRealtimeInvalidate({
-    channel: `messages:${thread.type}:${thread.id}`,
-    table: isGroup ? 'group_messages' : 'messages',
-    filter: `conversation_id=eq.${thread.id}`,
-    queryKey: messagesQueryKey,
-  })
-
   const membersQuery = useQuery({
     queryKey: ['messages', 'group-members', thread.id],
     queryFn: () => getGroupMembers({ data: { conversationId: thread.id } }),
     enabled: isGroup,
+  })
+  const members = membersQuery.data?.members ?? []
+
+  const resolveSender = (senderId: string): MessageItem['sender'] => {
+    if (isGroup) {
+      const member = members.find((m) => m.profile?.id === senderId)
+      return member?.profile
+        ? {
+            id: member.profile.id,
+            full_name: member.profile.full_name,
+            avatar_url: null,
+          }
+        : null
+    }
+    return thread.otherUser?.id === senderId
+      ? {
+          id: thread.otherUser.id,
+          full_name: thread.otherUser.full_name,
+          avatar_url: thread.otherUser.avatar_url,
+        }
+      : null
+  }
+
+  useRealtimeMessages({
+    channel: `messages:${thread.type}:${thread.id}`,
+    table: isGroup ? 'group_messages' : 'messages',
+    conversationId: thread.id,
+    queryKey: messagesQueryKey,
+    resolveSender,
+    currentUserId,
   })
 
   const sendMutation = useMutation({
@@ -58,8 +87,12 @@ export function ChatPanel({ thread, currentUserId, onBack, onMessageSent }: Chat
       isGroup
         ? sendGroupMessage({ data: { conversationId: thread.id, content } })
         : sendDirectMessage({ data: { conversationId: thread.id, content } }),
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: messagesQueryKey })
+    onSuccess: (message) => {
+      queryClient.setQueryData<{ messages: MessageItem[] }>(
+        messagesQueryKey,
+        (current) =>
+          current ? { messages: [...current.messages, message] } : current,
+      )
       onMessageSent()
       inputRef.current?.focus()
     },
@@ -84,9 +117,10 @@ export function ChatPanel({ thread, currentUserId, onBack, onMessageSent }: Chat
   }
 
   const chatName = isGroup ? thread.name : (thread.otherUser?.full_name ?? '')
-  const chatSub = isGroup ? (thread.subjectCode ?? 'Group Chat') : (thread.otherUser?.email ?? '')
+  const chatSub = isGroup
+    ? (thread.subjectCode ?? 'Group Chat')
+    : (thread.otherUser?.email ?? '')
   const messages = messagesQuery.data?.messages ?? []
-  const members = membersQuery.data?.members ?? []
 
   return (
     <div className="flex flex-col flex-1 bg-white min-w-0">
@@ -102,7 +136,9 @@ export function ChatPanel({ thread, currentUserId, onBack, onMessageSent }: Chat
             isGroup ? 'bg-purple-500' : 'bg-classly-green'
           }`}
         >
-          {isGroup ? getInitial(thread.name) : getInitial(thread.otherUser?.full_name)}
+          {isGroup
+            ? getInitial(thread.name)
+            : getInitial(thread.otherUser?.full_name)}
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-gray-900">{chatName}</p>
@@ -134,7 +170,9 @@ export function ChatPanel({ thread, currentUserId, onBack, onMessageSent }: Chat
             </div>
           ) : messagesQuery.isError ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
-              <p className="text-sm text-red-600">{messagesQuery.error.message}</p>
+              <p className="text-sm text-red-600">
+                {messagesQuery.error.message}
+              </p>
             </div>
           ) : messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
@@ -158,7 +196,9 @@ export function ChatPanel({ thread, currentUserId, onBack, onMessageSent }: Chat
                   )}
                   <div className="max-w-xs lg:max-w-md">
                     {!isMe && isGroup && (
-                      <p className="text-xs text-gray-500 mb-1 ml-1">{msg.sender?.full_name}</p>
+                      <p className="text-xs text-gray-500 mb-1 ml-1">
+                        {msg.sender?.full_name}
+                      </p>
                     )}
                     <div
                       className={`px-4 py-2.5 rounded-2xl text-sm ${
@@ -167,8 +207,12 @@ export function ChatPanel({ thread, currentUserId, onBack, onMessageSent }: Chat
                           : 'bg-gray-100 text-gray-900 rounded-bl-sm'
                       }`}
                     >
-                      <p className="leading-relaxed wrap-break-word">{msg.content}</p>
-                      <p className={`text-xs mt-1 ${isMe ? 'text-white/70' : 'text-gray-400'}`}>
+                      <p className="leading-relaxed wrap-break-word">
+                        {msg.content}
+                      </p>
+                      <p
+                        className={`text-xs mt-1 ${isMe ? 'text-white/70' : 'text-gray-400'}`}
+                      >
                         {formatTime(msg.created_at)}
                       </p>
                     </div>
@@ -185,7 +229,9 @@ export function ChatPanel({ thread, currentUserId, onBack, onMessageSent }: Chat
 
       <div className="px-4 py-3 border-t border-gray-200 shrink-0">
         {sendMutation.isError && (
-          <p className="text-xs text-red-600 mb-2">{sendMutation.error.message}</p>
+          <p className="text-xs text-red-600 mb-2">
+            {sendMutation.error.message}
+          </p>
         )}
         <div className="flex items-end gap-2">
           <textarea

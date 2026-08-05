@@ -10,7 +10,7 @@ interface UseRealtimeInvalidateOptions {
   enabled?: boolean
 }
 
-// keeps realtime updates consistent with server‑enforced authorization by always invalidating and refetching instead of merging payloads
+// subscribes to supabase realtime and invalidates react‑query keys on changes, to ensure updates refetch through server‑enforced authorization
 export function useRealtimeInvalidate({
   channel,
   table,

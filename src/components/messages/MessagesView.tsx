@@ -9,14 +9,21 @@ import {
 import { useRealtimeInvalidate } from '@/hooks/useRealtimeInvalidate'
 import { ChatPanel } from './DirectMessageChatPanel'
 import { ConversationList } from './ConversationList'
-import type { ActiveThread, DirectConversation, GroupConversation } from './types'
+import type {
+  ActiveThread,
+  DirectConversation,
+  GroupConversation,
+} from './types'
 
 interface MessagesViewProps {
   currentUserId: string
   openDmUserId?: string
 }
 
-export function MessagesView({ currentUserId, openDmUserId }: MessagesViewProps) {
+export function MessagesView({
+  currentUserId,
+  openDmUserId,
+}: MessagesViewProps) {
   const queryClient = useQueryClient()
   const [tab, setTab] = useState<'dms' | 'groups'>('dms')
   const [active, setActive] = useState<ActiveThread | null>(null)
@@ -92,6 +99,7 @@ export function MessagesView({ currentUserId, openDmUserId }: MessagesViewProps)
     setActive(null)
   }
 
+  // realtime already invalidates these lists on insert
   // kept as an immediate fallback for the sender's own client
   const refreshLists = () => {
     void queryClient.invalidateQueries({ queryKey: directQueryKey })
