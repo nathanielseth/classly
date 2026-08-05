@@ -1,8 +1,11 @@
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { BookOpen, MoreHorizontal } from 'lucide-react'
-import { setEnrollmentAccentColor } from '@/lib/server/functions/enrollments'
+import { BookOpen, MoreHorizontal, UserMinus } from 'lucide-react'
+import {
+  setEnrollmentAccentColor,
+  unenrollStudent,
+} from '@/lib/server/functions/enrollments'
 import { cn } from '@/lib/utils'
 
 interface StudentSubjectCardProps {
@@ -15,6 +18,7 @@ interface StudentSubjectCardProps {
     instructor: { full_name: string } | null
     accentColor: string | null
   }
+  studentId: string
 }
 
 const COLORS = [
@@ -68,16 +72,28 @@ function getColorClasses(color: string | null) {
   )
 }
 
-export function StudentSubjectCard({ subject }: StudentSubjectCardProps) {
+export function StudentSubjectCard({
+  subject,
+  studentId,
+}: StudentSubjectCardProps) {
   const queryClient = useQueryClient()
   const [menuOpen, setMenuOpen] = useState(false)
   const [colorPickerOpen, setColorPickerOpen] = useState(false)
+  const [confirmingUnenroll, setConfirmingUnenroll] = useState(false)
 
   const setColorMutation = useMutation({
     mutationFn: (accentColor: (typeof COLORS)[number]['value']) =>
       setEnrollmentAccentColor({
         data: { subjectId: subject.id, accentColor },
       }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['subjects', 'list'] })
+    },
+  })
+
+  const unenrollMutation = useMutation({
+    mutationFn: () =>
+      unenrollStudent({ data: { subjectId: subject.id, studentId } }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['subjects', 'list'] })
     },
@@ -147,6 +163,7 @@ export function StudentSubjectCard({ subject }: StudentSubjectCardProps) {
                 e.stopPropagation()
                 setMenuOpen(false)
                 setColorPickerOpen(false)
+                setConfirmingUnenroll(false)
               }}
             />
             <div className="absolute right-0 z-20 mt-2 w-48 overflow-hidden rounded-lg border border-border bg-card shadow-float">
@@ -189,6 +206,57 @@ export function StudentSubjectCard({ subject }: StudentSubjectCardProps) {
                   </div>
                 </div>
               )}
+
+              <div className="border-t border-border">
+                {confirmingUnenroll ? (
+                  <div className="px-4 py-3">
+                    <p className="mb-2 text-xs text-muted-foreground">
+                      Unenroll from {subject.name}? You'll lose access to its
+                      materials and grades.
+                    </p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          unenrollMutation.mutate()
+                        }}
+                        disabled={unenrollMutation.isPending}
+                        className="flex-1 rounded-md bg-destructive px-2 py-1.5 text-xs font-medium text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:opacity-60"
+                      >
+                        {unenrollMutation.isPending ? 'Leaving…' : 'Confirm'}
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          setConfirmingUnenroll(false)
+                        }}
+                        className="flex-1 rounded-md border border-border px-2 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                    {unenrollMutation.isError && (
+                      <p className="mt-2 text-xs text-destructive">
+                        {unenrollMutation.error.message}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setConfirmingUnenroll(true)
+                    }}
+                    className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-destructive transition-colors hover:bg-destructive/5"
+                  >
+                    <UserMinus size={15} />
+                    Unenroll
+                  </button>
+                )}
+              </div>
             </div>
           </>
         )}

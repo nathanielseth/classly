@@ -12,7 +12,7 @@ import { JoinSubjectModal } from './JoinSubjectModal'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 
-export function StudentDashboardView() {
+export function StudentDashboardView({ studentId }: { studentId: string }) {
   const queryClient = useQueryClient()
   const [joinModalOpen, setJoinModalOpen] = useState(false)
   const [joinError, setJoinError] = useState<string | null>(null)
@@ -134,7 +134,11 @@ export function StudentDashboardView() {
             ) : (
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
                 {subjects.map((subject) => (
-                  <StudentSubjectCard key={subject.id} subject={subject} />
+                  <StudentSubjectCard
+                    key={subject.id}
+                    subject={subject}
+                    studentId={studentId}
+                  />
                 ))}
               </div>
             )}

@@ -298,6 +298,39 @@ export const updateSubject = createServerFn({ method: 'POST' })
     return subject
   })
 
+const deleteSubjectInput = z.object({
+  subjectId: z.uuid(),
+})
+
+// permanent delete cascades via FK to materials, announcements, and enrollments, unlike reversible subject archiving
+export const deleteSubject = createServerFn({ method: 'POST' })
+  .middleware([authMiddleware])
+  .validator(deleteSubjectInput)
+  .handler(async ({ data, context }) => {
+    const { supabase, profile } = context
+
+    if (profile.role !== 'instructor' && profile.role !== 'admin') {
+      throw new Error('Only instructors can delete subjects.')
+    }
+
+    let query = supabase.from('subjects').delete().eq('id', data.subjectId)
+
+    if (profile.role !== 'admin') {
+      query = query.eq('instructor_id', profile.id)
+    }
+
+    const { data: deleted, error } = await query.select('id').maybeSingle()
+
+    if (error) throw new Error(error.message)
+    if (!deleted) {
+      throw new Error(
+        "Subject not found or you don't have permission to delete it.",
+      )
+    }
+
+    return { id: deleted.id }
+  })
+
 const joinSubjectInput = z.object({
   code: z.string().trim().min(1).max(12),
 })

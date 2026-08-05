@@ -6,6 +6,7 @@ import {
   createSubject,
   setSubjectArchived,
   updateSubject,
+  deleteSubject,
 } from '@/lib/server/functions/subjects'
 import { InstructorSubjectCard } from './InstructorSubjectCard'
 import { CreateSubjectModal } from './CreateSubjectModal'
@@ -51,6 +52,13 @@ export function InstructorDashboardView() {
       await queryClient.invalidateQueries({ queryKey: ['subjects', 'list'] })
     },
     onError: (error: Error) => setEditError(error.message),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteSubject,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['subjects', 'list'] })
+    },
   })
 
   const subjects = subjectsQuery.data?.subjects ?? []
@@ -165,6 +173,12 @@ export function InstructorDashboardView() {
                 setEditError(null)
                 setEditingSubjectId(subject.id)
               }}
+              onDelete={() =>
+                deleteMutation.mutateAsync({
+                  data: { subjectId: subject.id },
+                })
+              }
+              isDeleting={deleteMutation.isPending}
             />
           ))}
         </div>

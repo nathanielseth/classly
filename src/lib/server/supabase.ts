@@ -29,3 +29,17 @@ export function getServerSupabase() {
     },
   )
 }
+
+// no‑op cookie jar lets admin mint new auth users without touching real session cookies, avoiding hijack since no service‑role key exists here
+export function getIsolatedServerSupabase() {
+  return createServerClient<Database>(
+    process.env.SUPABASE_URL!,
+    process.env.SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll: () => [],
+        setAll: () => {},
+      },
+    },
+  )
+}

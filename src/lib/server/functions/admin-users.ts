@@ -1,6 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { adminOnlyMiddleware } from '../middleware'
+import { getIsolatedServerSupabase } from '../supabase'
 
 const listUsersInput = z.object({
   search: z.string().optional(),
@@ -235,8 +236,39 @@ const createUserInput = z.object({
 export const createUser = createServerFn({ method: 'POST' })
   .middleware([adminOnlyMiddleware])
   .validator(createUserInput)
-  .handler(async () => {
-    throw new Error(
-      "Creating users from the admin panel isn't available yet - it needs a Supabase service-role key that isn't configured in this environment. See the comment on createUser in admin-users.ts.",
-    )
+  .handler(async ({ data, context }) => {
+    const isolatedSupabase = getIsolatedServerSupabase()
+
+    const { data: signUpData, error: signUpError } =
+      await isolatedSupabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+        options: { data: { full_name: data.fullName, role: data.role } },
+      })
+
+    if (signUpError) throw new Error(signUpError.message)
+    const newUserId = signUpData.user?.id
+    if (!newUserId) throw new Error('Failed to create auth user.')
+
+    // admin‑created accounts bypass the pending queue
+    const { data: profile, error: profileError } = await context.supabase
+      .from('profiles')
+      .insert({
+        id: newUserId,
+        email: data.email,
+        full_name: data.fullName,
+        role: data.role,
+        status: 'approved',
+      })
+      .select('id, full_name, email, role, status, created_at')
+      .single()
+
+    if (profileError) {
+      // orphaned auth users without an approved profile cannot sign in, so leaving them for cleanup is safe
+      throw new Error(
+        `Auth account was created but the profile insert failed: ${profileError.message}`,
+      )
+    }
+
+    return profile
   })

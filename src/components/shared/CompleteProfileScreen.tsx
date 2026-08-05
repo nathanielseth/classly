@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { useRouter } from "@tanstack/react-router";
 import { GraduationCap, Loader2 } from "lucide-react";
 
+import { signOut } from "@/lib/server/functions/auth-actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -26,6 +28,7 @@ export function CompleteProfileScreen({
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState<Role>("student");
   const [saving, setSaving] = useState(false);
+  const router = useRouter();
 
   const handleSubmit = async () => {
     if (!fullName.trim()) return;
@@ -35,6 +38,11 @@ export function CompleteProfileScreen({
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    await router.invalidate();
   };
 
   return (
@@ -96,6 +104,12 @@ export function CompleteProfileScreen({
             >
               {saving ? <Loader2 className="animate-spin" /> : "Get Started"}
             </Button>
+
+            <div className="text-center">
+              <Button variant="link" size="sm" onClick={handleSignOut}>
+                Sign out
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

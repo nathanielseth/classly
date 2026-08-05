@@ -108,11 +108,19 @@ export const unenrollStudent = createServerFn({ method: 'POST' })
   .handler(async ({ data, context }) => {
     const { supabase, profile } = context
 
-    if (profile.role !== 'instructor' && profile.role !== 'admin') {
-      throw new Error('Only instructors can remove students.')
+    const isSelfUnenroll =
+      profile.role === 'student' && profile.id === data.studentId
+    const canManageOthers =
+      profile.role === 'instructor' || profile.role === 'admin'
+
+    if (!isSelfUnenroll && !canManageOthers) {
+      throw new Error('You can only unenroll yourself from a subject.')
     }
 
-    await assertSubjectAccess(supabase, profile, data.subjectId)
+    // students can always unenroll themselves without instructor roster checks
+    if (!isSelfUnenroll) {
+      await assertSubjectAccess(supabase, profile, data.subjectId)
+    }
 
     const { data: deleted, error } = await supabase
       .from('enrollments')

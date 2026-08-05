@@ -1,12 +1,17 @@
+import { useState } from 'react'
 import { Link, useRouter } from '@tanstack/react-router'
+import { useQuery } from '@tanstack/react-query'
 import {
   Home,
   Bot,
+  BookOpen,
   Calendar,
   MessageSquare,
   Users,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Loader2,
   Settings,
   LifeBuoy,
   LogOut,
@@ -15,7 +20,8 @@ import {
 import { cn } from '@/lib/utils'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { signOut } from '@/lib/server/functions/auth-actions'
-import { Avatar, AvatarFallback, getInitials } from '@/components/ui/avatar'
+import { listSubjects } from '@/lib/server/functions/subjects'
+import { getInitials } from '@/components/ui/avatar'
 
 interface SidebarProps {
   aiNavDisabled: boolean
@@ -58,10 +64,21 @@ export function Sidebar({ aiNavDisabled, role, fullName }: SidebarProps) {
     'classly:sidebar-collapsed',
     false,
   )
+  const [subjectsExpanded, setSubjectsExpanded] = useState(true)
 
   const items = mainNavItems.filter(
     (item) => !item.adminOnly || role === 'admin',
   )
+
+  const showSubjectsSection = role === 'student' || role === 'instructor'
+
+  const subjectsQuery = useQuery({
+    queryKey: ['subjects', 'list', { includeArchived: false }],
+    queryFn: () => listSubjects({ data: { includeArchived: false } }),
+    enabled: showSubjectsSection && !collapsed,
+  })
+  const subjects = subjectsQuery.data?.subjects ?? []
+  const subjectsLabel = role === 'instructor' ? 'My Subjects' : 'Enrolled'
 
   const handleLogout = async () => {
     await signOut()
@@ -151,6 +168,60 @@ export function Sidebar({ aiNavDisabled, role, fullName }: SidebarProps) {
             </Link>
           )
         })}
+
+        {showSubjectsSection && !collapsed && (
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={() => setSubjectsExpanded((v) => !v)}
+              className="flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent"
+            >
+              <span className="flex items-center gap-3">
+                <BookOpen size={18} className="shrink-0" />
+                <span className="font-medium">{subjectsLabel}</span>
+              </span>
+              <ChevronDown
+                size={16}
+                className={cn(
+                  'transition-transform duration-200',
+                  !subjectsExpanded && '-rotate-90',
+                )}
+              />
+            </button>
+
+            {subjectsExpanded && (
+              <div className="mt-1 space-y-0.5">
+                {subjectsQuery.isPending ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2
+                      size={16}
+                      className="animate-spin text-muted-foreground/50"
+                    />
+                  </div>
+                ) : subjects.length === 0 ? (
+                  <p className="px-3 py-2 text-center text-xs text-muted-foreground/60">
+                    {role === 'instructor'
+                      ? 'No subjects created'
+                      : 'No enrollments'}
+                  </p>
+                ) : (
+                  subjects.map((subject) => (
+                    <Link
+                      key={subject.id}
+                      to="/classroom/$subjectId"
+                      params={{ subjectId: subject.id }}
+                      title={subject.name}
+                      className="flex items-center gap-3 rounded-lg py-2 pr-3 pl-9 text-sm text-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-foreground"
+                    >
+                      <span className="size-1.5 shrink-0 rounded-full bg-muted-foreground/40" />
+                      <span className="truncate">{subject.name}</span>
+                    </Link>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </nav>
 
       <div className="border-t border-sidebar-border p-3">
@@ -204,9 +275,9 @@ export function Sidebar({ aiNavDisabled, role, fullName }: SidebarProps) {
             collapsed && 'justify-center px-0',
           )}
         >
-          <Avatar size="sm">
-            <AvatarFallback>{getInitials(fullName)}</AvatarFallback>
-          </Avatar>
+          <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary select-none">
+            {getInitials(fullName)}
+          </div>
           {!collapsed && (
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-foreground">

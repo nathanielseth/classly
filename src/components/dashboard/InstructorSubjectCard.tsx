@@ -7,6 +7,7 @@ import {
   Copy,
   MoreVertical,
   Pencil,
+  Trash2,
   Users,
   BookOpen,
 } from 'lucide-react'
@@ -27,6 +28,8 @@ interface InstructorSubjectCardProps {
   onToggleArchive: (subjectId: string, archived: boolean) => void
   isToggling: boolean
   onEdit: () => void
+  onDelete: () => Promise<unknown>
+  isDeleting: boolean
 }
 
 export function InstructorSubjectCard({
@@ -34,14 +37,33 @@ export function InstructorSubjectCard({
   onToggleArchive,
   isToggling,
   onEdit,
+  onDelete,
+  isDeleting,
 }: InstructorSubjectCardProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const handleCopyCode = () => {
     void navigator.clipboard.writeText(subject.code)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
+  }
+
+  const closeMenu = () => {
+    setMenuOpen(false)
+    setConfirmingDelete(false)
+    setDeleteError(null)
+  }
+
+  const handleDelete = async () => {
+    try {
+      await onDelete()
+      closeMenu()
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'Delete failed.')
+    }
   }
 
   return (
@@ -72,14 +94,11 @@ export function InstructorSubjectCard({
 
           {menuOpen && (
             <>
-              <div
-                className="fixed inset-0 z-10"
-                onClick={() => setMenuOpen(false)}
-              />
-              <div className="absolute right-0 z-20 mt-2 w-44 overflow-hidden rounded-lg border border-border bg-card shadow-float">
+              <div className="fixed inset-0 z-10" onClick={closeMenu} />
+              <div className="absolute right-0 z-20 mt-2 w-52 overflow-hidden rounded-lg border border-border bg-card shadow-float">
                 <button
                   onClick={() => {
-                    setMenuOpen(false)
+                    closeMenu()
                     onEdit()
                   }}
                   className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-foreground transition-colors hover:bg-muted"
@@ -89,7 +108,7 @@ export function InstructorSubjectCard({
                 </button>
                 <button
                   onClick={() => {
-                    setMenuOpen(false)
+                    closeMenu()
                     onToggleArchive(subject.id, !subject.archived)
                   }}
                   disabled={isToggling}
@@ -102,6 +121,45 @@ export function InstructorSubjectCard({
                   )}
                   {subject.archived ? 'Unarchive' : 'Archive'}
                 </button>
+
+                <div className="border-t border-border">
+                  {confirmingDelete ? (
+                    <div className="px-4 py-3">
+                      <p className="mb-2 text-xs text-muted-foreground">
+                        Permanently delete "{subject.name}"? All materials,
+                        announcements, and enrollments will be lost.
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleDelete}
+                          disabled={isDeleting}
+                          className="flex-1 rounded-md bg-destructive px-2 py-1.5 text-xs font-medium text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:opacity-60"
+                        >
+                          {isDeleting ? 'Deleting…' : 'Delete forever'}
+                        </button>
+                        <button
+                          onClick={() => setConfirmingDelete(false)}
+                          className="flex-1 rounded-md border border-border px-2 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                      {deleteError && (
+                        <p className="mt-2 text-xs text-destructive">
+                          {deleteError}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setConfirmingDelete(true)}
+                      className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-destructive transition-colors hover:bg-destructive/5"
+                    >
+                      <Trash2 size={14} />
+                      Delete Permanently
+                    </button>
+                  )}
+                </div>
               </div>
             </>
           )}

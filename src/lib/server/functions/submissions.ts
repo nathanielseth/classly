@@ -91,6 +91,52 @@ async function assertSubmissionAccess(
   return { materialId, studentId, materialCtx }
 }
 
+const listOwnSubmissionStatusesInput = z.object({
+  subjectId: z.uuid(),
+})
+
+export interface SubmissionStatusSummary {
+  material_id: string
+  status: string | null
+  grade: number | null
+  is_late: boolean | null
+}
+
+// backs the per‑material status badge with one subject‑wide query instead of per‑card queries
+export const listOwnSubmissionStatuses = createServerFn({ method: 'GET' })
+  .middleware([authMiddleware])
+  .validator(listOwnSubmissionStatusesInput)
+  .handler(
+    async ({
+      data,
+      context,
+    }): Promise<{ statuses: SubmissionStatusSummary[] }> => {
+      const { supabase, profile } = context
+
+      if (profile.role !== 'student') return { statuses: [] }
+
+      await assertSubjectAccess(supabase, profile, data.subjectId)
+
+      const { data: materialIds, error: materialsError } = await supabase
+        .from('materials')
+        .select('id')
+        .eq('subject_id', data.subjectId)
+
+      if (materialsError) throw new Error(materialsError.message)
+      const ids = (materialIds ?? []).map((m) => m.id)
+      if (ids.length === 0) return { statuses: [] }
+
+      const { data: submissions, error } = await supabase
+        .from('submissions')
+        .select('material_id, status, grade, is_late')
+        .eq('student_id', profile.id)
+        .in('material_id', ids)
+
+      if (error) throw new Error(error.message)
+      return { statuses: submissions ?? [] }
+    },
+  )
+
 const getOwnSubmissionInput = z.object({
   materialId: z.uuid(),
 })

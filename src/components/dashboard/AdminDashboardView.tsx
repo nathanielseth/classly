@@ -15,7 +15,7 @@ import {
   getWeeklyActivity,
 } from '@/lib/server/functions/admin-dashboard'
 import { Card } from '@/components/ui/card'
-import { Avatar, AvatarFallback, getInitials } from '@/components/ui/avatar'
+import { getInitials } from '@/components/ui/avatar'
 
 export function AdminDashboardView() {
   const statsQuery = useQuery({
@@ -129,11 +129,9 @@ export function AdminDashboardView() {
                   className="group flex items-center justify-between rounded-lg p-3 transition-colors hover:bg-muted"
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <Avatar>
-                      <AvatarFallback>
-                        {getInitials(user.full_name ?? user.email ?? '?')}
-                      </AvatarFallback>
-                    </Avatar>
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-medium text-primary select-none">
+                      {getInitials(user.full_name ?? user.email ?? '?')}
+                    </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium text-foreground">
                         {user.full_name}

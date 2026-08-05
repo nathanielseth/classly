@@ -98,6 +98,7 @@ export const getOrCreateDirectConversation = createServerFn({
     if (otherError) throw new Error(otherError.message)
     if (!other) throw new Error('That user could not be found.')
 
+    // students may only dm staff, never other students
     if (profile.role === 'student' && other.role === 'student') {
       throw new Error('Direct messages between students are not allowed.')
     }
