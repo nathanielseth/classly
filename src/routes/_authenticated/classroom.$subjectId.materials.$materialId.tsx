@@ -64,7 +64,27 @@ function MaterialDetailPage() {
   })
 
   if (userState.status !== 'approved') return null
-  if (!subjectQuery.data || !materialQuery.data) return null
+
+  if (subjectQuery.isError || materialQuery.isError) {
+    return (
+      <div className="max-w-2xl mx-auto mt-12 bg-red-50 border border-red-200 rounded-xl p-6 text-center">
+        <h1 className="font-semibold text-red-900 mb-1">
+          Can't open this material
+        </h1>
+        <p className="text-sm text-red-700">
+          {subjectQuery.error?.message || materialQuery.error?.message}
+        </p>
+      </div>
+    )
+  }
+
+  if (!subjectQuery.data || !materialQuery.data) {
+    return (
+      <div className="flex items-center justify-center py-24 text-sm text-gray-400">
+        Loading...
+      </div>
+    )
+  }
 
   const subject = subjectQuery.data
   const material = materialQuery.data
@@ -150,7 +170,10 @@ function MaterialDetailPage() {
 
       {material.type === 'quiz' ? (
         isInstructor ? (
-          <QuizBuilderPanel materialId={materialId} />
+          <QuizBuilderPanel
+            materialId={materialId}
+            hasAttachedFile={Boolean(material.file_url)}
+          />
         ) : (
           <QuizTakingPanel materialId={materialId} />
         )

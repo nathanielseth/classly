@@ -40,7 +40,7 @@ function DashboardPage() {
 
   switch (userState.profile.role) {
     case "student":
-      return <StudentDashboardView />;
+      return <StudentDashboardView studentId={userState.profile.id} />;
     case "instructor":
       return <InstructorDashboardView />;
     case "admin":

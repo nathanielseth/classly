@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Outlet, useMatches } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { getSubject } from '@/lib/server/functions/subjects'
 import { listAnnouncements } from '@/lib/server/functions/announcements'
@@ -32,7 +32,8 @@ export const Route = createFileRoute('/_authenticated/classroom/$subjectId')({
       }),
       queryClient.ensureQueryData({
         queryKey: ['enrollments', 'list', params.subjectId],
-        queryFn: () => listEnrollments({ data: { subjectId: params.subjectId } }),
+        queryFn: () =>
+          listEnrollments({ data: { subjectId: params.subjectId } }),
       }),
     ])
   },
@@ -56,12 +57,24 @@ function ClassroomPage() {
   const { userState } = Route.useRouteContext()
   const [tab, setTab] = useState<ClassroomTab>('stream')
 
+  const matches = useMatches()
+  const isChildRouteActive = matches.some(
+    (match) =>
+      match.routeId ===
+      '/_authenticated/classroom/$subjectId/materials/$materialId',
+  )
+
   const subjectQuery = useQuery({
     queryKey: ['subjects', 'detail', subjectId],
     queryFn: () => getSubject({ data: { subjectId } }),
   })
 
   if (userState.status !== 'approved') return null
+
+  if (isChildRouteActive) {
+    return <Outlet />
+  }
+
   if (!subjectQuery.data) return null
 
   const subject = subjectQuery.data

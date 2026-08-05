@@ -6,6 +6,7 @@ import {
 } from '@tanstack/react-router'
 import { getCurrentUser } from '@/lib/server/functions/auth'
 import { completeProfile } from '@/lib/server/functions/auth-actions'
+import { listSubjects } from '@/lib/server/functions/subjects'
 import { ExamLockProvider, useExamLock } from '@/hooks/useExamLock'
 import { Sidebar } from '@/components/shared/Sidebar'
 import { Navbar } from '@/components/shared/Navbar'
@@ -20,6 +21,22 @@ export const Route = createFileRoute('/_authenticated')({
       throw redirect({ to: '/login' })
     }
     return { userState: state }
+  },
+  loader: async ({ context }) => {
+    const { queryClient, userState } = context
+
+    // sidebar runs this query on every authenticated page; seeding it in the loader ensures SSR and hydration agree, avoiding spinner/subject‑list mismatches
+    const showSubjectsSection =
+      userState.status === 'approved' &&
+      (userState.profile.role === 'student' ||
+        userState.profile.role === 'instructor')
+
+    if (showSubjectsSection) {
+      await queryClient.ensureQueryData({
+        queryKey: ['subjects', 'list', { includeArchived: false }],
+        queryFn: () => listSubjects({ data: { includeArchived: false } }),
+      })
+    }
   },
   component: AuthenticatedLayout,
 })
@@ -58,13 +75,17 @@ function AuthenticatedLayout() {
 function Shell({
   profile,
 }: {
-  profile: { full_name: string; role: 'student' | 'instructor' | 'admin' }
+  profile: {
+    full_name: string
+    email: string
+    role: 'student' | 'instructor' | 'admin'
+  }
 }) {
   const { isExamInProgress } = useExamLock()
 
   return (
     <div className="flex h-screen flex-col bg-background">
-      <Navbar />
+      <Navbar profile={profile} />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar
           aiNavDisabled={isExamInProgress}

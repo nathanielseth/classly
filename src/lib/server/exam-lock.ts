@@ -2,6 +2,7 @@ import type { getServerSupabase } from './supabase'
 
 type SupabaseClient = ReturnType<typeof getServerSupabase>
 
+// true if a student has an open quiz, with the client hook only mirroring for UI
 export async function hasOpenQuizSession(
   supabase: SupabaseClient,
   studentId: string,
@@ -18,6 +19,7 @@ export async function hasOpenQuizSession(
   return data !== null
 }
 
+// throws if a student has an open quiz, blocking server functions that must be unavailable mid‑exam
 export async function assertNoOpenQuizSession(
   supabase: SupabaseClient,
   profile: { id: string; role: string },
