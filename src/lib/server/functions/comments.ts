@@ -59,12 +59,13 @@ export const listClassComments = createServerFn({ method: 'GET' })
         )
         .eq('material_id', data.materialId)
         .eq('is_private', false)
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: false })
+        .limit(100)
 
       if (error) throw new Error(error.message)
 
       return {
-        comments: comments ?? [],
+        comments: (comments ?? []).reverse(),
       }
     },
   )
@@ -176,12 +177,13 @@ export const listPrivateComments = createServerFn({ method: 'GET' })
         .eq('material_id', data.materialId)
         .eq('is_private', true)
         .in('author_id', [studentId, instructorId])
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: false })
+        .limit(100)
 
       if (error) throw new Error(error.message)
 
       return {
-        comments: comments ?? [],
+        comments: (comments ?? []).reverse(),
       }
     },
   )

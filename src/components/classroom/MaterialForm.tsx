@@ -9,6 +9,25 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import { toast } from '@/components/ui/toast'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 const MATERIAL_TYPES = [
   'assignment',
@@ -122,65 +141,55 @@ export function MaterialForm({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-100 sticky top-0 bg-white">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-gray-900">
-              {mode === 'create' ? 'Create New Material' : 'Edit Material'}
-            </h2>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-              disabled={submitting}
-            >
-              <X size={20} />
-            </button>
-          </div>
-        </div>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open && !submitting) onClose()
+      }}
+    >
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
+            {mode === 'create' ? 'Create New Material' : 'Edit Material'}
+          </DialogTitle>
+        </DialogHeader>
 
         <div className="p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Title *
-            </label>
-            <input
+          <div className="space-y-1.5">
+            <Label htmlFor="material-title">Title *</Label>
+            <Input
+              id="material-title"
               type="text"
               value={values.title}
               onChange={(e) => setValues({ ...values, title: e.target.value })}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-classly-green focus:ring-2 focus:ring-classly-green/20 transition-all"
               placeholder="e.g., Week 1: Introduction to React"
               disabled={submitting}
               autoFocus
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Description
-            </label>
-            <textarea
+          <div className="space-y-1.5">
+            <Label htmlFor="material-description">Description</Label>
+            <Textarea
+              id="material-description"
               value={values.description}
               onChange={(e) =>
                 setValues({ ...values, description: e.target.value })
               }
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-classly-green focus:ring-2 focus:ring-classly-green/20 transition-all resize-none"
               rows={3}
               placeholder="Brief description..."
               disabled={submitting}
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Instructions
-            </label>
-            <textarea
+          <div className="space-y-1.5">
+            <Label htmlFor="material-instructions">Instructions</Label>
+            <Textarea
+              id="material-instructions"
               value={values.instructions}
               onChange={(e) =>
                 setValues({ ...values, instructions: e.target.value })
               }
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-classly-green focus:ring-2 focus:ring-classly-green/20 transition-all resize-none"
               rows={4}
               placeholder="Detailed instructions for students..."
               disabled={submitting}
@@ -188,57 +197,65 @@ export function MaterialForm({
           </div>
 
           {topics.length > 0 && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Topic <span className="text-gray-400">(Optional)</span>
-              </label>
-              <select
-                value={values.topicId}
-                onChange={(e) =>
-                  setValues({ ...values, topicId: e.target.value })
+            <div className="space-y-1.5">
+              <Label htmlFor="material-topic">
+                Topic <span className="text-muted-foreground">(Optional)</span>
+              </Label>
+              <Select
+                value={values.topicId || 'none'}
+                onValueChange={(value) =>
+                  setValues({
+                    ...values,
+                    topicId: value === 'none' ? '' : (value as string),
+                  })
                 }
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-classly-green focus:ring-2 focus:ring-classly-green/20 transition-all"
                 disabled={submitting}
               >
-                <option value="">No Topic</option>
-                {topics.map((topic) => (
-                  <option key={topic.id} value={topic.id}>
-                    {topic.name}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger id="material-topic" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No Topic</SelectItem>
+                  {topics.map((topic) => (
+                    <SelectItem key={topic.id} value={topic.id}>
+                      {topic.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
 
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Type
-              </label>
-              <select
+            <div className="space-y-1.5">
+              <Label htmlFor="material-type">Type</Label>
+              <Select
                 value={values.type}
-                onChange={(e) =>
+                onValueChange={(value) =>
                   setValues({
                     ...values,
-                    type: e.target.value as MaterialFormValues['type'],
+                    type: value as MaterialFormValues['type'],
                   })
                 }
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-classly-green focus:ring-2 focus:ring-classly-green/20 transition-all"
                 disabled={submitting}
               >
-                {MATERIAL_TYPES.map((type) => (
-                  <option key={type} value={type}>
-                    {type[0].toUpperCase()}
-                    {type.slice(1)}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger id="material-type" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {MATERIAL_TYPES.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type[0].toUpperCase()}
+                      {type.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Points
-              </label>
-              <input
+            <div className="space-y-1.5">
+              <Label htmlFor="material-points">Points</Label>
+              <Input
+                id="material-points"
                 type="number"
                 value={values.maxPoints}
                 onChange={(e) =>
@@ -247,52 +264,49 @@ export function MaterialForm({
                     maxPoints: parseInt(e.target.value, 10) || 0,
                   })
                 }
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-classly-green focus:ring-2 focus:ring-classly-green/20 transition-all"
                 min="0"
                 disabled={submitting}
               />
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Due Date <span className="text-gray-400">(Optional)</span>
-            </label>
-            <input
+          <div className="space-y-1.5">
+            <Label htmlFor="material-due-date">
+              Due Date <span className="text-muted-foreground">(Optional)</span>
+            </Label>
+            <Input
+              id="material-due-date"
               type="datetime-local"
               value={values.dueDate}
               onChange={(e) =>
                 setValues({ ...values, dueDate: e.target.value })
               }
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-classly-green focus:ring-2 focus:ring-classly-green/20 transition-all"
               disabled={submitting}
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Attached File
-            </label>
+          <div className="space-y-2">
+            <Label>Attached File</Label>
 
             {hasExistingFile && !selectedFile && (
-              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 mb-3">
+              <div className="rounded-lg border border-border bg-muted p-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-50 rounded-lg">
-                    <Paperclip className="w-5 h-5 text-blue-600" />
+                  <div className="rounded-lg bg-primary/10 p-2">
+                    <Paperclip className="h-5 w-5 text-primary" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-foreground">
                       {existingFileName}
                     </p>
                     {existingFileSize !== null && (
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-muted-foreground">
                         {formatFileSize(existingFileSize)}
                       </p>
                     )}
                   </div>
                   <button
                     onClick={() => setRemoveExistingFile(true)}
-                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                     disabled={submitting}
                   >
                     <Trash2 size={16} />
@@ -302,23 +316,23 @@ export function MaterialForm({
             )}
 
             {selectedFile ? (
-              <div className="border border-gray-200 rounded-lg p-4 bg-blue-50">
+              <div className="rounded-lg border border-border bg-primary/5 p-4">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <FileText className="w-5 h-5 text-blue-600" />
+                  <div className="rounded-lg bg-primary/10 p-2">
+                    <FileText className="h-5 w-5 text-primary" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-foreground">
                       {selectedFile.name}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-muted-foreground">
                       {formatFileSize(selectedFile.size)}
                     </p>
                   </div>
                   {!submitting && (
                     <button
                       onClick={() => setSelectedFile(null)}
-                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                     >
                       <X size={16} />
                     </button>
@@ -326,7 +340,7 @@ export function MaterialForm({
                 </div>
               </div>
             ) : (
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-classly-green transition-colors">
+              <div className="rounded-lg border-2 border-dashed border-border p-6 text-center transition-colors hover:border-primary">
                 <input
                   type="file"
                   id="material-file-upload"
@@ -337,16 +351,16 @@ export function MaterialForm({
                 />
                 <label
                   htmlFor="material-file-upload"
-                  className="cursor-pointer flex flex-col items-center gap-2"
+                  className="flex cursor-pointer flex-col items-center gap-2"
                 >
-                  <Upload className="w-8 h-8 text-gray-400" />
+                  <Upload className="h-8 w-8 text-muted-foreground" />
                   <div>
-                    <p className="text-sm font-medium text-gray-700">
+                    <p className="text-sm font-medium text-foreground">
                       {hasExistingFile
                         ? 'Replace file'
                         : 'Click to upload or drag and drop'}
                     </p>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="mt-1 text-xs text-muted-foreground">
                       PDF, DOC, PPT, XLS, ZIP, Images (Max 10MB)
                     </p>
                   </div>
@@ -356,60 +370,57 @@ export function MaterialForm({
           </div>
 
           <div className="space-y-3 pt-2">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
+            <label className="flex cursor-pointer items-center gap-2">
+              <Checkbox
                 checked={values.allowLateSubmission}
-                onChange={(e) =>
+                onCheckedChange={(checked) =>
                   setValues({
                     ...values,
-                    allowLateSubmission: e.target.checked,
+                    allowLateSubmission: checked === true,
                   })
                 }
-                className="w-4 h-4 text-classly-green border-gray-300 rounded focus:ring-classly-green"
                 disabled={submitting}
               />
-              <span className="text-sm text-gray-700">
+              <span className="text-sm text-foreground">
                 Allow late submissions
               </span>
             </label>
 
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
+            <label className="flex cursor-pointer items-center gap-2">
+              <Checkbox
                 checked={values.published}
-                onChange={(e) =>
-                  setValues({ ...values, published: e.target.checked })
+                onCheckedChange={(checked) =>
+                  setValues({ ...values, published: checked === true })
                 }
-                className="w-4 h-4 text-classly-green border-gray-300 rounded focus:ring-classly-green"
                 disabled={submitting}
               />
-              <span className="text-sm text-gray-700">
+              <span className="text-sm text-foreground">
                 Published (visible to students)
               </span>
             </label>
           </div>
 
           {error && (
-            <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-lg">
-              <AlertCircle size={16} className="shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+              <AlertCircle size={16} className="mt-0.5 shrink-0" />
               <span>{error}</span>
             </div>
           )}
         </div>
 
-        <div className="p-6 pt-0 flex gap-3">
-          <button
+        <DialogFooter>
+          <Button
+            variant="outline"
             onClick={onClose}
             disabled={submitting}
-            className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleSubmit}
             disabled={!canSubmit}
-            className="flex-1 px-4 py-2.5 bg-classly-green text-white rounded-lg hover:bg-classly-green/90 font-medium transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="flex-1"
           >
             {submitting ? (
               <>
@@ -421,9 +432,9 @@ export function MaterialForm({
             ) : (
               'Save Changes'
             )}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

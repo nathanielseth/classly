@@ -1,3 +1,4 @@
+import { formatShortDateTime } from '@/lib/date-utils'
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
@@ -13,6 +14,8 @@ import {
   listSubmissionsForMaterial,
 } from '@/lib/server/functions/submissions'
 import { SubmissionGradingModal } from './SubmissionGradingModal'
+import { ExportGrades } from './ExportGrades'
+import { toast } from '@/components/ui/toast'
 
 interface SubmissionsListPanelProps {
   materialId: string
@@ -20,14 +23,15 @@ interface SubmissionsListPanelProps {
   maxPoints: number
 }
 
-type Roster = Awaited<
-  ReturnType<typeof listSubmissionsForMaterial>
->['roster']
+type Roster = Awaited<ReturnType<typeof listSubmissionsForMaterial>>['roster']
 type RosterEntry = Roster[number]
 
 type Filter = 'all' | 'assigned' | 'turned_in' | 'graded'
 
-function getStatusBadge(submission: RosterEntry['submission'], maxPoints: number) {
+function getStatusBadge(
+  submission: RosterEntry['submission'],
+  maxPoints: number,
+) {
   if (!submission || submission.status === 'not_submitted') {
     return {
       text: 'Assigned',
@@ -97,6 +101,7 @@ export function SubmissionsListPanel({
       await queryClient.invalidateQueries({
         queryKey: ['submissions', 'roster', materialId],
       })
+      toast({ variant: 'success', title: 'Grade saved' })
     },
   })
 
@@ -178,25 +183,32 @@ export function SubmissionsListPanel({
               {stats.turnedIn} / {stats.total} turned in
             </p>
           </div>
-          <div className="flex gap-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-gray-900">
-                {assigned}
+          <div className="flex items-center gap-6">
+            <div className="flex gap-6">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-gray-900">
+                  {assigned}
+                </div>
+                <div className="text-xs text-gray-600">Assigned</div>
               </div>
-              <div className="text-xs text-gray-600">Assigned</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">
-                {stats.turnedIn}
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">
+                  {stats.turnedIn}
+                </div>
+                <div className="text-xs text-gray-600">Turned in</div>
               </div>
-              <div className="text-xs text-gray-600">Turned in</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">
-                {stats.graded}
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">
+                  {stats.graded}
+                </div>
+                <div className="text-xs text-gray-600">Graded</div>
               </div>
-              <div className="text-xs text-gray-600">Graded</div>
             </div>
+            <ExportGrades
+              roster={roster}
+              materialTitle={materialTitle}
+              maxPoints={maxPoints}
+            />
           </div>
         </div>
 
@@ -267,14 +279,7 @@ export function SubmissionsListPanel({
                       </div>
                       {entry.submission?.submitted_at && (
                         <p className="text-xs text-gray-500 mt-1">
-                          {new Date(
-                            entry.submission.submitted_at,
-                          ).toLocaleDateString('en-US', {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: 'numeric',
-                            minute: '2-digit',
-                          })}
+                          {formatShortDateTime(entry.submission.submitted_at)}
                         </p>
                       )}
                     </div>

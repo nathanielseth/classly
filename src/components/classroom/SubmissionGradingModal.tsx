@@ -1,14 +1,20 @@
 import { useState } from 'react'
-import {
-  X,
-  Loader2,
-  Paperclip,
-  Download,
-  Clock,
-  AlertCircle,
-} from 'lucide-react'
+import { Loader2, Paperclip, Download, Clock, AlertCircle } from 'lucide-react'
 import { getSubmissionFileUrl } from '@/lib/server/functions/submissions'
+import { formatShortDateTime } from '@/lib/date-utils'
 import { toast } from '@/components/ui/toast'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 
 interface GradingSubmission {
   id: string
@@ -93,25 +99,19 @@ export function SubmissionGradingModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-100 sticky top-0 bg-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900">
-                Grade Submission
-              </h2>
-              <p className="text-sm text-gray-600 mt-1">{materialTitle}</p>
-            </div>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-              disabled={saving}
-            >
-              <X size={20} />
-            </button>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open && !saving) onClose()
+      }}
+    >
+      <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+        <DialogHeader>
+          <div>
+            <DialogTitle>Grade Submission</DialogTitle>
+            <DialogDescription>{materialTitle}</DialogDescription>
           </div>
-        </div>
+        </DialogHeader>
 
         <div className="p-6 space-y-6">
           <div className="bg-gray-50 rounded-lg p-4">
@@ -127,14 +127,7 @@ export function SubmissionGradingModal({
                 <div className="text-right">
                   <div className="flex items-center gap-1 text-sm text-gray-600">
                     <Clock size={14} />
-                    <span>
-                      {submittedAt.toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: 'numeric',
-                        minute: '2-digit',
-                      })}
-                    </span>
+                    <span>{formatShortDateTime(submittedAt)}</span>
                   </div>
                   {isLate && (
                     <div className="flex items-center gap-1 text-xs text-orange-600 mt-1">
@@ -192,52 +185,52 @@ export function SubmissionGradingModal({
             </h3>
 
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Grade *
-                </label>
+              <div className="space-y-1.5">
+                <Label htmlFor="grade-input">Grade *</Label>
                 <div className="flex items-center gap-3">
-                  <div className="relative flex-1 max-w-xs">
-                    <input
+                  <div className="relative max-w-xs flex-1">
+                    <Input
+                      id="grade-input"
                       type="number"
                       value={grade}
                       onChange={(e) => setGrade(e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-classly-green focus:ring-2 focus:ring-classly-green/20 transition-all"
                       placeholder="0"
                       min={0}
                       max={maxPoints}
                       disabled={saving}
+                      className="pr-14"
                     />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground">
                       / {maxPoints}
                     </span>
                   </div>
                   {grade !== '' && (
                     <div className="flex items-baseline gap-1">
-                      <span className="text-2xl font-bold text-classly-green">
+                      <span className="text-2xl font-bold text-primary">
                         {calculatePercentage()}%
                       </span>
                     </div>
                   )}
                 </div>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground">
                   Maximum points: {maxPoints}
                 </p>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Feedback <span className="text-gray-400">(Optional)</span>
-                </label>
-                <textarea
+              <div className="space-y-1.5">
+                <Label htmlFor="feedback-input">
+                  Feedback{' '}
+                  <span className="text-muted-foreground">(Optional)</span>
+                </Label>
+                <Textarea
+                  id="feedback-input"
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-classly-green focus:ring-2 focus:ring-classly-green/20 transition-all resize-none"
                   rows={5}
                   placeholder="Provide constructive feedback for the student..."
                   disabled={saving}
                 />
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-muted-foreground">
                   This feedback will be visible to the student
                 </p>
               </div>
@@ -245,25 +238,26 @@ export function SubmissionGradingModal({
           </div>
 
           {error && (
-            <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-lg">
+            <div className="flex items-start gap-2 text-sm text-destructive bg-destructive/10 p-3 rounded-lg">
               <AlertCircle size={16} className="shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
         </div>
 
-        <div className="p-6 pt-0 flex gap-3">
-          <button
+        <DialogFooter>
+          <Button
+            variant="outline"
             onClick={onClose}
             disabled={saving}
-            className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleSave}
             disabled={saving || grade === ''}
-            className="flex-1 px-4 py-2.5 bg-classly-green text-white rounded-lg hover:bg-classly-green/90 font-medium transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="flex-1"
           >
             {saving ? (
               <>
@@ -273,9 +267,9 @@ export function SubmissionGradingModal({
             ) : (
               'Save & Return'
             )}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

@@ -43,6 +43,9 @@ export const listDirectMessages = createServerFn({ method: 'GET' })
         )
         .or(`participant_one.eq.${profile.id},participant_two.eq.${profile.id}`)
         .order('last_message_at', { ascending: false })
+        .order('created_at', { referencedTable: 'messages', ascending: false })
+        .limit(1, { referencedTable: 'messages' })
+        .limit(50)
 
       if (error) throw new Error(error.message)
 
@@ -56,9 +59,7 @@ export const listDirectMessages = createServerFn({ method: 'GET' })
             if (!one || !two) return null
 
             const otherUser = one.id === profile.id ? two : one
-
-            const msgs = c.messages
-            const last = msgs.length > 0 ? msgs[msgs.length - 1] : null
+            const last = c.messages[0] ?? null
 
             return {
               id: c.id,
@@ -185,7 +186,8 @@ export const listMessagesInConversation = createServerFn({ method: 'GET' })
       `,
       )
       .eq('conversation_id', data.conversationId)
-      .order('created_at', { ascending: true })
+      .order('created_at', { ascending: false })
+      .limit(50)
 
     if (error) throw new Error(error.message)
 
@@ -198,7 +200,7 @@ export const listMessagesInConversation = createServerFn({ method: 'GET' })
       .is('read_at', null)
 
     return {
-      messages: messages ?? [],
+      messages: (messages ?? []).reverse(),
     }
   })
 
@@ -319,19 +321,20 @@ export const listGroupConversations = createServerFn({ method: 'GET' })
         query = query.in('id', ids)
       }
 
-      const { data: conversations, error } = await query.order(
-        'last_message_at',
-        {
+      const { data: conversations, error } = await query
+        .order('last_message_at', { ascending: false })
+        .order('created_at', {
+          referencedTable: 'group_messages',
           ascending: false,
-        },
-      )
+        })
+        .limit(1, { referencedTable: 'group_messages' })
 
       if (error) throw new Error(error.message)
 
       return {
         conversations: (conversations ?? []).map((c) => {
-          const msgs = c.group_messages
-          const last = msgs.length > 0 ? msgs[msgs.length - 1] : null
+          // nested embed above is already limited to the single latest message
+          const last = c.group_messages[0] ?? null
           return {
             id: c.id,
             name: c.name,
@@ -383,12 +386,13 @@ export const listGroupMessages = createServerFn({ method: 'GET' })
       `,
       )
       .eq('conversation_id', data.conversationId)
-      .order('created_at', { ascending: true })
+      .order('created_at', { ascending: false })
+      .limit(50)
 
     if (error) throw new Error(error.message)
 
     return {
-      messages: messages ?? [],
+      messages: (messages ?? []).reverse(),
     }
   })
 

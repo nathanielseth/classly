@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createFileRoute, redirect } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { z } from 'zod'
 import { AlertCircle, Check, ChevronDown, Loader2, Plus, X } from 'lucide-react'
+import { useDebouncedValue } from '@/hooks/useDebouncedValue'
+import { formatDateTime } from '@/lib/date-utils'
 import {
   approveUser,
   createUser,
@@ -28,6 +30,25 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { toast } from '@/components/ui/toast'
+import { onMutationError } from '@/lib/mutation-error'
 
 const searchSchema = z.object({
   q: z.string().optional().catch(undefined),
@@ -47,16 +68,7 @@ type UserRow = {
 
 export const Route = createFileRoute('/_authenticated/admin/users')({
   validateSearch: searchSchema,
-  // Mirrors _authenticated/route.tsx's own comment: this is the UX-level
-  // gate (fast redirect before rendering a shell that would otherwise
-  // just error on every listUsers/getUserDetail call), not the security
-  // boundary - that's adminOnlyMiddleware on every function in
-  // admin-users.ts, which already runs regardless of whether this ever
-  // fires. Sidebar already hides the "Users" nav item from non-admins
-  // (see Sidebar.tsx's adminOnly flag), so the only way to reach this
-  // without being an admin is typing/pasting the URL directly - this
-  // catches that case with a redirect instead of a page full of error
-  // toasts.
+  // this just catches direct URL access and redirects instead of showing error toasts
   beforeLoad: ({ context }) => {
     const { userState } = context
     const isAdmin =
@@ -65,8 +77,7 @@ export const Route = createFileRoute('/_authenticated/admin/users')({
       throw redirect({ to: '/dashboard' })
     }
   },
-  // Search-param changes that only affect filtering (not identity) don't
-  // need a full reload of the route - just refetch the query.
+  // filter-only search-param changes don’t reload the route; just refetch the query
   loaderDeps: ({ search }) => ({ ...search }),
   loader: async ({ deps, context }) => {
     await context.queryClient.ensureQueryData({
@@ -99,6 +110,27 @@ function AdminUsersPage() {
     user: UserRow
     action: 'reject' | 'delete'
   } | null>(null)
+
+  const [searchText, setSearchText] = useState(search.q ?? '')
+  const debouncedSearchText = useDebouncedValue(searchText, 300)
+
+  // keep local text synced when URL changes externally
+  useEffect(() => {
+    setSearchText(search.q ?? '')
+  }, [search.q])
+
+  useEffect(() => {
+    if (debouncedSearchText === (search.q ?? '')) return
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        q: debouncedSearchText || undefined,
+        page: 1, // reset to page 1 on a new search, same as before
+      }),
+      replace: true, // don't spam browser history on every keystroke
+    })
+    // only fire when the debounced value rlly changes
+  }, [debouncedSearchText])
 
   const { data } = useQuery({
     queryKey: ['admin', 'users', search],
@@ -195,17 +227,8 @@ function AdminUsersPage() {
         <input
           type="text"
           placeholder="Search by name or email..."
-          value={search.q ?? ''}
-          onChange={(e) =>
-            navigate({
-              search: (prev) => ({
-                ...prev,
-                q: e.target.value || undefined,
-                page: 1, // reset to page 1 on a new search, same as before
-              }),
-              replace: true, // don't spam browser history on every keystroke
-            })
-          }
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
           className="flex-1 px-4 py-2 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-classly-green"
         />
         <select
@@ -316,17 +339,28 @@ function AdminUsersPage() {
             Prev
           </button>
           <button
+            disabled={
+              data === undefined || data.page * data.pageSize >= data.total
+            }
             onClick={() =>
               navigate({ search: (prev) => ({ ...prev, page: prev.page + 1 }) })
             }
-            className="px-3 py-1 border rounded-lg"
+            className="px-3 py-1 border rounded-lg disabled:opacity-40"
           >
             Next
           </button>
         </div>
       </div>
 
-      {createOpen && <CreateUserModal onClose={() => setCreateOpen(false)} />}
+      {createOpen && (
+        <CreateUserModal
+          onClose={() => setCreateOpen(false)}
+          onSuccess={() => {
+            setCreateOpen(false)
+            invalidate()
+          }}
+        />
+      )}
       {editUser && (
         <EditUserModal
           user={editUser}
@@ -442,37 +476,42 @@ function ModalShell({
   title,
   subtitle,
   onClose,
+  busy,
   children,
 }: {
   title: string
   subtitle?: string
   onClose: () => void
+  busy?: boolean
   children: React.ReactNode
 }) {
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open && !busy) onClose()
+      }}
+    >
+      <DialogContent className="max-w-md">
+        <DialogHeader>
           <div>
-            <h2 className="text-xl font-bold text-gray-900">{title}</h2>
-            {subtitle && (
-              <p className="text-sm text-gray-500 mt-1">{subtitle}</p>
-            )}
+            <DialogTitle>{title}</DialogTitle>
+            {subtitle && <DialogDescription>{subtitle}</DialogDescription>}
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X size={20} />
-          </button>
-        </div>
+        </DialogHeader>
         {children}
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 
-function CreateUserModal({ onClose }: { onClose: () => void }) {
+function CreateUserModal({
+  onClose,
+  onSuccess,
+}: {
+  onClose: () => void
+  onSuccess: () => void
+}) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [fullName, setFullName] = useState('')
@@ -480,8 +519,13 @@ function CreateUserModal({ onClose }: { onClose: () => void }) {
     'student',
   )
 
-  const mutation = useMutation({
+  const mutation = useMutation<unknown, Error>({
     mutationFn: () => createUser({ data: { email, password, fullName, role } }),
+    onSuccess: () => {
+      toast({ variant: 'success', title: 'User created' })
+      onSuccess()
+    },
+    onError: onMutationError('Failed to create user'),
   })
 
   return (
@@ -489,6 +533,7 @@ function CreateUserModal({ onClose }: { onClose: () => void }) {
       title="Create User"
       subtitle="Add a new user to the system"
       onClose={onClose}
+      busy={mutation.isPending}
     >
       <form
         onSubmit={(e) => {
@@ -498,65 +543,74 @@ function CreateUserModal({ onClose }: { onClose: () => void }) {
         className="p-6 space-y-4"
       >
         <Field label="Full Name" required>
-          <input
+          <Input
             type="text"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             placeholder="John Doe"
-            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:border-classly-green focus:ring-2 focus:ring-classly-green/20"
+            disabled={mutation.isPending}
           />
         </Field>
         <Field label="Email" required>
-          <input
+          <Input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="user@example.com"
-            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:border-classly-green focus:ring-2 focus:ring-classly-green/20"
+            disabled={mutation.isPending}
           />
         </Field>
         <Field label="Password" required>
-          <input
+          <Input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             minLength={6}
             placeholder="••••••••"
-            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:border-classly-green focus:ring-2 focus:ring-classly-green/20"
+            disabled={mutation.isPending}
           />
-          <p className="text-xs text-gray-500 mt-1">Minimum 6 characters</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Minimum 6 characters
+          </p>
         </Field>
         <Field label="Role" required>
-          <select
+          <Select
             value={role}
-            onChange={(e) => setRole(e.target.value as typeof role)}
-            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-classly-green focus:ring-2 focus:ring-classly-green/20"
+            onValueChange={(value) => setRole(value as typeof role)}
+            disabled={mutation.isPending}
           >
-            <option value="student">Student</option>
-            <option value="instructor">Instructor</option>
-            <option value="admin">Admin</option>
-          </select>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="student">Student</SelectItem>
+              <SelectItem value="instructor">Instructor</SelectItem>
+              <SelectItem value="admin">Admin</SelectItem>
+            </SelectContent>
+          </Select>
         </Field>
 
         {mutation.isError && (
-          <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-lg">
-            <AlertCircle size={16} className="shrink-0 mt-0.5" />
+          <div className="flex items-start gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+            <AlertCircle size={16} className="mt-0.5 shrink-0" />
             <span>{mutation.error.message}</span>
           </div>
         )}
 
-        <div className="flex gap-3 pt-2">
-          <button
+        <DialogFooter className="p-0 pt-2">
+          <Button
             type="button"
+            variant="outline"
             onClick={onClose}
-            className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-all"
+            disabled={mutation.isPending}
+            className="flex-1"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
             disabled={mutation.isPending || !email || !password || !fullName}
-            className="flex-1 px-4 py-2.5 bg-classly-green text-white rounded-lg hover:bg-classly-green/90 font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex-1"
           >
             {mutation.isPending ? (
               <Loader2 size={16} className="animate-spin" />
@@ -564,8 +618,8 @@ function CreateUserModal({ onClose }: { onClose: () => void }) {
               <Check size={16} />
             )}
             Create User
-          </button>
-        </div>
+          </Button>
+        </DialogFooter>
       </form>
     </ModalShell>
   )
@@ -585,9 +639,13 @@ function EditUserModal({
     user.role as 'student' | 'instructor' | 'admin',
   )
 
-  const mutation = useMutation({
+  const mutation = useMutation<unknown, Error>({
     mutationFn: () => updateUser({ data: { userId: user.id, fullName, role } }),
-    onSuccess,
+    onSuccess: () => {
+      toast({ variant: 'success', title: 'User updated' })
+      onSuccess()
+    },
+    onError: onMutationError('Failed to update user'),
   })
 
   return (
@@ -595,6 +653,7 @@ function EditUserModal({
       title="Edit User"
       subtitle="Update user information"
       onClose={onClose}
+      busy={mutation.isPending}
     >
       <form
         onSubmit={(e) => {
@@ -604,55 +663,57 @@ function EditUserModal({
         className="p-6 space-y-4"
       >
         <Field label="Full Name">
-          <input
+          <Input
             type="text"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:border-classly-green focus:ring-2 focus:ring-classly-green/20"
+            disabled={mutation.isPending}
           />
         </Field>
         <Field label="Email">
-          <input
-            type="email"
-            value={user.email ?? ''}
-            disabled
-            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-400"
-          />
-          <p className="text-xs text-gray-400 mt-1">
+          <Input type="email" value={user.email ?? ''} disabled />
+          <p className="mt-1 text-xs text-muted-foreground">
             Email is tied to the login account and can't be changed here.
           </p>
         </Field>
         <Field label="Role">
-          <select
+          <Select
             value={role}
-            onChange={(e) => setRole(e.target.value as typeof role)}
-            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-classly-green focus:ring-2 focus:ring-classly-green/20"
+            onValueChange={(value) => setRole(value as typeof role)}
+            disabled={mutation.isPending}
           >
-            <option value="student">Student</option>
-            <option value="instructor">Instructor</option>
-            <option value="admin">Admin</option>
-          </select>
+            <SelectTrigger className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="student">Student</SelectItem>
+              <SelectItem value="instructor">Instructor</SelectItem>
+              <SelectItem value="admin">Admin</SelectItem>
+            </SelectContent>
+          </Select>
         </Field>
 
         {mutation.isError && (
-          <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-lg">
-            <AlertCircle size={16} className="shrink-0 mt-0.5" />
+          <div className="flex items-start gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+            <AlertCircle size={16} className="mt-0.5 shrink-0" />
             <span>{mutation.error.message}</span>
           </div>
         )}
 
-        <div className="flex gap-3 pt-2">
-          <button
+        <DialogFooter className="p-0 pt-2">
+          <Button
             type="button"
+            variant="outline"
             onClick={onClose}
-            className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-all"
+            disabled={mutation.isPending}
+            className="flex-1"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
             disabled={mutation.isPending || !fullName}
-            className="flex-1 px-4 py-2.5 bg-classly-green text-white rounded-lg hover:bg-classly-green/90 font-medium transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex-1"
           >
             {mutation.isPending ? (
               <Loader2 size={16} className="animate-spin" />
@@ -660,8 +721,8 @@ function EditUserModal({
               <Check size={16} />
             )}
             Save Changes
-          </button>
-        </div>
+          </Button>
+        </DialogFooter>
       </form>
     </ModalShell>
   )
@@ -712,9 +773,7 @@ function ViewUserModal({
             <DetailRow
               label="Created"
               value={
-                user.created_at
-                  ? new Date(user.created_at).toLocaleString()
-                  : 'Unknown'
+                user.created_at ? formatDateTime(user.created_at) : 'Unknown'
               }
             />
 
@@ -753,12 +812,9 @@ function ViewUserModal({
         )}
       </div>
       <div className="p-6 pt-0">
-        <button
-          onClick={onClose}
-          className="w-full px-4 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium transition-all"
-        >
+        <Button variant="secondary" onClick={onClose} className="w-full">
           Close
-        </button>
+        </Button>
       </div>
     </ModalShell>
   )

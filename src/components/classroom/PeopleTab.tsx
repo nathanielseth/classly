@@ -1,19 +1,42 @@
+import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Loader2, Users } from 'lucide-react'
-import { listEnrollments, unenrollStudent } from '@/lib/server/functions/enrollments'
+import {
+  listEnrollments,
+  unenrollStudent,
+} from '@/lib/server/functions/enrollments'
 import { StudentCard } from './StudentCard'
+import { ExportClassroomGrades } from './ExportClassroomGrades'
+import { toast } from '@/components/ui/toast'
+import { onMutationError } from '@/lib/mutation-error'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog'
 
 interface PeopleTabProps {
   subjectId: string
   subject: {
+    name: string
     instructor: { id: string; full_name: string; email: string } | null
   }
   currentUserId: string
   canManage: boolean
 }
 
-export function PeopleTab({ subjectId, subject, currentUserId, canManage }: PeopleTabProps) {
+export function PeopleTab({
+  subjectId,
+  subject,
+  currentUserId,
+  canManage,
+}: PeopleTabProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
@@ -22,11 +45,22 @@ export function PeopleTab({ subjectId, subject, currentUserId, canManage }: Peop
     queryFn: () => listEnrollments({ data: { subjectId } }),
   })
 
+  const [studentToRemove, setStudentToRemove] = useState<{
+    id: string
+    name: string
+  } | null>(null)
+
   const removeMutation = useMutation({
     mutationFn: (studentId: string) =>
       unenrollStudent({ data: { subjectId, studentId } }),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ['enrollments', 'list', subjectId] }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['enrollments', 'list', subjectId],
+      })
+      toast({ variant: 'success', title: 'Student removed' })
+      setStudentToRemove(null)
+    },
+    onError: onMutationError('Failed to remove student'),
   })
 
   const goMessage = (userId: string) => {
@@ -59,17 +93,29 @@ export function PeopleTab({ subjectId, subject, currentUserId, canManage }: Peop
       </div>
 
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-          {studentsLabel}
-          <span className="text-xs font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
-            {enrollments.length}
-          </span>
-        </h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+            {studentsLabel}
+            <span className="text-xs font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+              {enrollments.length}
+            </span>
+          </h2>
+          {canManage && (
+            <ExportClassroomGrades
+              subjectId={subjectId}
+              subjectName={subject.name}
+            />
+          )}
+        </div>
 
         {enrollmentsQuery.isError ? (
           <div className="bg-red-50 border border-red-200 rounded-xl p-6">
-            <h3 className="font-semibold text-red-900 mb-1">Failed to load roster</h3>
-            <p className="text-sm text-red-700">{enrollmentsQuery.error.message}</p>
+            <h3 className="font-semibold text-red-900 mb-1">
+              Failed to load roster
+            </h3>
+            <p className="text-sm text-red-700">
+              {enrollmentsQuery.error.message}
+            </p>
           </div>
         ) : enrollmentsQuery.isPending ? (
           <div className="bg-white border border-gray-200 rounded-xl p-8 flex items-center justify-center">
@@ -81,7 +127,9 @@ export function PeopleTab({ subjectId, subject, currentUserId, canManage }: Peop
               <Users size={28} className="text-gray-400" />
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {canManage ? 'No students enrolled yet' : 'No other students enrolled yet'}
+              {canManage
+                ? 'No students enrolled yet'
+                : 'No other students enrolled yet'}
             </h3>
           </div>
         ) : (
@@ -90,7 +138,11 @@ export function PeopleTab({ subjectId, subject, currentUserId, canManage }: Peop
               <StudentCard
                 key={enrollment.id}
                 name={enrollment.student?.full_name ?? 'Unknown student'}
-                email={canManage ? (enrollment.student?.email ?? undefined) : undefined}
+                email={
+                  canManage
+                    ? (enrollment.student?.email ?? undefined)
+                    : undefined
+                }
                 onMessage={
                   canManage && enrollment.student
                     ? () => goMessage(enrollment.student!.id)
@@ -98,15 +150,57 @@ export function PeopleTab({ subjectId, subject, currentUserId, canManage }: Peop
                 }
                 onRemove={
                   canManage && enrollment.student
-                    ? () => removeMutation.mutate(enrollment.student!.id)
+                    ? () =>
+                        setStudentToRemove({
+                          id: enrollment.student!.id,
+                          name: enrollment.student!.full_name,
+                        })
                     : undefined
                 }
-                removing={removeMutation.isPending}
+                removing={
+                  removeMutation.isPending &&
+                  removeMutation.variables === enrollment.student?.id
+                }
               />
             ))}
           </div>
         )}
       </div>
+
+      <AlertDialog
+        open={studentToRemove !== null}
+        onOpenChange={(open) => {
+          if (!open && !removeMutation.isPending) setStudentToRemove(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove student?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {studentToRemove?.name} will be unenrolled from this class and
+              lose access to its materials. This can&apos;t be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={removeMutation.isPending}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={removeMutation.isPending}
+              onClick={() => {
+                if (studentToRemove) removeMutation.mutate(studentToRemove.id)
+              }}
+            >
+              {removeMutation.isPending ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : (
+                'Remove'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

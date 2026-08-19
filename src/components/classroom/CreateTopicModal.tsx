@@ -1,5 +1,16 @@
 import { useState } from 'react'
-import { X, Loader2, BookOpen, AlertCircle } from 'lucide-react'
+import { AlertCircle, BookOpen } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 
 interface CreateTopicModalProps {
   mode: 'create' | 'edit'
@@ -24,62 +35,57 @@ export function CreateTopicModal({
   const canSubmit = name.trim().length > 0 && !submitting
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
-        <div className="p-6 border-b border-gray-100">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
-                <BookOpen className="w-5 h-5 text-classly-green" />
-              </div>
-              <h2 className="text-xl font-bold text-gray-900">
-                {mode === 'create' ? 'Create Topic' : 'Edit Topic'}
-              </h2>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open && !submitting) onClose()
+      }}
+    >
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+              <BookOpen className="h-5 w-5 text-primary" />
             </div>
-            <button
-              onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-              disabled={submitting}
-            >
-              <X size={20} />
-            </button>
+            <DialogTitle>
+              {mode === 'create' ? 'Create Topic' : 'Edit Topic'}
+            </DialogTitle>
           </div>
-        </div>
+        </DialogHeader>
 
-        <div className="p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Topic Name *
-            </label>
-            <input
+        <div className="space-y-4 p-6">
+          <div className="space-y-1.5">
+            <Label htmlFor="topic-name">Topic Name *</Label>
+            <Input
+              id="topic-name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-classly-green focus:ring-2 focus:ring-classly-green/20 transition-all"
               placeholder="e.g., Week 1: Introduction, Midterm Review"
               disabled={submitting}
               autoFocus
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Description <span className="text-gray-400">(Optional)</span>
-            </label>
-            <textarea
+          <div className="space-y-1.5">
+            <Label htmlFor="topic-description">
+              Description{' '}
+              <span className="text-muted-foreground">(Optional)</span>
+            </Label>
+            <Textarea
+              id="topic-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-classly-green focus:ring-2 focus:ring-classly-green/20 transition-all resize-none"
               rows={3}
               placeholder="Brief description of what this topic covers..."
               disabled={submitting}
             />
           </div>
 
-          <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 flex items-start gap-2">
-            <BookOpen className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-            <div className="text-xs text-blue-800">
-              <p className="font-medium mb-1">About Topics</p>
+          <div className="flex items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3">
+            <BookOpen className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+            <div className="text-xs text-foreground/80">
+              <p className="mb-1 font-medium">About Topics</p>
               <p>
                 Topics help you organize materials into logical sections. You
                 can assign materials to topics when creating or editing them.
@@ -88,41 +94,39 @@ export function CreateTopicModal({
           </div>
 
           {error && (
-            <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-lg">
-              <AlertCircle size={16} className="shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+              <AlertCircle size={16} className="mt-0.5 shrink-0" />
               <span>{error}</span>
             </div>
           )}
         </div>
 
-        <div className="p-6 pt-0 flex gap-3">
-          <button
+        <DialogFooter>
+          <Button
+            variant="outline"
             onClick={onClose}
             disabled={submitting}
-            className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() =>
               onSubmit({ name: name.trim(), description: description.trim() })
             }
             disabled={!canSubmit}
-            className="flex-1 px-4 py-2.5 bg-classly-green text-white rounded-lg hover:bg-classly-green/90 font-medium transition-all shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="flex-1"
           >
-            {submitting ? (
-              <>
-                <Loader2 size={16} className="animate-spin" />
-                {mode === 'create' ? 'Creating...' : 'Updating...'}
-              </>
-            ) : mode === 'create' ? (
-              'Create Topic'
-            ) : (
-              'Update Topic'
-            )}
-          </button>
-        </div>
-      </div>
-    </div>
+            {submitting
+              ? mode === 'create'
+                ? 'Creating...'
+                : 'Updating...'
+              : mode === 'create'
+                ? 'Create Topic'
+                : 'Update Topic'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

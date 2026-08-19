@@ -25,7 +25,6 @@ import {
   Plus,
   Trash2,
   UploadCloud,
-  X,
 } from 'lucide-react'
 import {
   bulkCreateEvents,
@@ -35,6 +34,26 @@ import {
 } from '@/lib/server/functions/calendar'
 import { parseEventsFile } from '@/lib/parse-events-file'
 import type { ParsedEventRow } from '@/lib/parse-events-file'
+import { toast } from '@/components/ui/toast'
+import { onMutationError } from '@/lib/mutation-error'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 export const Route = createFileRoute('/_authenticated/calendar')({
   component: CalendarPage,
@@ -110,7 +129,11 @@ function CalendarPage() {
 
   const deleteMutation = useMutation({
     mutationFn: (eventId: string) => deleteEvent({ data: { eventId } }),
-    onSuccess: invalidate,
+    onSuccess: async () => {
+      await invalidate()
+      toast({ variant: 'success', title: 'Event deleted' })
+    },
+    onError: onMutationError('Failed to delete event'),
   })
 
   const getAllItemsForDay = (day: Date) =>
@@ -409,9 +432,16 @@ function ImportEventsModal({
   const [parseErrors, setParseErrors] = useState<string[]>([])
   const [isParsing, setIsParsing] = useState(false)
 
-  const mutation = useMutation({
+  const mutation = useMutation<unknown, Error>({
     mutationFn: () => bulkCreateEvents({ data: { events: rows } }),
-    onSuccess,
+    onSuccess: () => {
+      toast({
+        variant: 'success',
+        title: `Imported ${rows.length} event${rows.length === 1 ? '' : 's'}`,
+      })
+      onSuccess()
+    },
+    onError: onMutationError('Failed to import events'),
   })
 
   const handleFile = async (file: File) => {
@@ -433,21 +463,18 @@ function ImportEventsModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col">
-        <div className="p-6 border-b border-gray-100 flex items-center justify-between shrink-0">
-          <h2 className="text-lg font-bold text-gray-900">
-            Import Events from File
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
-          >
-            <X size={20} />
-          </button>
-        </div>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open && !mutation.isPending) onClose()
+      }}
+    >
+      <DialogContent className="flex max-h-[85vh] max-w-lg flex-col">
+        <DialogHeader>
+          <DialogTitle>Import Events from File</DialogTitle>
+        </DialogHeader>
 
-        <div className="p-6 space-y-4 overflow-y-auto">
+        <div className="space-y-4 overflow-y-auto p-6">
           <div>
             <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-xl p-6 cursor-pointer hover:border-classly-green/40 hover:bg-classly-green/5 transition-colors">
               <UploadCloud size={24} className="text-gray-400" />
@@ -488,9 +515,7 @@ function ImportEventsModal({
                     key={i}
                     className="px-3 py-2 text-sm flex items-center justify-between gap-3"
                   >
-                    <span className="truncate text-gray-800">
-                      {row.title}
-                    </span>
+                    <span className="truncate text-gray-800">{row.title}</span>
                     <span className="text-xs text-gray-400 shrink-0">
                       {row.eventDate}
                     </span>
@@ -520,25 +545,28 @@ function ImportEventsModal({
           )}
 
           {mutation.isError && (
-            <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
-              {mutation.error.message}
-            </p>
+            <div className="flex items-start gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+              <AlertCircle size={16} className="mt-0.5 shrink-0" />
+              <span>{mutation.error.message}</span>
+            </div>
           )}
         </div>
 
-        <div className="p-6 pt-4 border-t border-gray-100 flex gap-3 shrink-0">
-          <button
+        <DialogFooter className="border-t border-border">
+          <Button
             type="button"
+            variant="outline"
             onClick={onClose}
-            className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium"
+            disabled={mutation.isPending}
+            className="flex-1"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
             onClick={() => mutation.mutate()}
             disabled={rows.length === 0 || mutation.isPending}
-            className="flex-1 px-4 py-2.5 bg-classly-green text-white rounded-lg hover:bg-classly-green/90 text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex-1"
           >
             {mutation.isPending ? (
               <Loader2 size={16} className="animate-spin" />
@@ -547,10 +575,10 @@ function ImportEventsModal({
             )}
             Import {rows.length > 0 ? rows.length : ''} Event
             {rows.length === 1 ? '' : 's'}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }
 function AddEventModal({
@@ -568,122 +596,127 @@ function AddEventModal({
     'event',
   )
 
-  const mutation = useMutation({
+  const mutation = useMutation<unknown, Error>({
     mutationFn: () =>
       createEvent({ data: { title, description, eventDate, eventTime, type } }),
-    onSuccess,
+    onSuccess: () => {
+      toast({ variant: 'success', title: 'Event created' })
+      onSuccess()
+    },
+    onError: onMutationError('Failed to create event'),
   })
 
+  const canSubmit =
+    title.trim().length > 0 && !!eventDate && !mutation.isPending
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-900">Add System Event</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
-          >
-            <X size={20} />
-          </button>
-        </div>
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open && !mutation.isPending) onClose()
+      }}
+    >
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Add System Event</DialogTitle>
+        </DialogHeader>
         <form
           onSubmit={(e) => {
             e.preventDefault()
             mutation.mutate()
           }}
         >
-          <div className="p-6 space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Title *
-              </label>
-              <input
+          <div className="space-y-4 p-6">
+            <div className="space-y-1.5">
+              <Label htmlFor="event-title">Title *</Label>
+              <Input
+                id="event-title"
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:border-classly-green focus:ring-2 focus:ring-classly-green/20 text-sm"
                 placeholder="e.g. University Foundation Day"
+                autoFocus
+                disabled={mutation.isPending}
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Type
-              </label>
-              <select
+            <div className="space-y-1.5">
+              <Label htmlFor="event-type">Type</Label>
+              <Select
                 value={type}
-                onChange={(e) => setType(e.target.value as typeof type)}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:border-classly-green text-sm bg-white"
+                onValueChange={(value) => setType(value as typeof type)}
+                disabled={mutation.isPending}
               >
-                <option value="event">Event</option>
-                <option value="holiday">Holiday</option>
-                <option value="announcement">Announcement</option>
-              </select>
+                <SelectTrigger id="event-type" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="event">Event</SelectItem>
+                  <SelectItem value="holiday">Holiday</SelectItem>
+                  <SelectItem value="announcement">Announcement</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Date *
-                </label>
-                <input
+              <div className="space-y-1.5">
+                <Label htmlFor="event-date">Date *</Label>
+                <Input
+                  id="event-date"
                   type="date"
                   value={eventDate}
                   onChange={(e) => setEventDate(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:border-classly-green text-sm"
+                  disabled={mutation.isPending}
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Time
-                </label>
-                <input
+              <div className="space-y-1.5">
+                <Label htmlFor="event-time">Time</Label>
+                <Input
+                  id="event-time"
                   type="time"
                   value={eventTime}
                   onChange={(e) => setEventTime(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:border-classly-green text-sm"
+                  disabled={mutation.isPending}
                 />
               </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                Description
-              </label>
-              <textarea
+            <div className="space-y-1.5">
+              <Label htmlFor="event-description">Description</Label>
+              <Textarea
+                id="event-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
-                className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:border-classly-green text-sm resize-none"
                 placeholder="Optional details..."
+                disabled={mutation.isPending}
               />
             </div>
             {mutation.isError && (
-              <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
-                {mutation.error.message}
-              </p>
+              <div className="flex items-start gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+                <AlertCircle size={16} className="mt-0.5 shrink-0" />
+                <span>{mutation.error.message}</span>
+              </div>
             )}
           </div>
-          <div className="p-6 pt-0 flex gap-3">
-            <button
+          <DialogFooter>
+            <Button
               type="button"
+              variant="outline"
               onClick={onClose}
-              className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 text-sm font-medium"
+              disabled={mutation.isPending}
+              className="flex-1"
             >
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={mutation.isPending || !title.trim() || !eventDate}
-              className="flex-1 px-4 py-2.5 bg-classly-green text-white rounded-lg hover:bg-classly-green/90 text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-2"
-            >
+            </Button>
+            <Button type="submit" disabled={!canSubmit} className="flex-1">
               {mutation.isPending ? (
                 <Loader2 size={16} className="animate-spin" />
               ) : (
                 <Plus size={16} />
               )}
               Create Event
-            </button>
-          </div>
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

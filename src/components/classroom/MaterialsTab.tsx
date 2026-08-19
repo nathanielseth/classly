@@ -27,6 +27,8 @@ import { CreateMaterialModal } from './CreateMaterialModal'
 import { EditMaterialModal } from './EditMaterialModal'
 import { CreateTopicModal } from './CreateTopicModal'
 import type { MaterialFormValues } from './MaterialForm'
+import { toast } from '@/components/ui/toast'
+import { onMutationError } from '@/lib/mutation-error'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -235,7 +237,11 @@ export function MaterialsTab({ subjectId, canManage }: MaterialsTabProps) {
   const deleteMaterialMutation = useMutation({
     mutationFn: (materialId: string) =>
       deleteMaterial({ data: { materialId } }),
-    onSuccess: invalidate,
+    onSuccess: async () => {
+      await invalidate()
+      toast({ variant: 'success', title: 'Material deleted' })
+    },
+    onError: onMutationError('Failed to delete material'),
   })
 
   const createTopicMutation = useMutation({
@@ -265,7 +271,11 @@ export function MaterialsTab({ subjectId, canManage }: MaterialsTabProps) {
 
   const deleteTopicMutation = useMutation({
     mutationFn: (topicId: string) => deleteTopic({ data: { topicId } }),
-    onSuccess: invalidate,
+    onSuccess: async () => {
+      await invalidate()
+      toast({ variant: 'success', title: 'Topic deleted' })
+    },
+    onError: onMutationError('Failed to delete topic'),
   })
 
   const materials = dataQuery.data?.materials ?? []
@@ -432,7 +442,9 @@ export function MaterialsTab({ subjectId, canManage }: MaterialsTabProps) {
                             <MoreVertical size={16} />
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setEditingTopic(topic)}>
+                            <DropdownMenuItem
+                              onClick={() => setEditingTopic(topic)}
+                            >
                               <Edit />
                               Edit topic
                             </DropdownMenuItem>
@@ -553,11 +565,16 @@ export function MaterialsTab({ subjectId, canManage }: MaterialsTabProps) {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this material?</AlertDialogTitle>
-            <AlertDialogDescription>This can't be undone.</AlertDialogDescription>
+            <AlertDialogDescription>
+              This can't be undone.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={confirmDeleteMaterial}>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={confirmDeleteMaterial}
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -570,14 +587,19 @@ export function MaterialsTab({ subjectId, canManage }: MaterialsTabProps) {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete topic "{deletingTopic?.name}"?</AlertDialogTitle>
+            <AlertDialogTitle>
+              Delete topic "{deletingTopic?.name}"?
+            </AlertDialogTitle>
             <AlertDialogDescription>
               Materials will be moved to "No Topic".
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={confirmDeleteTopic}>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={confirmDeleteTopic}
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>

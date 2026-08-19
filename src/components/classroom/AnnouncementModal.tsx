@@ -1,5 +1,16 @@
 import { useState } from 'react'
-import { AlertCircle, X } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
 
 interface AnnouncementModalProps {
   mode: 'create' | 'edit'
@@ -24,73 +35,73 @@ export function AnnouncementModal({
   const canSubmit = content.trim().length > 0 && !submitting
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4">
-        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900">
+    <Dialog
+      open
+      onOpenChange={(open) => {
+        if (!open && !submitting) onClose()
+      }}
+    >
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle>
             {mode === 'create' ? 'New Announcement' : 'Edit Announcement'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X size={20} />
-          </button>
-        </div>
+          </DialogTitle>
+        </DialogHeader>
 
-        <div className="p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+        <div className="space-y-4 p-6">
+          <div className="space-y-1.5">
+            <Label htmlFor="announcement-title">
               Title{' '}
-              <span className="text-gray-400 font-normal">(optional)</span>
-            </label>
-            <input
+              <span className="font-normal text-muted-foreground">
+                (optional)
+              </span>
+            </Label>
+            <Input
+              id="announcement-title"
               type="text"
               placeholder="e.g., Midterm rescheduled"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:border-classly-green focus:ring-2 focus:ring-classly-green/20 transition-all"
               autoFocus
               disabled={submitting}
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              Announcement
-            </label>
-            <textarea
+          <div className="space-y-1.5">
+            <Label htmlFor="announcement-content">Announcement</Label>
+            <Textarea
+              id="announcement-content"
               placeholder="Share something with the class..."
               value={content}
               onChange={(e) => setContent(e.target.value)}
               rows={5}
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:border-classly-green focus:ring-2 focus:ring-classly-green/20 transition-all resize-none"
               disabled={submitting}
             />
           </div>
 
           {error && (
-            <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-lg">
-              <AlertCircle size={16} className="shrink-0 mt-0.5" />
+            <div className="flex items-start gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+              <AlertCircle size={16} className="mt-0.5 shrink-0" />
               <span>{error}</span>
             </div>
           )}
         </div>
 
-        <div className="p-6 pt-0 flex gap-3">
-          <button
+        <DialogFooter>
+          <Button
+            variant="outline"
             onClick={onClose}
             disabled={submitting}
-            className="flex-1 py-2.5 border border-gray-200 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="flex-1"
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={() =>
               onSubmit({ title: title.trim(), content: content.trim() })
             }
             disabled={!canSubmit}
-            className="flex-1 py-2.5 bg-classly-green text-white font-medium rounded-lg hover:bg-classly-green/90 transition-colors disabled:opacity-50"
+            className="flex-1"
           >
             {submitting
               ? mode === 'create'
@@ -99,9 +110,9 @@ export function AnnouncementModal({
               : mode === 'create'
                 ? 'Post'
                 : 'Save Changes'}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

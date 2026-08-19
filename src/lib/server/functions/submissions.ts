@@ -533,6 +533,128 @@ export const listSubmissionsForMaterial = createServerFn({ method: 'GET' })
     return { roster }
   })
 
+const listSubmissionsForSubjectInput = z.object({
+  subjectId: z.uuid(),
+})
+
+interface SubjectMaterialSummary {
+  id: string
+  title: string
+  type: string | null
+  max_points: number | null
+}
+
+interface SubjectGradeEntry {
+  student: { id: string; full_name: string; email: string }
+  // materialId -> that student's submission for it, or null if never submitted
+  submissions: Record<
+    string,
+    {
+      grade: number | null
+      grade_percentage: number | null
+      status: string | null
+      is_late: boolean | null
+      submitted_at: string | null
+      graded_at: string | null
+    } | null
+  >
+}
+
+// whole-classroom gradebook
+//  used for the classroom-wide grade export
+export const listSubmissionsForSubject = createServerFn({ method: 'GET' })
+  .middleware([authMiddleware])
+  .validator(listSubmissionsForSubjectInput)
+  .handler(
+    async ({
+      data,
+      context,
+    }): Promise<{
+      materials: SubjectMaterialSummary[]
+      grades: SubjectGradeEntry[]
+    }> => {
+      const { supabase, profile } = context
+
+      if (profile.role !== 'instructor' && profile.role !== 'admin') {
+        throw new Error('Only instructors can view classroom grades.')
+      }
+
+      await assertSubjectAccess(supabase, profile, data.subjectId)
+
+      const [
+        { data: materials, error: materialsError },
+        { data: enrollments, error: enrollError },
+      ] = await Promise.all([
+        supabase
+          .from('materials')
+          .select('id, title, type, max_points')
+          .eq('subject_id', data.subjectId)
+          .order('created_at', { ascending: true }),
+        supabase
+          .from('enrollments')
+          .select(
+            'student:profiles!enrollments_student_id_fkey(id, full_name, email)',
+          )
+          .eq('subject_id', data.subjectId),
+      ])
+
+      if (materialsError) throw new Error(materialsError.message)
+      if (enrollError) throw new Error(enrollError.message)
+
+      const materialIds = (materials ?? []).map((m) => m.id)
+
+      // no materials yet,, skip the submissions query, nothing to join.
+      const { data: submissions, error: subError } =
+        materialIds.length > 0
+          ? await supabase
+              .from('submissions')
+              .select(
+                'material_id, student_id, grade, grade_percentage, status, is_late, submitted_at, graded_at',
+              )
+              .in('material_id', materialIds)
+          : { data: [], error: null }
+
+      if (subError) throw new Error(subError.message)
+
+      const submissionByKey = new Map(
+        (submissions ?? []).map((s) => [`${s.material_id}:${s.student_id}`, s]),
+      )
+
+      const grades: SubjectGradeEntry[] = (enrollments ?? []).map((e) => {
+        const student = e.student
+        if (!student)
+          throw new Error('Enrollment is missing its student profile.')
+
+        const submissions: SubjectGradeEntry['submissions'] = {}
+        for (const material of materials ?? []) {
+          const submission =
+            submissionByKey.get(`${material.id}:${student.id}`) ?? null
+          submissions[material.id] = submission
+            ? {
+                grade: submission.grade,
+                grade_percentage: submission.grade_percentage,
+                status: submission.status,
+                is_late: submission.is_late,
+                submitted_at: submission.submitted_at,
+                graded_at: submission.graded_at,
+              }
+            : null
+        }
+
+        return {
+          student: {
+            id: student.id,
+            full_name: student.full_name,
+            email: student.email,
+          },
+          submissions,
+        }
+      })
+
+      return { materials: materials ?? [], grades }
+    },
+  )
+
 const gradeSubmissionInput = z.object({
   submissionId: z.uuid(),
   grade: z.number().int().min(0),

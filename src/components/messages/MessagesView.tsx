@@ -132,7 +132,7 @@ export function MessagesView({
           onMessageSent={refreshLists}
         />
       ) : (
-        <div className="hidden md:flex flex-1 flex-col items-center justify-center bg-gray-50 text-center">
+        <div className="hidden md:flex flex-1 flex-col items-center justify-center bg-white text-center">
           <MessageSquare size={40} className="text-gray-300 mb-3" />
           <p className="text-gray-500 font-medium">
             {startDirectMutation.isPending

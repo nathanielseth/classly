@@ -39,7 +39,12 @@ export const listUsers = createServerFn({ method: 'GET' })
       count,
     } = await query.order('created_at', { ascending: false }).range(from, to)
 
-    if (error) throw new Error(error.message)
+    if (error) {
+      if (error.code === 'PGRST103') {
+        return { users: [], total: count ?? 0, page, pageSize }
+      }
+      throw new Error(error.message)
+    }
 
     return { users: users ?? [], total: count ?? 0, page, pageSize }
   })

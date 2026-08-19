@@ -136,12 +136,7 @@ export function Sidebar({ aiNavDisabled, role, fullName }: SidebarProps) {
               title={collapsed ? item.label : undefined}
               className={cn(navItemBase, collapsed && 'justify-center px-0')}
             >
-              {({
-                isActive,
-              }: {
-                isActive: boolean
-                isTransitioning: boolean
-              }) => (
+              {({ isActive }) => (
                 <>
                   <span
                     className={cn(
@@ -234,12 +229,7 @@ export function Sidebar({ aiNavDisabled, role, fullName }: SidebarProps) {
               title={collapsed ? item.label : undefined}
               className={cn(navItemBase, collapsed && 'justify-center px-0')}
             >
-              {({
-                isActive,
-              }: {
-                isActive: boolean
-                isTransitioning: boolean
-              }) => (
+              {({ isActive }) => (
                 <>
                   <span
                     className={cn(

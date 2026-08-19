@@ -39,6 +39,7 @@ export const listAnnouncements = createServerFn({ method: 'GET' })
         .eq('subject_id', data.subjectId)
         .order('pinned', { ascending: false })
         .order('created_at', { ascending: false })
+        .limit(75)
 
       if (error) throw new Error(error.message)
 
