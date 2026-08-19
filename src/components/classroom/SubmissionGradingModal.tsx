@@ -8,6 +8,7 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import { getSubmissionFileUrl } from '@/lib/server/functions/submissions'
+import { toast } from '@/components/ui/toast'
 
 interface GradingSubmission {
   id: string
@@ -76,7 +77,11 @@ export function SubmissionGradingModal({
       })
       window.open(url, '_blank', 'noopener,noreferrer')
     } catch (err) {
-      window.alert(err instanceof Error ? err.message : 'Failed to open file.')
+      toast({
+        variant: 'destructive',
+        title: "Couldn't open file",
+        description: err instanceof Error ? err.message : undefined,
+      })
     } finally {
       setFileLoading(false)
     }

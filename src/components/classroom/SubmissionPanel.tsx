@@ -1,5 +1,16 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from '@/components/ui/toast'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog'
 import {
   Upload,
   X,
@@ -49,9 +60,11 @@ function SubmissionFileLink({
       const { url } = await getSubmissionFileUrl({ data: { submissionId } })
       window.open(url, '_blank', 'noopener,noreferrer')
     } catch (err) {
-      window.alert(
-        err instanceof Error ? err.message : 'Failed to open file.',
-      )
+      toast({
+        variant: 'destructive',
+        title: "Couldn't open file",
+        description: err instanceof Error ? err.message : undefined,
+      })
     } finally {
       setLoading(false)
     }
@@ -84,6 +97,7 @@ export function SubmissionPanel({
   const [content, setContent] = useState('')
   const [contentDirty, setContentDirty] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [confirmUnsubmitOpen, setConfirmUnsubmitOpen] = useState(false)
 
   const submissionQuery = useQuery({
     queryKey: ['submissions', 'own', materialId],
@@ -165,7 +179,11 @@ export function SubmissionPanel({
     const file = e.target.files?.[0]
     if (!file) return
     if (file.size > 10 * 1024 * 1024) {
-      window.alert('File size must be less than 10MB')
+      toast({
+        variant: 'warning',
+        title: 'File too large',
+        description: 'File size must be less than 10MB.',
+      })
       return
     }
     uploadFileMutation.mutate(file)
@@ -181,9 +199,13 @@ export function SubmissionPanel({
 
   const handleUnsubmit = () => {
     if (!submission) return
-    if (!window.confirm('Are you sure you want to unsubmit this work?'))
-      return
+    setConfirmUnsubmitOpen(true)
+  }
+
+  const confirmUnsubmit = () => {
+    if (!submission) return
     unsubmitMutation.mutate(submission.id)
+    setConfirmUnsubmitOpen(false)
   }
 
   if (submissionQuery.isPending) {
@@ -407,6 +429,26 @@ export function SubmissionPanel({
           </div>
         )}
       </div>
+
+      <AlertDialog
+        open={confirmUnsubmitOpen}
+        onOpenChange={setConfirmUnsubmitOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unsubmit this work?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You can edit and resubmit before the deadline.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmUnsubmit}>
+              Unsubmit
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

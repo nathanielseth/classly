@@ -7,6 +7,25 @@ import {
   unenrollStudent,
 } from '@/lib/server/functions/enrollments'
 import { cn } from '@/lib/utils'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog'
+import { toast } from '@/components/ui/toast'
 
 interface StudentSubjectCardProps {
   subject: {
@@ -77,9 +96,7 @@ export function StudentSubjectCard({
   studentId,
 }: StudentSubjectCardProps) {
   const queryClient = useQueryClient()
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [colorPickerOpen, setColorPickerOpen] = useState(false)
-  const [confirmingUnenroll, setConfirmingUnenroll] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   const setColorMutation = useMutation({
     mutationFn: (accentColor: (typeof COLORS)[number]['value']) =>
@@ -96,6 +113,14 @@ export function StudentSubjectCard({
       unenrollStudent({ data: { subjectId: subject.id, studentId } }),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['subjects', 'list'] })
+      setConfirmOpen(false)
+    },
+    onError: (error) => {
+      toast({
+        variant: 'destructive',
+        title: "Couldn't unenroll",
+        description: error.message,
+      })
     },
   })
 
@@ -142,124 +167,66 @@ export function StudentSubjectCard({
       </Link>
 
       <div className="absolute top-4 right-4">
-        <button
-          onClick={(e) => {
-            e.preventDefault()
-            e.stopPropagation()
-            setMenuOpen((v) => !v)
-          }}
-          className="rounded-lg p-1 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-muted-foreground"
-          aria-label="Card options"
-        >
-          <MoreHorizontal size={18} />
-        </button>
-
-        {menuOpen && (
-          <>
-            <div
-              className="fixed inset-0 z-10"
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                setMenuOpen(false)
-                setColorPickerOpen(false)
-                setConfirmingUnenroll(false)
-              }}
-            />
-            <div className="absolute right-0 z-20 mt-2 w-48 overflow-hidden rounded-lg border border-border bg-card shadow-float">
-              <button
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  setColorPickerOpen((v) => !v)
-                }}
-                className="w-full px-4 py-2.5 text-left text-sm text-foreground transition-colors hover:bg-muted"
-              >
-                Change Color
-              </button>
-
-              {colorPickerOpen && (
-                <div className="border-t border-border bg-muted/60 px-4 py-3">
-                  <div className="grid grid-cols-6 gap-2">
-                    {COLORS.map((color) => {
-                      const colorClasses = getColorClasses(color.value)
-                      return (
-                        <button
-                          key={color.value}
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            setColorPickerOpen(false)
-                            setMenuOpen(false)
-                            setColorMutation.mutate(color.value)
-                          }}
-                          className={cn(
-                            'size-7 rounded-full transition-all hover:ring-2 hover:ring-border',
-                            colorClasses.swatch,
-                            currentColor === color.value &&
-                              'ring-2 ring-foreground/30',
-                          )}
-                          title={color.name}
-                        />
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-
-              <div className="border-t border-border">
-                {confirmingUnenroll ? (
-                  <div className="px-4 py-3">
-                    <p className="mb-2 text-xs text-muted-foreground">
-                      Unenroll from {subject.name}? You'll lose access to its
-                      materials and grades.
-                    </p>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          unenrollMutation.mutate()
-                        }}
-                        disabled={unenrollMutation.isPending}
-                        className="flex-1 rounded-md bg-destructive px-2 py-1.5 text-xs font-medium text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:opacity-60"
-                      >
-                        {unenrollMutation.isPending ? 'Leaving…' : 'Confirm'}
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          setConfirmingUnenroll(false)
-                        }}
-                        className="flex-1 rounded-md border border-border px-2 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                    {unenrollMutation.isError && (
-                      <p className="mt-2 text-xs text-destructive">
-                        {unenrollMutation.error.message}
-                      </p>
-                    )}
-                  </div>
-                ) : (
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            onClick={(e) => e.preventDefault()}
+            className="rounded-lg p-1 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-muted-foreground"
+            aria-label="Card options"
+          >
+            <MoreHorizontal size={18} />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56" onClick={(e) => e.stopPropagation()}>
+            <DropdownMenuLabel>Accent color</DropdownMenuLabel>
+            <div className="grid grid-cols-6 gap-2 px-2.5 pb-2">
+              {COLORS.map((color) => {
+                const colorClasses = getColorClasses(color.value)
+                return (
                   <button
-                    onClick={(e) => {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      setConfirmingUnenroll(true)
-                    }}
-                    className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-destructive transition-colors hover:bg-destructive/5"
-                  >
-                    <UserMinus size={15} />
-                    Unenroll
-                  </button>
-                )}
-              </div>
+                    key={color.value}
+                    type="button"
+                    onClick={() => setColorMutation.mutate(color.value)}
+                    className={cn(
+                      'size-6 rounded-full transition-all hover:ring-2 hover:ring-border',
+                      colorClasses.swatch,
+                      currentColor === color.value &&
+                        'ring-2 ring-foreground/30',
+                    )}
+                    title={color.name}
+                  />
+                )
+              })}
             </div>
-          </>
-        )}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={() => setConfirmOpen(true)}
+            >
+              <UserMinus />
+              Unenroll
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+          <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Unenroll from {subject.name}?</AlertDialogTitle>
+              <AlertDialogDescription>
+                You'll lose access to its materials and grades.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                variant="destructive"
+                onClick={() => unenrollMutation.mutate()}
+                disabled={unenrollMutation.isPending}
+              >
+                {unenrollMutation.isPending ? 'Leaving…' : 'Unenroll'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   )

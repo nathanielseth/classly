@@ -12,6 +12,22 @@ import {
   rejectUser,
   updateUser,
 } from '@/lib/server/functions/admin-users'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog'
 
 const searchSchema = z.object({
   q: z.string().optional().catch(undefined),
@@ -78,8 +94,11 @@ function AdminUsersPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [editUser, setEditUser] = useState<UserRow | null>(null)
   const [viewUserId, setViewUserId] = useState<string | null>(null)
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [confirmTarget, setConfirmTarget] = useState<{
+    user: UserRow
+    action: 'reject' | 'delete'
+  } | null>(null)
 
   const { data } = useQuery({
     queryKey: ['admin', 'users', search],
@@ -117,31 +136,28 @@ function AdminUsersPage() {
   })
 
   const handleApprove = (user: UserRow) => {
-    setOpenMenuId(null)
     setActionError(null)
     approveMutation.mutate(user.id)
   }
 
   const handleReject = (user: UserRow) => {
-    setOpenMenuId(null)
     setActionError(null)
-    if (
-      !window.confirm(
-        `Reject "${user.full_name ?? user.email}"? They won't be able to log in.`,
-      )
-    )
-      return
-    rejectMutation.mutate(user.id)
+    setConfirmTarget({ user, action: 'reject' })
   }
 
   const handleDelete = (user: UserRow) => {
-    setOpenMenuId(null)
     setActionError(null)
-    const confirmMessage = `Are you sure you want to delete "${
-      user.full_name ?? user.email
-    }"?\n\nThis will permanently delete their account record. This action CANNOT be undone.`
-    if (!window.confirm(confirmMessage)) return
-    deleteMutation.mutate(user.id)
+    setConfirmTarget({ user, action: 'delete' })
+  }
+
+  const confirmAction = () => {
+    if (!confirmTarget) return
+    if (confirmTarget.action === 'reject') {
+      rejectMutation.mutate(confirmTarget.user.id)
+    } else {
+      deleteMutation.mutate(confirmTarget.user.id)
+    }
+    setConfirmTarget(null)
   }
 
   return (
@@ -240,19 +256,8 @@ function AdminUsersPage() {
           <UserRowItem
             key={user.id}
             user={user}
-            menuOpen={openMenuId === user.id}
-            onToggleMenu={() =>
-              setOpenMenuId(openMenuId === user.id ? null : user.id)
-            }
-            onCloseMenu={() => setOpenMenuId(null)}
-            onView={() => {
-              setOpenMenuId(null)
-              setViewUserId(user.id)
-            }}
-            onEdit={() => {
-              setOpenMenuId(null)
-              setEditUser(user)
-            }}
+            onView={() => setViewUserId(user.id)}
+            onEdit={() => setEditUser(user)}
             onApprove={() => handleApprove(user)}
             onReject={() => handleReject(user)}
             onDelete={() => handleDelete(user)}
@@ -266,6 +271,32 @@ function AdminUsersPage() {
           />
         ))}
       </div>
+
+      <AlertDialog
+        open={confirmTarget !== null}
+        onOpenChange={(open) => !open && setConfirmTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmTarget?.action === 'delete'
+                ? `Delete "${confirmTarget.user.full_name ?? confirmTarget.user.email}"?`
+                : `Reject "${confirmTarget?.user.full_name ?? confirmTarget?.user.email}"?`}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmTarget?.action === 'delete'
+                ? "This will permanently delete their account record. This action can't be undone."
+                : "They won't be able to log in."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={confirmAction}>
+              {confirmTarget?.action === 'delete' ? 'Delete' : 'Reject'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Pagination reads/writes `page` the same way - it's just another
           search param, so browser back/forward and refresh both work
@@ -331,9 +362,6 @@ function statusColor(status: string | null) {
 
 function UserRowItem({
   user,
-  menuOpen,
-  onToggleMenu,
-  onCloseMenu,
   onView,
   onEdit,
   onApprove,
@@ -342,9 +370,6 @@ function UserRowItem({
   busy,
 }: {
   user: UserRow
-  menuOpen: boolean
-  onToggleMenu: () => void
-  onCloseMenu: () => void
   onView: () => void
   onEdit: () => void
   onApprove: () => void
@@ -379,58 +404,35 @@ function UserRowItem({
           {user.status ?? 'pending'}
         </span>
 
-        <div className="relative shrink-0">
-          <button
-            onClick={onToggleMenu}
+        <DropdownMenu>
+          <DropdownMenuTrigger
             disabled={busy}
-            className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+            className="flex shrink-0 items-center gap-1 rounded-lg px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-gray-100 disabled:opacity-50"
           >
             {busy ? <Loader2 size={14} className="animate-spin" /> : 'Actions'}
             {!busy && <ChevronDown size={14} />}
-          </button>
-
-          {menuOpen && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={onCloseMenu} />
-              <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden z-50">
-                <button
-                  onClick={onView}
-                  className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  View Details
-                </button>
-                <button
-                  onClick={onEdit}
-                  className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  Edit
-                </button>
-                {(user.status === 'pending' || user.status === 'rejected') && (
-                  <button
-                    onClick={onApprove}
-                    className="w-full text-left px-4 py-2.5 text-sm text-green-600 hover:bg-green-50 transition-colors"
-                  >
-                    Approve
-                  </button>
-                )}
-                {user.status === 'approved' && (
-                  <button
-                    onClick={onReject}
-                    className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                  >
-                    Reject
-                  </button>
-                )}
-                <button
-                  onClick={onDelete}
-                  className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                >
-                  Delete
-                </button>
-              </div>
-            </>
-          )}
-        </div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuItem onClick={onView}>View Details</DropdownMenuItem>
+            <DropdownMenuItem onClick={onEdit}>Edit</DropdownMenuItem>
+            {(user.status === 'pending' || user.status === 'rejected') && (
+              <DropdownMenuItem
+                onClick={onApprove}
+                className="text-green-600 data-highlighted:bg-green-50"
+              >
+                Approve
+              </DropdownMenuItem>
+            )}
+            {user.status === 'approved' && (
+              <DropdownMenuItem variant="destructive" onClick={onReject}>
+                Reject
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem variant="destructive" onClick={onDelete}>
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   )

@@ -43,11 +43,11 @@ export const Route = createFileRoute('/_authenticated/classroom/$subjectId')({
 
 function ClassroomError({ error }: { error: Error }) {
   return (
-    <div className="max-w-2xl mx-auto mt-12 bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-      <h1 className="font-semibold text-red-900 mb-1">
+    <div className="max-w-2xl mx-auto mt-12 bg-destructive/5 border border-destructive/20 rounded-xl p-6 text-center">
+      <h1 className="font-semibold text-destructive mb-1">
         Can't open this classroom
       </h1>
-      <p className="text-sm text-red-700">{error.message}</p>
+      <p className="text-sm text-destructive/80">{error.message}</p>
     </div>
   )
 }

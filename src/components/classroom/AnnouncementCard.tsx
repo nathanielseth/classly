@@ -1,5 +1,23 @@
 import { useState } from 'react'
 import { MoreVertical, Pin, PinOff, Pencil, Trash2 } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { getInitials } from '@/components/ui/avatar'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog'
 
 interface AnnouncementCardProps {
   announcement: {
@@ -30,16 +48,6 @@ function formatTimeAgo(value: string | null) {
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 
-function initials(name: string) {
-  return name
-    .split(' ')
-    .map((part) => part[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join('')
-    .toUpperCase()
-}
-
 export function AnnouncementCard({
   announcement,
   canManage,
@@ -48,107 +56,108 @@ export function AnnouncementCard({
   onDelete,
   isMutating,
 }: AnnouncementCardProps) {
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   return (
     <div
-      className={`bg-white border rounded-xl p-5 relative ${
+      className={cn(
+        'relative rounded-xl border bg-card p-5',
         announcement.pinned
-          ? 'border-classly-green/30 bg-green-50/30'
-          : 'border-gray-200'
-      }`}
+          ? 'border-primary/30 bg-primary/5'
+          : 'border-border',
+      )}
     >
       {announcement.pinned && (
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-classly-green mb-3">
-          <Pin size={12} className="fill-classly-green" />
+        <div className="mb-3 flex items-center gap-1.5 text-xs font-semibold text-primary">
+          <Pin size={12} className="fill-primary" />
           Pinned
         </div>
       )}
 
       <div className="flex items-start gap-3">
-        <div className="w-9 h-9 rounded-full bg-classly-green/10 text-classly-green font-semibold text-sm flex items-center justify-center shrink-0">
-          {announcement.author ? initials(announcement.author.full_name) : '?'}
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+          {announcement.author ? getInitials(announcement.author.full_name) : '?'}
         </div>
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="font-semibold text-gray-900 text-sm">
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-semibold text-foreground">
               {announcement.author?.full_name ?? 'Unknown'}
             </span>
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-muted-foreground">
               {formatTimeAgo(announcement.created_at)}
             </span>
             {announcement.updated_at &&
               announcement.updated_at !== announcement.created_at && (
-                <span className="text-xs text-gray-400 italic">(edited)</span>
+                <span className="text-xs text-muted-foreground italic">
+                  (edited)
+                </span>
               )}
           </div>
 
           {announcement.title && (
-            <h3 className="font-semibold text-gray-900 mt-2">
+            <h3 className="mt-2 font-semibold text-foreground">
               {announcement.title}
             </h3>
           )}
-          <p className="text-sm text-gray-700 mt-1 whitespace-pre-wrap">
+          <p className="mt-1 whitespace-pre-wrap text-sm text-foreground/80">
             {announcement.content}
           </p>
         </div>
 
         {canManage && (
-          <div className="relative shrink-0">
-            <button
-              onClick={() => setMenuOpen((open) => !open)}
-              disabled={isMutating}
-              className="text-gray-300 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-            >
-              <MoreVertical size={16} />
-            </button>
+          <>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                disabled={isMutating}
+                className="shrink-0 rounded-lg p-1 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-muted-foreground disabled:opacity-50"
+              >
+                <MoreVertical size={16} />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-44">
+                <DropdownMenuItem
+                  onClick={() => onTogglePin(announcement.id, !announcement.pinned)}
+                >
+                  {announcement.pinned ? <PinOff /> : <Pin />}
+                  {announcement.pinned ? 'Unpin' : 'Pin'}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onEdit(announcement)}>
+                  <Pencil />
+                  Edit
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  variant="destructive"
+                  onClick={() => setConfirmOpen(true)}
+                >
+                  <Trash2 />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-            {menuOpen && (
-              <>
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setMenuOpen(false)}
-                />
-                <div className="absolute right-0 mt-2 w-44 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden z-20">
-                  <button
+            <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete this announcement?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This can't be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    variant="destructive"
                     onClick={() => {
-                      setMenuOpen(false)
-                      onTogglePin(announcement.id, !announcement.pinned)
-                    }}
-                    className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
-                  >
-                    {announcement.pinned ? (
-                      <PinOff size={14} />
-                    ) : (
-                      <Pin size={14} />
-                    )}
-                    {announcement.pinned ? 'Unpin' : 'Pin'}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setMenuOpen(false)
-                      onEdit(announcement)
-                    }}
-                    className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
-                  >
-                    <Pencil size={14} />
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => {
-                      setMenuOpen(false)
                       onDelete(announcement.id)
+                      setConfirmOpen(false)
                     }}
-                    className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-2"
                   >
-                    <Trash2 size={14} />
                     Delete
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </>
         )}
       </div>
     </div>

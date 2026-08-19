@@ -18,6 +18,16 @@ import {
   submitQuizAttempt,
 } from '@/lib/server/functions/quizzes'
 import { useExamLock } from '@/hooks/useExamLock'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 
@@ -35,6 +45,9 @@ export function QuizTakingPanel({ materialId }: QuizTakingPanelProps) {
   >({})
   const [reviewing, setReviewing] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [confirmUnansweredCount, setConfirmUnansweredCount] = useState<
+    number | null
+  >(null)
 
   const questionsQuery = useQuery({
     queryKey: ['quizzes', 'take', materialId],
@@ -92,14 +105,15 @@ export function QuizTakingPanel({ materialId }: QuizTakingPanelProps) {
 
   const handleSubmit = () => {
     const unanswered = questions.length - Object.keys(selectedAnswers).length
-    if (
-      unanswered > 0 &&
-      !window.confirm(
-        `You have ${unanswered} unanswered question${unanswered !== 1 ? 's' : ''}. Submit anyway?`,
-      )
-    ) {
+    if (unanswered > 0) {
+      setConfirmUnansweredCount(unanswered)
       return
     }
+    submitMutation.mutate()
+  }
+
+  const confirmSubmitAnyway = () => {
+    setConfirmUnansweredCount(null)
     submitMutation.mutate()
   }
 
@@ -396,6 +410,30 @@ export function QuizTakingPanel({ materialId }: QuizTakingPanelProps) {
           </Button>
         )}
       </div>
+
+      <AlertDialog
+        open={confirmUnansweredCount !== null}
+        onOpenChange={(open) => !open && setConfirmUnansweredCount(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmUnansweredCount} unanswered question
+              {confirmUnansweredCount !== 1 ? 's' : ''}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Submit anyway? You won't be able to change your answers after
+              submitting.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep answering</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmSubmitAnyway}>
+              Submit anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

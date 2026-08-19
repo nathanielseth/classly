@@ -12,6 +12,24 @@ import {
   BookOpen,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog'
+import { toast } from '@/components/ui/toast'
 
 interface InstructorSubjectCardProps {
   subject: {
@@ -40,10 +58,8 @@ export function InstructorSubjectCard({
   onDelete,
   isDeleting,
 }: InstructorSubjectCardProps) {
-  const [menuOpen, setMenuOpen] = useState(false)
   const [copied, setCopied] = useState(false)
-  const [confirmingDelete, setConfirmingDelete] = useState(false)
-  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   const handleCopyCode = () => {
     void navigator.clipboard.writeText(subject.code)
@@ -51,18 +67,16 @@ export function InstructorSubjectCard({
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const closeMenu = () => {
-    setMenuOpen(false)
-    setConfirmingDelete(false)
-    setDeleteError(null)
-  }
-
   const handleDelete = async () => {
     try {
       await onDelete()
-      closeMenu()
+      setConfirmOpen(false)
     } catch (err) {
-      setDeleteError(err instanceof Error ? err.message : 'Delete failed.')
+      toast({
+        variant: 'destructive',
+        title: 'Delete failed',
+        description: err instanceof Error ? err.message : 'Delete failed.',
+      })
     }
   }
 
@@ -84,86 +98,57 @@ export function InstructorSubjectCard({
           {copied ? <Check size={12} /> : <Copy size={12} />}
         </button>
 
-        <div className="relative">
-          <button
-            onClick={() => setMenuOpen((open) => !open)}
-            className="rounded-lg p-1 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-muted-foreground"
-          >
+        <DropdownMenu>
+          <DropdownMenuTrigger className="rounded-lg p-1 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-muted-foreground">
             <MoreVertical size={18} />
-          </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-52">
+            <DropdownMenuItem onClick={onEdit}>
+              <Pencil />
+              Edit
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => onToggleArchive(subject.id, !subject.archived)}
+              disabled={isToggling}
+              className="text-warning data-highlighted:bg-warning/10"
+            >
+              {subject.archived ? <ArchiveRestore /> : <Archive />}
+              {subject.archived ? 'Unarchive' : 'Archive'}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={() => setConfirmOpen(true)}
+            >
+              <Trash2 />
+              Delete permanently
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
-          {menuOpen && (
-            <>
-              <div className="fixed inset-0 z-10" onClick={closeMenu} />
-              <div className="absolute right-0 z-20 mt-2 w-52 overflow-hidden rounded-lg border border-border bg-card shadow-float">
-                <button
-                  onClick={() => {
-                    closeMenu()
-                    onEdit()
-                  }}
-                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-foreground transition-colors hover:bg-muted"
-                >
-                  <Pencil size={14} />
-                  Edit
-                </button>
-                <button
-                  onClick={() => {
-                    closeMenu()
-                    onToggleArchive(subject.id, !subject.archived)
-                  }}
-                  disabled={isToggling}
-                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-warning transition-colors hover:bg-warning/10 disabled:opacity-50"
-                >
-                  {subject.archived ? (
-                    <ArchiveRestore size={14} />
-                  ) : (
-                    <Archive size={14} />
-                  )}
-                  {subject.archived ? 'Unarchive' : 'Archive'}
-                </button>
-
-                <div className="border-t border-border">
-                  {confirmingDelete ? (
-                    <div className="px-4 py-3">
-                      <p className="mb-2 text-xs text-muted-foreground">
-                        Permanently delete "{subject.name}"? All materials,
-                        announcements, and enrollments will be lost.
-                      </p>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={handleDelete}
-                          disabled={isDeleting}
-                          className="flex-1 rounded-md bg-destructive px-2 py-1.5 text-xs font-medium text-destructive-foreground transition-colors hover:bg-destructive/90 disabled:opacity-60"
-                        >
-                          {isDeleting ? 'Deleting…' : 'Delete forever'}
-                        </button>
-                        <button
-                          onClick={() => setConfirmingDelete(false)}
-                          className="flex-1 rounded-md border border-border px-2 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                      {deleteError && (
-                        <p className="mt-2 text-xs text-destructive">
-                          {deleteError}
-                        </p>
-                      )}
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => setConfirmingDelete(true)}
-                      className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-destructive transition-colors hover:bg-destructive/5"
-                    >
-                      <Trash2 size={14} />
-                      Delete Permanently
-                    </button>
-                  )}
-                </div>
-              </div>
-            </>
-          )}
-        </div>
+        <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                Permanently delete "{subject.name}"?
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                All materials, announcements, and enrollments will be lost.
+                This can't be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Deleting…' : 'Delete forever'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       <Link

@@ -27,6 +27,22 @@ import { CreateMaterialModal } from './CreateMaterialModal'
 import { EditMaterialModal } from './EditMaterialModal'
 import { CreateTopicModal } from './CreateTopicModal'
 import type { MaterialFormValues } from './MaterialForm'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from '@/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from '@/components/ui/alert-dialog'
 
 interface MaterialsTabProps {
   subjectId: string
@@ -103,7 +119,10 @@ export function MaterialsTab({ subjectId, canManage }: MaterialsTabProps) {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const [typeFilter, setTypeFilter] = useState('all')
-  const [topicMenuOpenFor, setTopicMenuOpenFor] = useState<string | null>(null)
+  const [deletingMaterialId, setDeletingMaterialId] = useState<string | null>(
+    null,
+  )
+  const [deletingTopic, setDeletingTopic] = useState<TopicRow | null>(null)
 
   const [creatingMaterial, setCreatingMaterial] = useState(false)
   const [editingMaterial, setEditingMaterial] = useState<MaterialRow | null>(
@@ -258,19 +277,23 @@ export function MaterialsTab({ subjectId, canManage }: MaterialsTabProps) {
   const sortedGroups = groupMaterialsByTopic(filteredMaterials, topics)
 
   const handleDeleteMaterial = (materialId: string) => {
-    if (!window.confirm('Delete this material? This cannot be undone.')) return
-    deleteMaterialMutation.mutate(materialId)
+    setDeletingMaterialId(materialId)
+  }
+
+  const confirmDeleteMaterial = () => {
+    if (!deletingMaterialId) return
+    deleteMaterialMutation.mutate(deletingMaterialId)
+    setDeletingMaterialId(null)
   }
 
   const handleDeleteTopic = (topic: TopicRow) => {
-    if (
-      !window.confirm(
-        `Delete topic "${topic.name}"? Materials will be moved to "No Topic".`,
-      )
-    )
-      return
-    deleteTopicMutation.mutate(topic.id)
-    setTopicMenuOpenFor(null)
+    setDeletingTopic(topic)
+  }
+
+  const confirmDeleteTopic = () => {
+    if (!deletingTopic) return
+    deleteTopicMutation.mutate(deletingTopic.id)
+    setDeletingTopic(null)
   }
 
   return (
@@ -404,46 +427,24 @@ export function MaterialsTab({ subjectId, canManage }: MaterialsTabProps) {
                       </span>
 
                       {canManage && isRealTopic(topic) && (
-                        <div className="relative">
-                          <button
-                            onClick={() =>
-                              setTopicMenuOpenFor(
-                                topicMenuOpenFor === topic.id ? null : topic.id,
-                              )
-                            }
-                            className="p-1.5 text-gray-600 hover:bg-white rounded-lg transition-colors"
-                          >
+                        <DropdownMenu>
+                          <DropdownMenuTrigger className="p-1.5 text-gray-600 hover:bg-white rounded-lg transition-colors">
                             <MoreVertical size={16} />
-                          </button>
-
-                          {topicMenuOpenFor === topic.id && (
-                            <>
-                              <div
-                                className="fixed inset-0 z-10"
-                                onClick={() => setTopicMenuOpenFor(null)}
-                              />
-                              <div className="absolute right-0 top-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-20 min-w-35">
-                                <button
-                                  onClick={() => {
-                                    setTopicMenuOpenFor(null)
-                                    setEditingTopic(topic)
-                                  }}
-                                  className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                                >
-                                  <Edit size={14} />
-                                  Edit Topic
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteTopic(topic)}
-                                  className="w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                                >
-                                  <Trash2 size={14} />
-                                  Delete Topic
-                                </button>
-                              </div>
-                            </>
-                          )}
-                        </div>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setEditingTopic(topic)}>
+                              <Edit />
+                              Edit topic
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onClick={() => handleDeleteTopic(topic)}
+                            >
+                              <Trash2 />
+                              Delete topic
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       )}
                     </div>
                   </div>
@@ -544,6 +545,44 @@ export function MaterialsTab({ subjectId, canManage }: MaterialsTabProps) {
           error={formError}
         />
       )}
+
+      <AlertDialog
+        open={deletingMaterialId !== null}
+        onOpenChange={(open) => !open && setDeletingMaterialId(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this material?</AlertDialogTitle>
+            <AlertDialogDescription>This can't be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={confirmDeleteMaterial}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={deletingTopic !== null}
+        onOpenChange={(open) => !open && setDeletingTopic(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete topic "{deletingTopic?.name}"?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Materials will be moved to "No Topic".
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={confirmDeleteTopic}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

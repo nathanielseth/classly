@@ -8,6 +8,7 @@ import {
   Trash2,
   AlertCircle,
 } from 'lucide-react'
+import { toast } from '@/components/ui/toast'
 
 const MATERIAL_TYPES = [
   'assignment',
@@ -100,7 +101,11 @@ export function MaterialForm({
     const file = e.target.files?.[0]
     if (!file) return
     if (file.size > 10 * 1024 * 1024) {
-      window.alert('File size must be less than 10MB')
+      toast({
+        variant: 'warning',
+        title: 'File too large',
+        description: 'File size must be less than 10MB.',
+      })
       return
     }
     setSelectedFile(file)
