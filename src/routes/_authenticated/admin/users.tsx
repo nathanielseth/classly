@@ -303,7 +303,7 @@ function AdminUsersPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>
               {confirmTarget?.action === 'delete'
-                ? `Delete "${confirmTarget.user.full_name ?? confirmTarget.user.email}"?`
+                ? `Delete "${confirmTarget.user.full_name}"?`
                 : `Reject "${confirmTarget?.user.full_name ?? confirmTarget?.user.email}"?`}
             </AlertDialogTitle>
             <AlertDialogDescription>
@@ -416,7 +416,7 @@ function UserRowItem({
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <div className="w-10 h-10 bg-linear-to-br from-classly-green to-green-600 rounded-full flex items-center justify-center text-white font-semibold shrink-0">
-            {(user.full_name ?? user.email ?? '?').charAt(0).toUpperCase()}
+            {user.full_name.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-medium text-gray-900 truncate">
@@ -435,7 +435,7 @@ function UserRowItem({
         <span
           className={`px-2.5 py-1 rounded-full text-xs font-medium border shrink-0 capitalize ${statusColor(user.status)}`}
         >
-          {user.status ?? 'pending'}
+          {user.status}
         </span>
 
         <DropdownMenu>
@@ -634,7 +634,7 @@ function EditUserModal({
   onClose: () => void
   onSuccess: () => void
 }) {
-  const [fullName, setFullName] = useState(user.full_name ?? '')
+  const [fullName, setFullName] = useState(user.full_name)
   const [role, setRole] = useState(
     user.role as 'student' | 'instructor' | 'admin',
   )
@@ -671,7 +671,7 @@ function EditUserModal({
           />
         </Field>
         <Field label="Email">
-          <Input type="email" value={user.email ?? ''} disabled />
+          <Input type="email" value={user.email} disabled />
           <p className="mt-1 text-xs text-muted-foreground">
             Email is tied to the login account and can't be changed here.
           </p>
@@ -751,7 +751,7 @@ function ViewUserModal({
           <>
             <div className="flex items-center gap-4 pb-4 border-b border-gray-100">
               <div className="w-16 h-16 bg-linear-to-br from-classly-green to-green-600 rounded-full flex items-center justify-center text-white text-2xl font-semibold">
-                {(user.full_name ?? user.email ?? '?').charAt(0).toUpperCase()}
+                {user.full_name.charAt(0).toUpperCase()}
               </div>
               <div>
                 <h3 className="text-lg font-bold text-gray-900">
@@ -767,7 +767,7 @@ function ViewUserModal({
             />
             <DetailRow
               label="Status"
-              value={user.status ?? 'pending'}
+              value={user.status}
               capitalize
             />
             <DetailRow

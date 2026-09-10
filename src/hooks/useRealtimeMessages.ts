@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
-import { useQueryClient, type QueryKey } from '@tanstack/react-query'
+import { useQueryClient  } from '@tanstack/react-query'
+import type {QueryKey} from '@tanstack/react-query';
 import { getBrowserSupabase } from '@/lib/browser-supabase'
 import type { MessageItem } from '@/lib/server/functions/messages'
 

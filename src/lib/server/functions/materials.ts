@@ -1,4 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
+import { dbError } from '../db-error'
 import { z } from 'zod'
 import { authMiddleware } from '../middleware'
 import { assertSubjectAccess } from '../subject-access'
@@ -36,9 +37,9 @@ export const getUpcomingMaterials = createServerFn({ method: 'GET' })
       .order('due_date', { ascending: true })
       .limit(data.limit)
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
 
-    return { materials: materials ?? [] }
+    return { materials: materials }
   })
 
 const MATERIAL_TYPES = [
@@ -100,12 +101,12 @@ export const listMaterialsWithTopics = createServerFn({ method: 'GET' })
         .order('created_at', { ascending: true }),
     ])
 
-    if (materialsError) throw new Error(materialsError.message)
-    if (topicsError) throw new Error(topicsError.message)
+    if (materialsError) throw dbError(materialsError)
+    if (topicsError) throw dbError(topicsError)
 
     return {
-      materials: materials ?? [],
-      topics: topics ?? [],
+      materials: materials,
+      topics: topics,
     }
   })
 
@@ -125,7 +126,7 @@ export const getMaterial = createServerFn({ method: 'GET' })
       .eq('id', data.materialId)
       .single()
 
-    if (error || !material) throw new Error('Material not found.')
+    if (error) throw new Error('Material not found.')
 
     await assertSubjectAccess(supabase, profile, material.subject_id)
 
@@ -154,7 +155,7 @@ export const getMaterialContentForAi = createServerFn({ method: 'GET' })
       .eq('id', data.materialId)
       .single()
 
-    if (error || !material) throw new Error('Material not found.')
+    if (error) throw new Error('Material not found.')
 
     await assertSubjectAccess(supabase, profile, material.subject_id)
 
@@ -226,7 +227,7 @@ export const createMaterial = createServerFn({ method: 'POST' })
       .select(MATERIAL_COLUMNS)
       .single()
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
     return material
   })
 
@@ -267,7 +268,7 @@ export const updateMaterial = createServerFn({ method: 'POST' })
       .select(MATERIAL_COLUMNS)
       .single()
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
     return material
   })
 
@@ -295,7 +296,7 @@ export const deleteMaterial = createServerFn({ method: 'POST' })
       .from('materials')
       .delete()
       .eq('id', data.materialId)
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
 
     if (material?.file_url) {
       const path = storagePathFromUrl(material.file_url)
@@ -384,7 +385,7 @@ export const uploadMaterialFile = createServerFn({ method: 'POST' })
       .from(MATERIALS_BUCKET)
       .upload(filePath, data.file, { cacheControl: '3600', upsert: false })
 
-    if (uploadError) throw new Error(uploadError.message)
+    if (uploadError) throw dbError(uploadError)
 
     const {
       data: { publicUrl },
@@ -402,7 +403,7 @@ export const uploadMaterialFile = createServerFn({ method: 'POST' })
       .select(MATERIAL_COLUMNS)
       .single()
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
     return material
   })
 
@@ -445,7 +446,7 @@ export const removeMaterialFile = createServerFn({ method: 'POST' })
       .select(MATERIAL_COLUMNS)
       .single()
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
     return material
   })
 
@@ -459,7 +460,7 @@ async function getMaterialSubjectId(
     .eq('id', materialId)
     .single()
 
-  if (error || !material) throw new Error('Material not found.')
+  if (error) throw new Error('Material not found.')
   return material.subject_id
 }
 
@@ -474,7 +475,7 @@ async function assertTopicBelongsToSubject(
     .eq('id', topicId)
     .single()
 
-  if (error || !topic || topic.subject_id !== subjectId) {
+  if (error || topic.subject_id !== subjectId) {
     throw new Error('Topic not found in this subject.')
   }
 }
@@ -507,7 +508,7 @@ export const createTopic = createServerFn({ method: 'POST' })
       .select('id, subject_id, name, description, order_index, created_at')
       .single()
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
     return topic
   })
 
@@ -536,7 +537,7 @@ export const updateTopic = createServerFn({ method: 'POST' })
       .select('id, subject_id, name, description, order_index, created_at')
       .single()
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
     return topic
   })
 
@@ -559,13 +560,13 @@ export const deleteTopic = createServerFn({ method: 'POST' })
       .update({ topic_id: null })
       .eq('topic_id', data.topicId)
 
-    if (unlinkError) throw new Error(unlinkError.message)
+    if (unlinkError) throw dbError(unlinkError)
 
     const { error } = await supabase
       .from('topics')
       .delete()
       .eq('id', data.topicId)
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
 
     return { id: data.topicId }
   })
@@ -580,6 +581,6 @@ async function getTopicSubjectId(
     .eq('id', topicId)
     .single()
 
-  if (error || !topic) throw new Error('Topic not found.')
+  if (error) throw new Error('Topic not found.')
   return topic.subject_id
 }

@@ -1,4 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
+import { dbError } from '../db-error'
 import { z } from 'zod'
 import { authMiddleware } from '../middleware'
 import { assertSubjectAccess } from '../subject-access'
@@ -24,7 +25,7 @@ async function getMaterialQuizContext(
     .eq('id', materialId)
     .single()
 
-  if (error || !material) throw new Error('Material not found.')
+  if (error) throw new Error('Material not found.')
 
   return {
     subjectId: material.subject_id,
@@ -68,8 +69,8 @@ export const getQuizQuestions = createServerFn({ method: 'GET' })
       .eq('material_id', data.materialId)
       .order('order_index', { ascending: true })
 
-    if (error) throw new Error(error.message)
-    return { questions: questions ?? [] }
+    if (error) throw dbError(error)
+    return { questions: questions }
   })
 
 const quizQuestionInput = z.object({
@@ -109,7 +110,7 @@ export const saveQuizQuestions = createServerFn({ method: 'POST' })
       .from('quiz_questions')
       .delete()
       .eq('material_id', data.materialId)
-    if (deleteError) throw new Error(deleteError.message)
+    if (deleteError) throw dbError(deleteError)
 
     if (data.questions.length === 0) {
       return { questions: [] }
@@ -129,7 +130,7 @@ export const saveQuizQuestions = createServerFn({ method: 'POST' })
       .select(QUIZ_QUESTION_COLUMNS)
       .order('order_index', { ascending: true })
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
     return { questions }
   })
 
@@ -157,7 +158,7 @@ export const getQuizForTaking = createServerFn({ method: 'GET' })
       .eq('material_id', data.materialId)
       .order('order_index', { ascending: true })
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
 
     // if no submission exists, open a session (check‑then‑insert) so the ai guard can track it, since upsert isnt valid with the partial uniqueness constraint
     const { data: existingAttempt } = await supabase
@@ -179,7 +180,7 @@ export const getQuizForTaking = createServerFn({ method: 'GET' })
       }
     }
 
-    return { questions: questions ?? [] }
+    return { questions: questions }
   })
 
 const getOwnQuizAttemptInput = z.object({
@@ -217,12 +218,12 @@ export const getOwnQuizAttempt = createServerFn({ method: 'GET' })
         .order('order_index', { ascending: true }),
     ])
 
-    if (attemptError) throw new Error(attemptError.message)
-    if (qError) throw new Error(qError.message)
+    if (attemptError) throw dbError(attemptError)
+    if (qError) throw dbError(qError)
 
     return {
-      attempt: attempt ?? null,
-      questions: questions ?? [],
+      attempt,
+      questions: questions,
     }
   })
 
@@ -245,7 +246,7 @@ export const abandonQuizSession = createServerFn({ method: 'POST' })
       .eq('student_id', profile.id)
       .is('ended_at', null)
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
     return { closed: (count ?? 0) > 0 }
   })
 
@@ -274,8 +275,8 @@ export const submitQuizAttempt = createServerFn({ method: 'POST' })
       .eq('material_id', data.materialId)
       .order('order_index', { ascending: true })
 
-    if (qError) throw new Error(qError.message)
-    const orderedQuestions = questions ?? []
+    if (qError) throw dbError(qError)
+    const orderedQuestions = questions
 
     if (orderedQuestions.length === 0) {
       throw new Error('This quiz has no questions yet.')
@@ -303,7 +304,7 @@ export const submitQuizAttempt = createServerFn({ method: 'POST' })
       .select('id, answers, score, total, submitted_at')
       .single()
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
 
     // release the exam lock - best effort, submission itself already succeeded
     const { error: closeError } = await supabase
@@ -365,17 +366,15 @@ export const listQuizAttemptsForMaterial = createServerFn({ method: 'GET' })
         { data: attempts, error: attemptError },
       ] = await Promise.all([enrollmentsQuery, attemptsQuery])
 
-      if (enrollError) throw new Error(enrollError.message)
-      if (attemptError) throw new Error(attemptError.message)
+      if (enrollError) throw dbError(enrollError)
+      if (attemptError) throw dbError(attemptError)
 
       const attemptByStudent = new Map(
-        (attempts ?? []).map((a): [string, typeof a] => [a.student_id, a]),
+        attempts.map((a): [string, typeof a] => [a.student_id, a]),
       )
 
-      const roster: QuizAttemptRosterEntry[] = (enrollments ?? []).map((e) => {
+      const roster: QuizAttemptRosterEntry[] = enrollments.map((e) => {
         const student = e.student
-        if (!student)
-          throw new Error('Enrollment is missing its student profile.')
         const attempt = attemptByStudent.get(student.id) ?? null
         return {
           student: {

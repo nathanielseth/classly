@@ -169,12 +169,12 @@ export function ConversationList({
                 }`}
               >
                 <div className="w-10 h-10 rounded-full bg-classly-green flex items-center justify-center text-white font-semibold shrink-0">
-                  {getInitial(convo.otherUser?.full_name)}
+                  {getInitial(convo.otherUser.full_name)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-medium text-gray-900 truncate">
-                      {convo.otherUser?.full_name}
+                      {convo.otherUser.full_name}
                     </p>
                     <span className="text-xs text-gray-400 ml-2">
                       {formatTime(convo.last_message_at)}

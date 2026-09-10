@@ -1,4 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
+import { dbError } from '../db-error'
 import { z } from 'zod'
 import { authMiddleware } from '../middleware'
 
@@ -41,9 +42,9 @@ export const listCalendarItems = createServerFn({ method: 'GET' })
       .lte('event_date', data.to)
       .order('event_date', { ascending: true })
 
-    if (eventsError) throw new Error(eventsError.message)
+    if (eventsError) throw dbError(eventsError)
 
-    const calendarEvents: CalendarEvent[] = (events ?? []).map((e) => ({
+    const calendarEvents: CalendarEvent[] = events.map((e) => ({
       ...e,
       type: e.type ?? 'event',
       source: 'event',
@@ -70,15 +71,15 @@ export const listCalendarItems = createServerFn({ method: 'GET' })
         .lte('due_date', data.to)
         .order('due_date', { ascending: true })
 
-      if (error) throw new Error(error.message)
+      if (error) throw dbError(error)
 
-      dueDates = (materials ?? []).map((m) => ({
+      dueDates = materials.map((m) => ({
         id: m.id,
         title: m.title,
-        due_date: m.due_date!,
+        due_date: m.due_date,
         type: m.type ?? 'material',
-        subjectName: m.subject?.name ?? '',
-        subjectCode: m.subject?.code ?? '',
+        subjectName: m.subject.name,
+        subjectCode: m.subject.code,
         source: 'due_date' as const,
       }))
     } else if (profile.role === 'instructor' || profile.role === 'admin') {
@@ -100,15 +101,15 @@ export const listCalendarItems = createServerFn({ method: 'GET' })
       }
 
       const { data: materials, error } = await query
-      if (error) throw new Error(error.message)
+      if (error) throw dbError(error)
 
-      dueDates = (materials ?? []).map((m) => ({
+      dueDates = materials.map((m) => ({
         id: m.id,
         title: m.title,
-        due_date: m.due_date!,
+        due_date: m.due_date,
         type: m.type ?? 'material',
-        subjectName: m.subject?.name ?? '',
-        subjectCode: m.subject?.code ?? '',
+        subjectName: m.subject.name,
+        subjectCode: m.subject.code,
         source: 'due_date' as const,
       }))
     }
@@ -147,7 +148,7 @@ export const createEvent = createServerFn({ method: 'POST' })
       .select('id, title, description, event_date, event_time, type')
       .single()
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
     return event
   })
 
@@ -191,8 +192,8 @@ export const bulkCreateEvents = createServerFn({ method: 'POST' })
       .insert(rows)
       .select('id')
 
-    if (error) throw new Error(error.message)
-    return { count: inserted?.length ?? 0 }
+    if (error) throw dbError(error)
+    return { count: inserted.length }
   })
 
 const deleteEventInput = z.object({
@@ -213,7 +214,7 @@ export const deleteEvent = createServerFn({ method: 'POST' })
       .from('events')
       .delete()
       .eq('id', data.eventId)
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
 
     return { id: data.eventId }
   })

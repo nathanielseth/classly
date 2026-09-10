@@ -29,7 +29,7 @@ interface Comment {
   content: string
   author_id: string
   created_at: string | null
-  author: CommentAuthor | null
+  author: CommentAuthor
 }
 
 interface CommentsPanelProps {
@@ -159,7 +159,7 @@ function CommentThread({
         <div className="space-y-4">
           {comments.map((comment) => {
             const isOwnComment = comment.author_id === currentUserId
-            const authorIsInstructor = comment.author?.role === 'instructor'
+            const authorIsInstructor = comment.author.role === 'instructor'
             const canDelete = isOwnComment || isInstructor
 
             return (
@@ -169,13 +169,13 @@ function CommentThread({
                     authorIsInstructor ? 'bg-purple-500' : 'bg-blue-500'
                   }`}
                 >
-                  {comment.author?.full_name?.[0]?.toUpperCase() ?? 'U'}
+                  {comment.author.full_name[0].toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="bg-gray-50 rounded-lg p-3">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="font-medium text-sm text-gray-900">
-                        {comment.author?.full_name ?? 'Unknown'}
+                        {comment.author.full_name}
                       </span>
                       {authorIsInstructor && (
                         <span className="text-xs font-medium text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">
@@ -328,7 +328,7 @@ function PrivateCommentsTab({
         },
       }),
     enabled: Boolean(selectedStudentId),
-    refetchInterval: Boolean(selectedStudentId) ? 4000 : false,
+    refetchInterval: selectedStudentId ? 4000 : false,
   })
 
   const createMutation = useMutation({

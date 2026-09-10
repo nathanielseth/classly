@@ -1,8 +1,10 @@
 import { createServerFn } from '@tanstack/react-start'
+import { dbError } from '../db-error'
 import { z } from 'zod'
 import { authMiddleware } from '../middleware'
 import { assertSubjectAccess } from '../subject-access'
 import type { getServerSupabase } from '../supabase'
+import { ENROLLMENTS_SAFETY_CAP } from './enrollments'
 
 const SUBMISSIONS_BUCKET = 'submission-files'
 const MAX_FILE_SIZE = 10 * 1024 * 1024
@@ -54,7 +56,7 @@ async function getMaterialContext(
     .eq('id', materialId)
     .single()
 
-  if (error || !material) throw new Error('Material not found.')
+  if (error) throw new Error('Material not found.')
 
   return {
     subjectId: material.subject_id,
@@ -75,7 +77,7 @@ async function assertSubmissionAccess(
     .eq('id', submissionId)
     .single()
 
-  if (error || !submission) throw new Error('Submission not found.')
+  if (error) throw new Error('Submission not found.')
 
   const materialId = submission.material_id
   const studentId = submission.student_id
@@ -122,8 +124,8 @@ export const listOwnSubmissionStatuses = createServerFn({ method: 'GET' })
         .select('id')
         .eq('subject_id', data.subjectId)
 
-      if (materialsError) throw new Error(materialsError.message)
-      const ids = (materialIds ?? []).map((m) => m.id)
+      if (materialsError) throw dbError(materialsError)
+      const ids = materialIds.map((m) => m.id)
       if (ids.length === 0) return { statuses: [] }
 
       const { data: submissions, error } = await supabase
@@ -132,8 +134,8 @@ export const listOwnSubmissionStatuses = createServerFn({ method: 'GET' })
         .eq('student_id', profile.id)
         .in('material_id', ids)
 
-      if (error) throw new Error(error.message)
-      return { statuses: submissions ?? [] }
+      if (error) throw dbError(error)
+      return { statuses: submissions }
     },
   )
 
@@ -161,7 +163,7 @@ export const getOwnSubmission = createServerFn({ method: 'GET' })
       .eq('student_id', profile.id)
       .maybeSingle()
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
     return submission
   })
 
@@ -218,7 +220,7 @@ export const submitWork = createServerFn({ method: 'POST' })
         .eq('id', existing.id)
         .select(SUBMISSION_COLUMNS)
         .single()
-      if (error) throw new Error(error.message)
+      if (error) throw dbError(error)
       return submission
     }
 
@@ -232,7 +234,7 @@ export const submitWork = createServerFn({ method: 'POST' })
       .select(SUBMISSION_COLUMNS)
       .single()
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
     return submission
   })
 
@@ -264,7 +266,7 @@ export const unsubmitWork = createServerFn({ method: 'POST' })
       .select('status')
       .eq('id', data.submissionId)
       .single()
-    if (fetchError) throw new Error(fetchError.message)
+    if (fetchError) throw dbError(fetchError)
     if (current.status === 'graded' || current.status === 'returned') {
       throw new Error('Graded work cannot be unsubmitted.')
     }
@@ -276,7 +278,7 @@ export const unsubmitWork = createServerFn({ method: 'POST' })
       .select(SUBMISSION_COLUMNS)
       .single()
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
     return submission
   })
 
@@ -335,7 +337,7 @@ export const uploadSubmissionFile = createServerFn({ method: 'POST' })
       .from(SUBMISSIONS_BUCKET)
       .upload(filePath, data.file, { cacheControl: '3600', upsert: false })
 
-    if (uploadError) throw new Error(uploadError.message)
+    if (uploadError) throw dbError(uploadError)
 
     const fileFields = {
       file_url: filePath,
@@ -350,7 +352,7 @@ export const uploadSubmissionFile = createServerFn({ method: 'POST' })
         .eq('id', existing.id)
         .select(SUBMISSION_COLUMNS)
         .single()
-      if (error) throw new Error(error.message)
+      if (error) throw dbError(error)
       return submission
     }
 
@@ -365,7 +367,7 @@ export const uploadSubmissionFile = createServerFn({ method: 'POST' })
       .select(SUBMISSION_COLUMNS)
       .single()
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
     return submission
   })
 
@@ -411,7 +413,7 @@ export const removeSubmissionFile = createServerFn({ method: 'POST' })
       .select(SUBMISSION_COLUMNS)
       .single()
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
     return submission
   })
 
@@ -437,7 +439,7 @@ export const getSubmissionFileUrl = createServerFn({ method: 'GET' })
       .select('file_url, file_name')
       .eq('id', data.submissionId)
       .single()
-    if (fetchError) throw new Error(fetchError.message)
+    if (fetchError) throw dbError(fetchError)
     if (!submission.file_url) throw new Error('This submission has no file.')
 
     const path = isStoragePath(submission.file_url)
@@ -449,7 +451,7 @@ export const getSubmissionFileUrl = createServerFn({ method: 'GET' })
       .from(SUBMISSIONS_BUCKET)
       .createSignedUrl(path, SIGNED_URL_TTL_SECONDS)
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
     return {
       url: signed.signedUrl,
       fileName: submission.file_name,
@@ -508,17 +510,15 @@ export const listSubmissionsForMaterial = createServerFn({ method: 'GET' })
         .eq('material_id', data.materialId),
     ])
 
-    if (enrollError) throw new Error(enrollError.message)
-    if (subError) throw new Error(subError.message)
+    if (enrollError) throw dbError(enrollError)
+    if (subError) throw dbError(subError)
 
     const submissionByStudent = new Map(
-      (submissions ?? []).map((s): [string, typeof s] => [s.student_id, s]),
+      submissions.map((s): [string, typeof s] => [s.student_id, s]),
     )
 
-    const roster: RosterEntry[] = (enrollments ?? []).map((e) => {
+    const roster: RosterEntry[] = enrollments.map((e) => {
       const student = e.student
-      if (!student)
-        throw new Error('Enrollment is missing its student profile.')
       const submission = submissionByStudent.get(student.id) ?? null
       return {
         student: {
@@ -561,7 +561,7 @@ interface SubjectGradeEntry {
 }
 
 // whole-classroom gradebook
-//  used for the classroom-wide grade export
+// used for the classroom-wide grade export
 export const listSubmissionsForSubject = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
   .validator(listSubmissionsForSubjectInput)
@@ -595,15 +595,16 @@ export const listSubmissionsForSubject = createServerFn({ method: 'GET' })
           .select(
             'student:profiles!enrollments_student_id_fkey(id, full_name, email)',
           )
-          .eq('subject_id', data.subjectId),
+          .eq('subject_id', data.subjectId)
+          .limit(ENROLLMENTS_SAFETY_CAP),
       ])
 
-      if (materialsError) throw new Error(materialsError.message)
-      if (enrollError) throw new Error(enrollError.message)
+      if (materialsError) throw dbError(materialsError)
+      if (enrollError) throw dbError(enrollError)
 
-      const materialIds = (materials ?? []).map((m) => m.id)
+      const materialIds = materials.map((m) => m.id)
 
-      // no materials yet,, skip the submissions query, nothing to join.
+      // No materials yet - skip the submissions query, nothing to join.
       const { data: submissions, error: subError } =
         materialIds.length > 0
           ? await supabase
@@ -614,22 +615,20 @@ export const listSubmissionsForSubject = createServerFn({ method: 'GET' })
               .in('material_id', materialIds)
           : { data: [], error: null }
 
-      if (subError) throw new Error(subError.message)
+      if (subError) throw dbError(subError)
 
       const submissionByKey = new Map(
-        (submissions ?? []).map((s) => [`${s.material_id}:${s.student_id}`, s]),
+        submissions.map((s) => [`${s.material_id}:${s.student_id}`, s]),
       )
 
-      const grades: SubjectGradeEntry[] = (enrollments ?? []).map((e) => {
+      const grades: SubjectGradeEntry[] = enrollments.map((e) => {
         const student = e.student
-        if (!student)
-          throw new Error('Enrollment is missing its student profile.')
 
-        const submissions: SubjectGradeEntry['submissions'] = {}
-        for (const material of materials ?? []) {
+        const studentSubmissions: SubjectGradeEntry['submissions'] = {}
+        for (const material of materials) {
           const submission =
             submissionByKey.get(`${material.id}:${student.id}`) ?? null
-          submissions[material.id] = submission
+          studentSubmissions[material.id] = submission
             ? {
                 grade: submission.grade,
                 grade_percentage: submission.grade_percentage,
@@ -647,11 +646,11 @@ export const listSubmissionsForSubject = createServerFn({ method: 'GET' })
             full_name: student.full_name,
             email: student.email,
           },
-          submissions,
+          submissions: studentSubmissions,
         }
       })
 
-      return { materials: materials ?? [], grades }
+      return { materials: materials, grades }
     },
   )
 
@@ -700,7 +699,7 @@ export const gradeSubmission = createServerFn({ method: 'POST' })
       .select(SUBMISSION_COLUMNS)
       .single()
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
     return submission
   })
 
@@ -727,6 +726,6 @@ export const returnSubmission = createServerFn({ method: 'POST' })
       .select(SUBMISSION_COLUMNS)
       .single()
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
     return submission
   })

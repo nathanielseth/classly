@@ -172,7 +172,7 @@ export function QuizTakingPanel({ materialId }: QuizTakingPanelProps) {
   }
 
   // results / review screen (submitted attempt)
-  if (hasSubmitted && existingAttempt) {
+  if (existingAttempt) {
     const pct = Math.round(
       (existingAttempt.score / existingAttempt.total) * 100,
     )
@@ -325,7 +325,8 @@ export function QuizTakingPanel({ materialId }: QuizTakingPanelProps) {
             className={`h-7 w-7 rounded-full text-xs font-medium transition-all ${
               i === currentIndex
                 ? 'bg-classly-green text-white'
-                : selectedAnswers[i] !== undefined
+                :
+                  selectedAnswers[i] !== undefined
                   ? 'bg-classly-green/20 text-classly-green'
                   : 'bg-secondary text-muted-foreground hover:bg-secondary/70'
             }`}

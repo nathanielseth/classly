@@ -130,7 +130,7 @@ export function AdminDashboardView() {
                 >
                   <div className="flex min-w-0 flex-1 items-center gap-3">
                     <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-medium text-primary select-none">
-                      {getInitials(user.full_name ?? user.email ?? '?')}
+                      {getInitials(user.full_name)}
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium text-foreground">

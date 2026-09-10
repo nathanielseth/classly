@@ -12,16 +12,17 @@
     "preview": "vite preview",
     "lint": "eslint",
     "format": "prettier --write . && eslint --fix",
-    "check": "prettier --check ."
+    "check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
     "@supabase/ssr": "^0.12.4",
     "@tailwindcss/vite": "^4.1.18",
-    "pdf-parse": "^2.4.5",
-    "xlsx": "^0.18.5",
     "@tanstack/react-devtools": "latest",
-    "@tanstack/react-query": "^5.101.4",
+    "@tanstack/react-query": "^5.102.8",
     "@tanstack/react-router": "latest",
     "@tanstack/react-router-devtools": "latest",
     "@tanstack/react-router-ssr-query": "latest",
@@ -33,23 +34,29 @@
     "date-fns": "^4.4.0",
     "groq-sdk": "^1.4.1",
     "lucide-react": "^1.27.0",
+    "pdf-parse": "^2.4.5",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "tailwind-merge": "^3.6.0",
     "tailwindcss": "^4.1.18",
+    "xlsx": "^0.18.5",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tanstack/devtools-vite": "latest",
     "@tanstack/eslint-config": "latest",
     "@tanstack/router-cli": "^1.132.0",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^26.1.2",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^6.0.5",
     "eslint": "^10.8.0",
+    "jsdom": "^30.0.1",
     "prettier": "^3.8.1",
-    "typescript": "^7.0.2",
-    "vite": "^8.2.0"
+    "typescript": "^6.0.3",
+    "vite": "^8.2.0",
+    "vitest": "^4.1.11"
   }
 }

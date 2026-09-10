@@ -1,10 +1,10 @@
 import * as React from 'react'
 import { Toast as ToastPrimitive } from '@base-ui/react/toast'
-
-const createToastManager = ToastPrimitive.createToastManager
 import { CheckCircle2, Info, TriangleAlert, X, XCircle } from 'lucide-react'
 
 import { cn } from '@/lib/utils'
+
+const createToastManager = ToastPrimitive.createToastManager
 
 export const toastManager = createToastManager()
 
@@ -64,7 +64,12 @@ function Toasts() {
   return (
     <>
       {toasts.map((t) => {
-        const variant = (t.type as ToastVariant) ?? 'default'
+        const variant: ToastVariant =
+          t.type === 'success' ||
+          t.type === 'warning' ||
+          t.type === 'destructive'
+            ? t.type
+            : 'default'
         const Icon = variantIcon[variant]
 
         return (

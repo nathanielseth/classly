@@ -1,4 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
+import { dbError } from '../db-error'
 import { adminOnlyMiddleware } from '../middleware'
 
 export const getSystemStats = createServerFn({ method: 'GET' })
@@ -42,7 +43,7 @@ export const getSystemStats = createServerFn({ method: 'GET' })
       enrollments,
       materials,
     ]) {
-      if (result.error) throw new Error(result.error.message)
+      if (result.error) throw dbError(result.error)
     }
 
     return {
@@ -67,9 +68,9 @@ export const getRecentUsers = createServerFn({ method: 'GET' })
       .order('created_at', { ascending: false })
       .limit(RECENT_USERS_LIMIT)
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
 
-    return { users: users ?? [] }
+    return { users: users }
   })
 
 export const getWeeklyActivity = createServerFn({ method: 'GET' })
@@ -101,10 +102,10 @@ export const getWeeklyActivity = createServerFn({ method: 'GET' })
       ])
 
     // a failed head-count query previously fell through silently
-    if (newUsers.error) throw new Error(newUsers.error.message)
-    if (newSubjects.error) throw new Error(newSubjects.error.message)
-    if (newEnrollments.error) throw new Error(newEnrollments.error.message)
-    if (newSubmissions.error) throw new Error(newSubmissions.error.message)
+    if (newUsers.error) throw dbError(newUsers.error)
+    if (newSubjects.error) throw dbError(newSubjects.error)
+    if (newEnrollments.error) throw dbError(newEnrollments.error)
+    if (newSubmissions.error) throw dbError(newSubmissions.error)
 
     return {
       newUsers: newUsers.count ?? 0,

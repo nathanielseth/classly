@@ -1,4 +1,9 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
+import {
+  createFileRoute,
+  Link
+  
+} from '@tanstack/react-router'
+import type {ErrorComponentProps} from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, Clock, Paperclip, Download } from 'lucide-react'
 import { getSubject } from '@/lib/server/functions/subjects'
@@ -39,13 +44,15 @@ export const Route = createFileRoute(
   errorComponent: MaterialDetailError,
 })
 
-function MaterialDetailError({ error }: { error: Error }) {
+function MaterialDetailError({ error }: ErrorComponentProps) {
   return (
     <div className="max-w-2xl mx-auto mt-12 bg-red-50 border border-red-200 rounded-xl p-6 text-center">
       <h1 className="font-semibold text-red-900 mb-1">
         Can't open this material
       </h1>
-      <p className="text-sm text-red-700">{error.message}</p>
+      <p className="text-sm text-red-700">
+        {error instanceof Error ? error.message : 'Something went wrong.'}
+      </p>
     </div>
   )
 }

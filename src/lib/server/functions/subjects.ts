@@ -1,4 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
+import { dbError } from '../db-error'
 import { z } from 'zod'
 import { authMiddleware } from '../middleware'
 
@@ -50,9 +51,9 @@ export const listSubjects = createServerFn({ method: 'GET' })
         }
 
         const { data: rows, error } = await query
-        if (error) throw new Error(error.message)
+        if (error) throw dbError(error)
 
-        const subjects: SubjectListItem[] = (rows ?? []).map((row) => ({
+        const subjects: SubjectListItem[] = rows.map((row) => ({
           id: row.id,
           code: row.code,
           name: row.name,
@@ -91,9 +92,9 @@ export const listSubjects = createServerFn({ method: 'GET' })
       }
 
       const { data: enrollments, error } = await query
-      if (error) throw new Error(error.message)
+      if (error) throw dbError(error)
 
-      const subjects: SubjectListItem[] = (enrollments ?? []).map((e) => {
+      const subjects: SubjectListItem[] = enrollments.map((e) => {
         const row = e.subject
         return {
           id: row.id,
@@ -205,7 +206,7 @@ export const createSubject = createServerFn({ method: 'POST' })
 
       if (!error) return subject
 
-      if (error.code !== '23505') throw new Error(error.message)
+      if (error.code !== '23505') throw dbError(error)
     }
 
     throw new Error(
@@ -321,7 +322,7 @@ export const deleteSubject = createServerFn({ method: 'POST' })
 
     const { data: deleted, error } = await query.select('id').maybeSingle()
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
     if (!deleted) {
       throw new Error(
         "Subject not found or you don't have permission to delete it.",
@@ -351,7 +352,7 @@ export const joinSubjectByCode = createServerFn({ method: 'POST' })
       .eq('code', data.code.toUpperCase())
       .maybeSingle()
 
-    if (subjectError) throw new Error(subjectError.message)
+    if (subjectError) throw dbError(subjectError)
     if (!subject) throw new Error('No subject found with that code.')
     if (subject.archived)
       throw new Error(
@@ -366,7 +367,7 @@ export const joinSubjectByCode = createServerFn({ method: 'POST' })
       if (enrollError.code === '23505') {
         throw new Error("You're already enrolled in this subject.")
       }
-      throw new Error(enrollError.message)
+      throw dbError(enrollError)
     }
 
     return { subjectId: subject.id, subjectName: subject.name }

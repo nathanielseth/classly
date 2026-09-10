@@ -1,4 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
+import { dbError } from '../db-error'
 import { z } from 'zod'
 import { adminOnlyMiddleware } from '../middleware'
 import { getIsolatedServerSupabase } from '../supabase'
@@ -38,15 +39,15 @@ export const listUsers = createServerFn({ method: 'GET' })
       error,
       count,
     } = await query.order('created_at', { ascending: false }).range(from, to)
-
+    
     if (error) {
       if (error.code === 'PGRST103') {
-        return { users: [], total: count ?? 0, page, pageSize }
+        return { users: [], total: 0, page, pageSize }
       }
-      throw new Error(error.message)
+      throw dbError(error)
     }
 
-    return { users: users ?? [], total: count ?? 0, page, pageSize }
+    return { users: users, total: count ?? 0, page, pageSize }
   })
 
 const userIdInput = z.object({
@@ -143,7 +144,7 @@ export const approveUser = createServerFn({ method: 'POST' })
       .select('id, status')
       .single()
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
     return user
   })
 
@@ -158,7 +159,7 @@ export const rejectUser = createServerFn({ method: 'POST' })
       .select('id, status')
       .single()
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
     return user
   })
 
@@ -178,7 +179,7 @@ export const updateUser = createServerFn({ method: 'POST' })
       .eq('id', data.userId)
       .single()
 
-    if (fetchError || !currentUser) throw new Error('User not found.')
+    if (fetchError) throw new Error('User not found.')
 
     if (currentUser.role === 'instructor' && data.role === 'student') {
       const { count, error: subjectError } = await context.supabase
@@ -186,7 +187,7 @@ export const updateUser = createServerFn({ method: 'POST' })
         .select('id', { count: 'exact', head: true })
         .eq('instructor_id', data.userId)
 
-      if (subjectError) throw new Error(subjectError.message)
+      if (subjectError) throw dbError(subjectError)
 
       if (count && count > 0) {
         throw new Error(
@@ -206,7 +207,7 @@ export const updateUser = createServerFn({ method: 'POST' })
       .select('id, full_name, email, role, status, created_at')
       .single()
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
     return user
   })
 
@@ -226,7 +227,7 @@ export const deleteUser = createServerFn({ method: 'POST' })
           'This user still has related records that block deletion. This should not happen given the current cascade setup - check for a recent schema change.',
         )
       }
-      throw new Error(error.message)
+      throw dbError(error)
     }
     return { id: data.userId }
   })
@@ -251,7 +252,7 @@ export const createUser = createServerFn({ method: 'POST' })
         options: { data: { full_name: data.fullName, role: data.role } },
       })
 
-    if (signUpError) throw new Error(signUpError.message)
+    if (signUpError) throw dbError(signUpError)
     const newUserId = signUpData.user?.id
     if (!newUserId) throw new Error('Failed to create auth user.')
 

@@ -1,4 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
+import { dbError } from '../db-error'
 import { z } from 'zod'
 import { authMiddleware } from '../middleware'
 import { assertSubjectAccess } from '../subject-access'
@@ -15,7 +16,7 @@ interface CommentListItem {
   is_private: boolean | null
   created_at: string | null
   updated_at: string | null
-  author: { id: string; full_name: string; role: string } | null
+  author: { id: string; full_name: string; role: string }
 }
 
 async function getMaterialSubjectId(
@@ -28,7 +29,7 @@ async function getMaterialSubjectId(
     .eq('id', materialId)
     .single()
 
-  if (error || !material) throw new Error('Material not found.')
+  if (error) throw new Error('Material not found.')
   return material.subject_id
 }
 
@@ -62,10 +63,10 @@ export const listClassComments = createServerFn({ method: 'GET' })
         .order('created_at', { ascending: false })
         .limit(100)
 
-      if (error) throw new Error(error.message)
+      if (error) throw dbError(error)
 
       return {
-        comments: (comments ?? []).reverse(),
+        comments: comments.reverse(),
       }
     },
   )
@@ -99,7 +100,7 @@ export const createClassComment = createServerFn({ method: 'POST' })
       )
       .single()
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
     return comment
   })
 
@@ -162,7 +163,7 @@ export const listPrivateComments = createServerFn({ method: 'GET' })
         .eq('id', subjectId)
         .single()
 
-      if (subjectError || !subject) throw new Error('Subject not found.')
+      if (subjectError) throw new Error('Subject not found.')
 
       const instructorId = subject.instructor_id
 
@@ -180,10 +181,10 @@ export const listPrivateComments = createServerFn({ method: 'GET' })
         .order('created_at', { ascending: false })
         .limit(100)
 
-      if (error) throw new Error(error.message)
+      if (error) throw dbError(error)
 
       return {
-        comments: (comments ?? []).reverse(),
+        comments: comments.reverse(),
       }
     },
   )
@@ -226,7 +227,7 @@ export const createPrivateComment = createServerFn({ method: 'POST' })
       )
       .single()
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
     return comment
   })
 
@@ -252,7 +253,7 @@ export const listPrivateThreadStudentIds = createServerFn({ method: 'GET' })
       .eq('id', subjectId)
       .single()
 
-    if (subjectError || !subject) throw new Error('Subject not found.')
+    if (subjectError) throw new Error('Subject not found.')
 
     const { data: rows, error } = await supabase
       .from('material_comments')
@@ -261,10 +262,10 @@ export const listPrivateThreadStudentIds = createServerFn({ method: 'GET' })
       .eq('is_private', true)
       .neq('author_id', subject.instructor_id)
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
 
     const studentIds = Array.from(
-      new Set<string>((rows ?? []).map((r) => r.author_id)),
+      new Set<string>(rows.map((r) => r.author_id)),
     )
     return { studentIds }
   })
@@ -285,7 +286,7 @@ export const deleteComment = createServerFn({ method: 'POST' })
       .eq('id', data.commentId)
       .maybeSingle()
 
-    if (commentError) throw new Error(commentError.message)
+    if (commentError) throw dbError(commentError)
     if (!comment) {
       throw new Error(
         "Comment not found or you don't have permission to delete it.",
@@ -307,7 +308,7 @@ export const deleteComment = createServerFn({ method: 'POST' })
         .eq('id', subjectId)
         .single()
 
-      if (subjectError || !subject) throw new Error('Subject not found.')
+      if (subjectError) throw new Error('Subject not found.')
       isSubjectInstructor = subject.instructor_id === profile.id
     }
 
@@ -324,7 +325,7 @@ export const deleteComment = createServerFn({ method: 'POST' })
       .select('id')
       .maybeSingle()
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
     if (!deleted) {
       throw new Error(
         "Comment not found or you don't have permission to delete it.",

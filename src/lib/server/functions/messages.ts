@@ -1,4 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
+import { dbError } from '../db-error'
 import { z } from 'zod'
 import { authMiddleware } from '../middleware'
 import type { getServerSupabase } from '../supabase'
@@ -47,18 +48,17 @@ export const listDirectMessages = createServerFn({ method: 'GET' })
         .limit(1, { referencedTable: 'messages' })
         .limit(50)
 
-      if (error) throw new Error(error.message)
+      if (error) throw dbError(error)
 
       return {
-        conversations: (conversations ?? [])
+        conversations: conversations
           .map((c) => {
             const one = c.participant_one_profile
             const two = c.participant_two_profile
 
-            // both participant fks cascade on delete; a null embed means we cant resolve who "the other user" is without risking a  wrong match. skip the row instead of guessing
-            if (!one || !two) return null
-
             const otherUser = one.id === profile.id ? two : one
+
+            // nested embed above is already limited to the single latest message
             const last = c.messages[0] ?? null
 
             return {
@@ -67,8 +67,7 @@ export const listDirectMessages = createServerFn({ method: 'GET' })
               otherUser,
               preview: last ? truncate(last.content) : null,
             }
-          })
-          .filter((c): c is ConversationListItem => c !== null),
+          }),
       }
     },
   )
@@ -96,7 +95,7 @@ export const getOrCreateDirectConversation = createServerFn({
       .eq('status', 'approved')
       .maybeSingle()
 
-    if (otherError) throw new Error(otherError.message)
+    if (otherError) throw dbError(otherError)
     if (!other) throw new Error('That user could not be found.')
 
     // students may only dm staff, never other students
@@ -113,7 +112,7 @@ export const getOrCreateDirectConversation = createServerFn({
       .eq('participant_two', p2)
       .maybeSingle()
 
-    if (existingError) throw new Error(existingError.message)
+    if (existingError) throw dbError(existingError)
 
     if (existing) {
       return {
@@ -129,7 +128,7 @@ export const getOrCreateDirectConversation = createServerFn({
       .select('id, last_message_at')
       .single()
 
-    if (createError) throw new Error(createError.message)
+    if (createError) throw dbError(createError)
 
     return {
       id: created.id,
@@ -189,7 +188,7 @@ export const listMessagesInConversation = createServerFn({ method: 'GET' })
       .order('created_at', { ascending: false })
       .limit(50)
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
 
     // best-effort: mark other participant's messages read when thread is opened
     await supabase
@@ -200,7 +199,7 @@ export const listMessagesInConversation = createServerFn({ method: 'GET' })
       .is('read_at', null)
 
     return {
-      messages: (messages ?? []).reverse(),
+      messages: messages.reverse(),
     }
   })
 
@@ -231,7 +230,7 @@ export const sendDirectMessage = createServerFn({ method: 'POST' })
       )
       .single()
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
 
     await supabase
       .from('conversations')
@@ -275,9 +274,9 @@ export const searchMessageableUsers = createServerFn({ method: 'GET' })
 
       const { data: users, error } = await query.limit(8)
 
-      if (error) throw new Error(error.message)
+      if (error) throw dbError(error)
 
-      return { users: users ?? [] }
+      return { users: users }
     },
   )
 
@@ -314,7 +313,7 @@ export const listGroupConversations = createServerFn({ method: 'GET' })
           .select('conversation_id')
           .eq('user_id', profile.id)
 
-        if (memberError) throw new Error(memberError.message)
+        if (memberError) throw dbError(memberError)
 
         const ids = memberOf.map((m) => m.conversation_id)
         if (ids.length === 0) return { conversations: [] }
@@ -329,10 +328,10 @@ export const listGroupConversations = createServerFn({ method: 'GET' })
         })
         .limit(1, { referencedTable: 'group_messages' })
 
-      if (error) throw new Error(error.message)
+      if (error) throw dbError(error)
 
       return {
-        conversations: (conversations ?? []).map((c) => {
+        conversations: conversations.map((c) => {
           // nested embed above is already limited to the single latest message
           const last = c.group_messages[0] ?? null
           return {
@@ -362,7 +361,7 @@ async function assertGroupMembership(
     .eq('user_id', profile.id)
     .maybeSingle()
 
-  if (error) throw new Error(error.message)
+  if (error) throw dbError(error)
   if (!membership) throw new Error("You don't have access to this group chat.")
 }
 
@@ -389,10 +388,10 @@ export const listGroupMessages = createServerFn({ method: 'GET' })
       .order('created_at', { ascending: false })
       .limit(50)
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
 
     return {
-      messages: (messages ?? []).reverse(),
+      messages: messages.reverse(),
     }
   })
 
@@ -423,7 +422,7 @@ export const sendGroupMessage = createServerFn({ method: 'POST' })
       )
       .single()
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
 
     await supabase
       .from('group_conversations')
@@ -461,10 +460,10 @@ export const getGroupMembers = createServerFn({ method: 'GET' })
         )
         .eq('conversation_id', data.conversationId)
 
-      if (error) throw new Error(error.message)
+      if (error) throw dbError(error)
 
       return {
-        members: members ?? [],
+        members: members,
       }
     },
   )

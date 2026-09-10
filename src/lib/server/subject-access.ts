@@ -13,7 +13,7 @@ export async function assertSubjectAccess(
     .eq('id', subjectId)
     .single()
 
-  if (error || !subject) throw new Error('Subject not found.')
+  if (error) throw new Error('Subject not found.')
 
   if (profile.role === 'instructor') {
     if (subject.instructor_id !== profile.id) {

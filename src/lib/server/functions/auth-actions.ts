@@ -1,6 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
 import { getServerSupabase } from '../supabase'
+import { dbError } from '../db-error'
 
 export const signOut = createServerFn({ method: 'POST' }).handler(async () => {
   const supabase = getServerSupabase()
@@ -84,5 +85,5 @@ export const completeProfile = createServerFn({ method: 'POST' })
       status: isCvsuStudent ? 'approved' : 'pending',
     })
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
   })

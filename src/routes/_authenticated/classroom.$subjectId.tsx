@@ -1,5 +1,11 @@
 import { useState } from 'react'
-import { createFileRoute, Outlet, useMatches } from '@tanstack/react-router'
+import {
+  createFileRoute,
+  Outlet,
+  useMatches
+  
+} from '@tanstack/react-router'
+import type {ErrorComponentProps} from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query'
 import { getSubject } from '@/lib/server/functions/subjects'
 import { listAnnouncements } from '@/lib/server/functions/announcements'
@@ -41,13 +47,15 @@ export const Route = createFileRoute('/_authenticated/classroom/$subjectId')({
   errorComponent: ClassroomError,
 })
 
-function ClassroomError({ error }: { error: Error }) {
+function ClassroomError({ error }: ErrorComponentProps) {
   return (
     <div className="max-w-2xl mx-auto mt-12 bg-destructive/5 border border-destructive/20 rounded-xl p-6 text-center">
       <h1 className="font-semibold text-destructive mb-1">
         Can't open this classroom
       </h1>
-      <p className="text-sm text-destructive/80">{error.message}</p>
+      <p className="text-sm text-destructive/80">
+        {error instanceof Error ? error.message : 'Something went wrong.'}
+      </p>
     </div>
   )
 }

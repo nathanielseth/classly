@@ -64,7 +64,7 @@ export function ChatPanel({
           }
         : null
     }
-    return thread.otherUser?.id === senderId
+    return thread.otherUser.id === senderId
       ? {
           id: thread.otherUser.id,
           full_name: thread.otherUser.full_name,
@@ -116,10 +116,10 @@ export function ChatPanel({
     }
   }
 
-  const chatName = isGroup ? thread.name : (thread.otherUser?.full_name ?? '')
+  const chatName = isGroup ? thread.name : thread.otherUser.full_name
   const chatSub = isGroup
     ? (thread.subjectCode ?? 'Group Chat')
-    : (thread.otherUser?.email ?? '')
+    : thread.otherUser.email
   const messages = messagesQuery.data?.messages ?? []
 
   return (
@@ -138,7 +138,7 @@ export function ChatPanel({
         >
           {isGroup
             ? getInitial(thread.name)
-            : getInitial(thread.otherUser?.full_name)}
+            : getInitial(thread.otherUser.full_name)}
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-gray-900">{chatName}</p>
@@ -153,7 +153,7 @@ export function ChatPanel({
             {members.length}
           </button>
         )}
-        {!isGroup && thread.otherUser?.role && (
+        {!isGroup && thread.otherUser.role && (
           <span
             className={`text-xs px-2 py-0.5 rounded-full font-medium ${roleColor[thread.otherUser.role]}`}
           >

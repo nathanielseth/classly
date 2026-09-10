@@ -1,4 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
+import { dbError } from '../db-error'
 import { z } from 'zod'
 import { authMiddleware } from '../middleware'
 import { assertSubjectAccess } from '../subject-access'
@@ -41,10 +42,10 @@ export const listAnnouncements = createServerFn({ method: 'GET' })
         .order('created_at', { ascending: false })
         .limit(75)
 
-      if (error) throw new Error(error.message)
+      if (error) throw dbError(error)
 
       return {
-        announcements: announcements ?? [],
+        announcements: announcements,
       }
     },
   )
@@ -85,7 +86,7 @@ export const createAnnouncement = createServerFn({ method: 'POST' })
       )
       .single()
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
 
     return announcement
   })
@@ -188,7 +189,7 @@ export const deleteAnnouncement = createServerFn({ method: 'POST' })
 
     const { data: deleted, error } = await query.select('id').maybeSingle()
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
     if (!deleted) {
       throw new Error(
         "Announcement not found or you don't have permission to delete it.",

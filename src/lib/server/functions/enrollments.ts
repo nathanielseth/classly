@@ -1,4 +1,5 @@
 import { createServerFn } from '@tanstack/react-start'
+import { dbError } from '../db-error'
 import { z } from 'zod'
 import { authMiddleware } from '../middleware'
 import { assertSubjectAccess } from '../subject-access'
@@ -18,6 +19,8 @@ interface EnrollmentListItem {
   } | null
 }
 
+export const ENROLLMENTS_SAFETY_CAP = 500
+
 export const listEnrollments = createServerFn({ method: 'GET' })
   .middleware([authMiddleware])
   .validator(listEnrollmentsInput)
@@ -25,7 +28,7 @@ export const listEnrollments = createServerFn({ method: 'GET' })
     async ({
       data,
       context,
-    }): Promise<{ enrollments: EnrollmentListItem[] }> => {
+    }): Promise<{ enrollments: EnrollmentListItem[]; truncated: boolean }> => {
       const { supabase, profile } = context
       await assertSubjectAccess(supabase, profile, data.subjectId)
 
@@ -42,19 +45,22 @@ export const listEnrollments = createServerFn({ method: 'GET' })
         )
         .eq('subject_id', data.subjectId)
         .order('enrolled_at', { ascending: false })
+        .limit(ENROLLMENTS_SAFETY_CAP + 1)
 
-      if (error) throw new Error(error.message)
+      if (error) throw dbError(error)
+
+      const rows = enrollments
+      const truncated = rows.length > ENROLLMENTS_SAFETY_CAP
 
       return {
-        enrollments: (enrollments ?? []).map((e) => {
+        enrollments: rows.slice(0, ENROLLMENTS_SAFETY_CAP).map((e) => {
           const student = e.student
           return {
             ...e,
-            student: student
-              ? { ...student, email: canManage ? student.email : null }
-              : null,
+            student: { ...student, email: canManage ? student.email : null },
           }
         }),
+        truncated,
       }
     },
   )
@@ -91,7 +97,7 @@ export const setEnrollmentAccentColor = createServerFn({ method: 'POST' })
       .select('id, accent_color')
       .maybeSingle()
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
     if (!enrollment) throw new Error('You are not enrolled in this subject.')
 
     return { accentColor: enrollment.accent_color }
@@ -130,7 +136,7 @@ export const unenrollStudent = createServerFn({ method: 'POST' })
       .select('id')
       .maybeSingle()
 
-    if (error) throw new Error(error.message)
+    if (error) throw dbError(error)
     if (!deleted) throw new Error('That student is not enrolled in this class.')
 
     return { id: deleted.id }

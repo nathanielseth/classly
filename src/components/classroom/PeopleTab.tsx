@@ -108,6 +108,13 @@ export function PeopleTab({
           )}
         </div>
 
+        {enrollmentsQuery.data?.truncated && (
+          <div className="mb-3 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            Showing the first {enrollments.length} students. This class has
+            more than that enrolled - contact support if that's unexpected.
+          </div>
+        )}
+
         {enrollmentsQuery.isError ? (
           <div className="bg-red-50 border border-red-200 rounded-xl p-6">
             <h3 className="font-semibold text-red-900 mb-1">
