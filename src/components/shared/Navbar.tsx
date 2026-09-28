@@ -13,7 +13,12 @@ import {
 import { cn } from '@/lib/utils'
 import { getNotifications } from '@/lib/server/functions/notifications'
 import { signOut } from '@/lib/server/functions/auth-actions'
-import { getInitials } from '@/components/ui/avatar'
+import {
+  Avatar,
+  AvatarImage,
+  AvatarFallback,
+  getInitials,
+} from '@/components/ui/avatar'
 import { useClickOutside } from '@/hooks/useClickOutside'
 
 interface NavbarProps {
@@ -21,6 +26,7 @@ interface NavbarProps {
     full_name: string
     email: string
     role: 'student' | 'instructor' | 'admin'
+    avatar_url: string | null
   }
 }
 
@@ -164,9 +170,13 @@ export function Navbar({ profile }: NavbarProps) {
             onClick={() => setProfileOpen((v) => !v)}
             className="flex items-center gap-2 rounded-full border border-transparent py-1 pr-1 pl-2 transition-colors hover:border-border hover:bg-muted"
           >
-            <div className="flex size-7 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary select-none">
-              {getInitials(profile.full_name)}
-            </div>
+            <Avatar size="sm">
+              <AvatarImage
+                src={profile.avatar_url ?? undefined}
+                alt={profile.full_name}
+              />
+              <AvatarFallback>{getInitials(profile.full_name)}</AvatarFallback>
+            </Avatar>
             <ChevronDown
               size={14}
               className={cn(
@@ -178,16 +188,27 @@ export function Navbar({ profile }: NavbarProps) {
 
           {profileOpen && (
             <div className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-xl border border-border bg-card shadow-float">
-              <div className="border-b border-border p-4">
-                <p className="font-semibold text-foreground">
-                  {profile.full_name}
-                </p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {profile.email}
-                </p>
-                <p className="mt-1 text-xs font-medium text-primary capitalize">
-                  {profile.role}
-                </p>
+              <div className="flex items-center gap-3 border-b border-border p-4">
+                <Avatar size="lg">
+                  <AvatarImage
+                    src={profile.avatar_url ?? undefined}
+                    alt={profile.full_name}
+                  />
+                  <AvatarFallback>
+                    {getInitials(profile.full_name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <p className="truncate font-semibold text-foreground">
+                    {profile.full_name}
+                  </p>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {profile.email}
+                  </p>
+                  <p className="mt-0.5 text-xs font-medium text-primary capitalize">
+                    {profile.role}
+                  </p>
+                </div>
               </div>
               <div className="py-2">
                 <Link

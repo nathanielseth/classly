@@ -18,7 +18,7 @@ export const authMiddleware = createMiddleware({ type: 'function' }).server(
     // load profile once so downstream handlers do not each requery it
     const { data: profile } = await supabase
       .from('profiles')
-      .select('id, role, status, full_name')
+      .select('id, role, status, full_name, email')
       .eq('id', user.id)
       .single()
 

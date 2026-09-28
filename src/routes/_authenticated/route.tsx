@@ -79,6 +79,7 @@ function Shell({
     full_name: string
     email: string
     role: 'student' | 'instructor' | 'admin'
+    avatar_url: string | null
   }
 }) {
   const { isExamInProgress } = useExamLock()
@@ -91,6 +92,7 @@ function Shell({
           aiNavDisabled={isExamInProgress}
           role={profile.role}
           fullName={profile.full_name}
+          avatarUrl={profile.avatar_url}
         />
         <main className="flex-1 overflow-y-auto p-6 md:p-8">
           <Outlet />

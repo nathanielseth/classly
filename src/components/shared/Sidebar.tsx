@@ -21,12 +21,18 @@ import { cn } from '@/lib/utils'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import { signOut } from '@/lib/server/functions/auth-actions'
 import { listSubjects } from '@/lib/server/functions/subjects'
-import { getInitials } from '@/components/ui/avatar'
+import {
+  Avatar,
+  AvatarImage,
+  AvatarFallback,
+  getInitials,
+} from '@/components/ui/avatar'
 
 interface SidebarProps {
   aiNavDisabled: boolean
   role: 'student' | 'instructor' | 'admin'
   fullName: string
+  avatarUrl: string | null
 }
 
 const mainNavItems: Array<{
@@ -58,7 +64,12 @@ const roleLabel: Record<SidebarProps['role'], string> = {
   admin: 'Admin',
 }
 
-export function Sidebar({ aiNavDisabled, role, fullName }: SidebarProps) {
+export function Sidebar({
+  aiNavDisabled,
+  role,
+  fullName,
+  avatarUrl,
+}: SidebarProps) {
   const router = useRouter()
   const [collapsed, setCollapsed] = useLocalStorage(
     'classly:sidebar-collapsed',
@@ -265,9 +276,10 @@ export function Sidebar({ aiNavDisabled, role, fullName }: SidebarProps) {
             collapsed && 'justify-center px-0',
           )}
         >
-          <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-medium text-primary select-none">
-            {getInitials(fullName)}
-          </div>
+          <Avatar size="sm">
+            <AvatarImage src={avatarUrl ?? undefined} alt={fullName} />
+            <AvatarFallback>{getInitials(fullName)}</AvatarFallback>
+          </Avatar>
           {!collapsed && (
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-foreground">

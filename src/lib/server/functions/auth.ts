@@ -1,7 +1,7 @@
 import { createServerFn } from '@tanstack/react-start'
 import { getServerSupabase } from '../supabase'
 
-// cheap session + profile check for route-level beforeload gating (ux only) 
+// cheap session + profile check for route-level beforeload gating (ux only)
 // the real protection is in every server function's auth middleware, regardless of what this returns
 export type CurrentUserState =
   | { status: 'unauthenticated' }
@@ -14,6 +14,8 @@ export type CurrentUserState =
         full_name: string
         role: 'student' | 'instructor' | 'admin'
         status: 'pending' | 'approved' | 'rejected'
+        avatar_url: string | null
+        created_at: string | null
       }
     }
 
@@ -28,7 +30,7 @@ export const getCurrentUser = createServerFn({ method: 'GET' }).handler(
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('id, email, full_name, role, status')
+      .select('id, email, full_name, role, status, avatar_url, created_at')
       .eq('id', user.id)
       .single()
     if (!profile) {
