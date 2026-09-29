@@ -90,7 +90,7 @@ export function StreamTab({
       {canPost && (
         <button
           onClick={() => setComposerOpen(true)}
-          className="w-full flex items-center gap-3 px-4 py-3.5 bg-white border border-gray-200 rounded-xl text-left text-sm text-gray-400 hover:border-classly-green/40 hover:text-gray-500 transition-colors"
+          className="w-full flex items-center gap-3 px-4 py-3.5 bg-card border border-border rounded-xl text-left text-sm text-muted-foreground/70 hover:border-classly-green/40 hover:text-muted-foreground transition-colors"
         >
           <div className="w-8 h-8 rounded-full bg-classly-green/10 text-classly-green flex items-center justify-center shrink-0">
             <Plus size={16} />
@@ -100,11 +100,11 @@ export function StreamTab({
       )}
 
       {announcementsQuery.isError ? (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6">
-          <h3 className="font-semibold text-red-900 mb-1">
+        <div className="bg-destructive/8 border border-destructive/30 rounded-xl p-6">
+          <h3 className="font-semibold text-destructive mb-1">
             Failed to load announcements
           </h3>
-          <p className="text-sm text-red-700">
+          <p className="text-sm text-destructive">
             {announcementsQuery.error.message}
           </p>
         </div>
@@ -113,19 +113,19 @@ export function StreamTab({
           {Array.from({ length: 2 }).map((_, i) => (
             <div
               key={i}
-              className="h-28 bg-gray-100 rounded-xl animate-pulse"
+              className="h-28 bg-muted rounded-xl animate-pulse"
             />
           ))}
         </div>
       ) : announcements.length === 0 ? (
-        <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-12 text-center">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Megaphone size={28} className="text-gray-400" />
+        <div className="bg-card border-2 border-dashed border-border rounded-xl p-12 text-center">
+          <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+            <Megaphone size={28} className="text-muted-foreground/70" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <h3 className="text-lg font-semibold text-foreground mb-2">
             No announcements yet
           </h3>
-          <p className="text-sm text-gray-500 max-w-sm mx-auto">
+          <p className="text-sm text-muted-foreground max-w-sm mx-auto">
             {canPost
               ? 'Post an update to keep your class in the loop.'
               : "Your instructor hasn't posted anything here yet."}

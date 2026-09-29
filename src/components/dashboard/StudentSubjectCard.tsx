@@ -65,23 +65,23 @@ const COLOR_CLASSES: Record<
   },
   'blue-500': {
     border: 'border-t-blue-500',
-    badge: 'text-blue-600 bg-blue-50',
-    swatch: 'bg-blue-500',
+    badge: 'text-info bg-info/8',
+    swatch: 'bg-info',
   },
   'purple-500': {
     border: 'border-t-purple-500',
-    badge: 'text-purple-600 bg-purple-50',
-    swatch: 'bg-purple-500',
+    badge: 'text-chart-4 bg-chart-4/10',
+    swatch: 'bg-chart-4',
   },
   'pink-500': {
     border: 'border-t-pink-500',
-    badge: 'text-pink-600 bg-pink-50',
-    swatch: 'bg-pink-500',
+    badge: 'text-chart-5 bg-chart-5/10',
+    swatch: 'bg-chart-5',
   },
   'red-500': {
     border: 'border-t-red-500',
-    badge: 'text-red-600 bg-red-50',
-    swatch: 'bg-red-500',
+    badge: 'text-destructive bg-destructive/8',
+    swatch: 'bg-destructive',
   },
 }
 

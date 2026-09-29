@@ -114,23 +114,23 @@ export function SubmissionGradingModal({
         </DialogHeader>
 
         <div className="p-6 space-y-6">
-          <div className="bg-gray-50 rounded-lg p-4">
+          <div className="bg-secondary rounded-lg p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-classly-green rounded-full flex items-center justify-center text-white font-semibold">
+              <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-semibold">
                 {student.full_name[0].toUpperCase()}
               </div>
               <div className="flex-1">
-                <p className="font-medium text-gray-900">{student.full_name}</p>
-                <p className="text-sm text-gray-600">{student.email}</p>
+                <p className="font-medium text-foreground">{student.full_name}</p>
+                <p className="text-sm text-muted-foreground">{student.email}</p>
               </div>
               {submittedAt && (
                 <div className="text-right">
-                  <div className="flex items-center gap-1 text-sm text-gray-600">
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
                     <Clock size={14} />
                     <span>{formatShortDateTime(submittedAt)}</span>
                   </div>
                   {isLate && (
-                    <div className="flex items-center gap-1 text-xs text-orange-600 mt-1">
+                    <div className="flex items-center gap-1 text-xs text-warning mt-1">
                       <AlertCircle size={12} />
                       <span>Turned in late</span>
                     </div>
@@ -141,31 +141,31 @@ export function SubmissionGradingModal({
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold text-gray-900 mb-3">
+            <h3 className="text-sm font-semibold text-foreground mb-3">
               Student's Answer
             </h3>
 
             {submission.content ? (
-              <div className="bg-white border border-gray-200 rounded-lg p-4">
-                <p className="text-sm text-gray-700 whitespace-pre-wrap">
+              <div className="bg-card border border-border rounded-lg p-4">
+                <p className="text-sm text-foreground/80 whitespace-pre-wrap">
                   {submission.content}
                 </p>
               </div>
             ) : (
-              <div className="text-sm text-gray-500 italic">
+              <div className="text-sm text-muted-foreground italic">
                 No written answer provided
               </div>
             )}
 
             {submission.file_url && (
               <div className="mt-3">
-                <h4 className="text-xs font-medium text-gray-700 mb-2">
+                <h4 className="text-xs font-medium text-foreground/80 mb-2">
                   Attached File
                 </h4>
                 <button
                   onClick={handleOpenFile}
                   disabled={fileLoading}
-                  className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg transition-colors w-fit disabled:opacity-60"
+                  className="flex items-center gap-2 text-sm text-info hover:brightness-110 bg-info/8 hover:bg-info/12 px-3 py-2 rounded-lg transition-colors w-fit disabled:opacity-60"
                 >
                   <Paperclip size={16} />
                   <span>{submission.file_name || 'Download submission'}</span>
@@ -179,8 +179,8 @@ export function SubmissionGradingModal({
             )}
           </div>
 
-          <div className="border-t border-gray-200 pt-6">
-            <h3 className="text-sm font-semibold text-gray-900 mb-4">
+          <div className="border-t border-border pt-6">
+            <h3 className="text-sm font-semibold text-foreground mb-4">
               Grade & Feedback
             </h3>
 

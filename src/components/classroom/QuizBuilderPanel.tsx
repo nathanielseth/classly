@@ -292,7 +292,7 @@ export function QuizBuilderPanel({
               className="space-y-3 rounded-xl border border-border p-4"
             >
               <div className="flex items-start gap-3">
-                <span className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-classly-green text-xs font-bold text-white">
+                <span className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
                   {qIndex + 1}
                 </span>
                 <Textarea
@@ -329,12 +329,12 @@ export function QuizBuilderPanel({
                       title="Mark as correct answer"
                       className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
                         q.correctIndex === oIndex
-                          ? 'border-classly-green bg-classly-green'
+                          ? 'border-primary bg-primary'
                           : 'border-border hover:border-classly-green'
                       }`}
                     >
                       {q.correctIndex === oIndex && (
-                        <Check size={12} className="text-white" />
+                        <Check size={12} className="text-primary-foreground" />
                       )}
                     </button>
                     <Input

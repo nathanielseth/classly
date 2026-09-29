@@ -46,11 +46,11 @@ export const Route = createFileRoute(
 
 function MaterialDetailError({ error }: ErrorComponentProps) {
   return (
-    <div className="max-w-2xl mx-auto mt-12 bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-      <h1 className="font-semibold text-red-900 mb-1">
+    <div className="max-w-2xl mx-auto mt-12 bg-destructive/8 border border-destructive/30 rounded-xl p-6 text-center">
+      <h1 className="font-semibold text-destructive mb-1">
         Can't open this material
       </h1>
-      <p className="text-sm text-red-700">
+      <p className="text-sm text-destructive">
         {error instanceof Error ? error.message : 'Something went wrong.'}
       </p>
     </div>
@@ -74,11 +74,11 @@ function MaterialDetailPage() {
 
   if (subjectQuery.isError || materialQuery.isError) {
     return (
-      <div className="max-w-2xl mx-auto mt-12 bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-        <h1 className="font-semibold text-red-900 mb-1">
+      <div className="max-w-2xl mx-auto mt-12 bg-destructive/8 border border-destructive/30 rounded-xl p-6 text-center">
+        <h1 className="font-semibold text-destructive mb-1">
           Can't open this material
         </h1>
-        <p className="text-sm text-red-700">
+        <p className="text-sm text-destructive">
           {subjectQuery.error?.message || materialQuery.error?.message}
         </p>
       </div>
@@ -87,7 +87,7 @@ function MaterialDetailPage() {
 
   if (!subjectQuery.data || !materialQuery.data) {
     return (
-      <div className="flex items-center justify-center py-24 text-sm text-gray-400">
+      <div className="flex items-center justify-center py-24 text-sm text-muted-foreground/70">
         Loading...
       </div>
     )
@@ -103,11 +103,11 @@ function MaterialDetailPage() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <div className="bg-white border border-gray-200 rounded-xl p-6">
+      <div className="bg-card border border-border rounded-xl p-6">
         <Link
           to="/classroom/$subjectId"
           params={{ subjectId }}
-          className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 mb-4 transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground/80 mb-4 transition-colors"
         >
           <ArrowLeft size={15} />
           Back to {subject.name}
@@ -115,15 +115,15 @@ function MaterialDetailPage() {
 
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-foreground">
               {material.title}
             </h1>
-            <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-gray-600">
+            <div className="flex flex-wrap items-center gap-3 mt-2 text-sm text-muted-foreground">
               <span className="font-medium">{subject.name}</span>
               {dueDate && (
                 <div className="flex items-center gap-1">
                   <Clock size={14} />
-                  <span className={isOverdue ? 'text-red-600 font-medium' : ''}>
+                  <span className={isOverdue ? 'text-destructive font-medium' : ''}>
                     Due{' '}
                     {dueDate.toLocaleString('en-US', {
                       month: 'short',
@@ -138,7 +138,7 @@ function MaterialDetailPage() {
               {material.max_points !== null && material.max_points > 0 && (
                 <span>{material.max_points} points</span>
               )}
-              <span className="capitalize text-gray-500">
+              <span className="capitalize text-muted-foreground">
                 &bull; {material.type}
               </span>
             </div>
@@ -146,26 +146,26 @@ function MaterialDetailPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">
+      <div className="bg-card rounded-lg border border-border p-6">
+        <h2 className="text-lg font-semibold text-foreground mb-3">
           Instructions
         </h2>
-        <div className="text-gray-700 whitespace-pre-wrap">
+        <div className="text-foreground/80 whitespace-pre-wrap">
           {material.instructions ||
             material.description ||
             'No instructions provided.'}
         </div>
 
         {material.file_url && (
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <h3 className="text-sm font-medium text-gray-900 mb-2">
+          <div className="mt-4 pt-4 border-t border-border/60">
+            <h3 className="text-sm font-medium text-foreground mb-2">
               Attached Files
             </h3>
             <a
               href={material.file_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg transition-colors w-fit"
+              className="flex items-center gap-2 text-sm text-info hover:brightness-110 bg-info/8 hover:bg-info/12 px-3 py-2 rounded-lg transition-colors w-fit"
             >
               <Paperclip size={16} />
               <span>{material.file_name || 'Download attachment'}</span>

@@ -100,7 +100,7 @@ export function ExportGrades({
     <button
       onClick={handleExport}
       disabled={isExporting}
-      className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+      className="flex items-center gap-2 px-4 py-2 border border-input text-foreground/80 text-sm font-medium rounded-lg hover:bg-secondary transition-colors disabled:opacity-50"
     >
       {isExporting ? (
         <Loader2 size={16} className="animate-spin" />

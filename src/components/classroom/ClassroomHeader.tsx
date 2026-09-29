@@ -15,12 +15,12 @@ interface ClassroomHeaderProps {
 
 export function ClassroomHeader({ subject }: ClassroomHeaderProps) {
   return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+    <div className="bg-card border border-border rounded-xl overflow-hidden">
       <div className="h-2 bg-classly-green" />
       <div className="p-6">
         <Link
           to="/dashboard"
-          className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 mb-4 transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground/80 mb-4 transition-colors"
         >
           <ArrowLeft size={15} />
           Back to Dashboard
@@ -29,26 +29,26 @@ export function ClassroomHeader({ subject }: ClassroomHeaderProps) {
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wide text-classly-green bg-green-50">
+              <span className="text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wide text-classly-green bg-success/8">
                 {subject.code}
               </span>
               {subject.archived && (
-                <span className="text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wide text-gray-500 bg-gray-100">
+                <span className="text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wide text-muted-foreground bg-muted">
                   Archived
                 </span>
               )}
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">{subject.name}</h1>
+            <h1 className="text-2xl font-bold text-foreground">{subject.name}</h1>
             {subject.description && (
-              <p className="text-sm text-gray-500 mt-1 max-w-2xl">
+              <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
                 {subject.description}
               </p>
             )}
           </div>
 
-          <div className="text-sm text-gray-500 space-y-1 shrink-0">
+          <div className="text-sm text-muted-foreground space-y-1 shrink-0">
             {subject.instructor && (
-              <p className="font-medium text-gray-700">
+              <p className="font-medium text-foreground/80">
                 {subject.instructor.full_name}
               </p>
             )}

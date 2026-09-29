@@ -160,46 +160,46 @@ function CalendarPage() {
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-2xl font-bold text-foreground">
               {format(currentMonth, 'MMMM yyyy')}
             </h2>
-            <p className="text-gray-500 text-sm">Academic schedule</p>
+            <p className="text-muted-foreground text-sm">Academic schedule</p>
           </div>
           <div className="flex items-center gap-2">
             {canManageEvents && (
               <>
                 <button
                   onClick={() => setShowImportModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-all"
+                  className="flex items-center gap-2 px-4 py-2 bg-card border border-border text-foreground/80 text-sm font-medium rounded-lg hover:bg-secondary transition-all"
                 >
                   <UploadCloud size={16} />
                   Import
                 </button>
                 <button
                   onClick={() => setShowAddModal(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-classly-green text-white text-sm font-medium rounded-lg hover:bg-classly-green/90 transition-all"
+                  className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-all"
                 >
                   <Plus size={16} />
                   Add Event
                 </button>
               </>
             )}
-            <div className="flex items-center gap-1 bg-white p-1 rounded-lg border border-gray-200 shadow-sm">
+            <div className="flex items-center gap-1 bg-card p-1 rounded-lg border border-border shadow-sm">
               <button
                 onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-                className="p-2 hover:bg-gray-50 rounded-md text-gray-500 transition"
+                className="p-2 hover:bg-secondary rounded-md text-muted-foreground transition"
               >
                 <ChevronLeft size={18} />
               </button>
               <button
                 onClick={() => setCurrentMonth(new Date())}
-                className="px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-md transition"
+                className="px-3 py-1.5 text-sm font-medium text-foreground/80 hover:bg-secondary rounded-md transition"
               >
                 Today
               </button>
               <button
                 onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-                className="p-2 hover:bg-gray-50 rounded-md text-gray-500 transition"
+                className="p-2 hover:bg-secondary rounded-md text-muted-foreground transition"
               >
                 <ChevronRight size={18} />
               </button>
@@ -213,22 +213,22 @@ function CalendarPage() {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-7 mb-1 border-b border-gray-200">
+            <div className="grid grid-cols-7 mb-1 border-b border-border">
               {weekDayLabels.map((label) => (
                 <div
                   key={label}
-                  className="text-xs font-bold text-gray-400 uppercase tracking-wider text-center py-3"
+                  className="text-xs font-bold text-muted-foreground/70 uppercase tracking-wider text-center py-3"
                 >
                   {label}
                 </div>
               ))}
             </div>
 
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+            <div className="bg-card rounded-xl border border-border overflow-hidden shadow-sm">
               {Array.from({ length: gridDays.length / 7 }, (_, weekIdx) => (
                 <div
                   key={weekIdx}
-                  className="grid grid-cols-7 border-l border-t border-gray-100"
+                  className="grid grid-cols-7 border-l border-t border-border/60"
                 >
                   {gridDays.slice(weekIdx * 7, weekIdx * 7 + 7).map((day) => {
                     const dayItems = getAllItemsForDay(day)
@@ -238,14 +238,14 @@ function CalendarPage() {
                       <div
                         key={day.toISOString()}
                         onClick={() => setSelectedDate(day)}
-                        className={`min-h-27.5 border-r border-b border-gray-100 p-2 cursor-pointer flex flex-col gap-1 transition-colors
-                          ${!isCurrentMonth ? 'bg-gray-50/50' : 'bg-white hover:bg-gray-50'}
+                        className={`min-h-27.5 border-r border-b border-border/60 p-2 cursor-pointer flex flex-col gap-1 transition-colors
+                          ${!isCurrentMonth ? 'bg-secondary/50' : 'bg-card hover:bg-secondary'}
                           ${isSameDay(day, selectedDate) ? 'ring-2 ring-inset ring-classly-green/40' : ''}
                         `}
                       >
                         <div
                           className={`w-7 h-7 flex items-center justify-center rounded-full text-sm font-medium mb-0.5
-                            ${isToday(day) ? 'bg-classly-green text-white' : isCurrentMonth ? 'text-gray-700' : 'text-gray-300'}
+                            ${isToday(day) ? 'bg-primary text-primary-foreground' : isCurrentMonth ? 'text-foreground/80' : 'text-muted-foreground/50'}
                           `}
                         >
                           {format(day, 'd')}
@@ -260,7 +260,7 @@ function CalendarPage() {
                             </div>
                           ))}
                           {dayItems.length > 2 && (
-                            <div className="text-[10px] text-gray-400 pl-1">
+                            <div className="text-[10px] text-muted-foreground/70 pl-1">
                               +{dayItems.length - 2} more
                             </div>
                           )}
@@ -277,18 +277,18 @@ function CalendarPage() {
                 color="bg-classly-green/20 border-classly-green/30"
                 label="System event"
               />
-              <Legend color="bg-blue-100 border-blue-200" label="Assignment" />
-              <Legend color="bg-amber-100 border-amber-200" label="Quiz" />
-              <Legend color="bg-red-100 border-red-200" label="Exam" />
-              <Legend color="bg-purple-100 border-purple-200" label="Project" />
+              <Legend color="bg-info/12 border-info/30" label="Assignment" />
+              <Legend color="bg-warning/12 border-warning/30" label="Quiz" />
+              <Legend color="bg-destructive/12 border-destructive/30" label="Exam" />
+              <Legend color="bg-chart-4/15 border-chart-4/30" label="Project" />
             </div>
           </>
         )}
       </div>
 
       <div className="w-full lg:w-72 flex flex-col gap-4 shrink-0">
-        <div className="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm">
-          <h3 className="font-semibold text-gray-900 flex items-center gap-2 mb-4 text-sm">
+        <div className="bg-card border border-border p-5 rounded-2xl shadow-sm">
+          <h3 className="font-semibold text-foreground flex items-center gap-2 mb-4 text-sm">
             <CalendarIcon size={16} className="text-classly-green" />
             {format(selectedDate, 'EEEE, MMMM do')}
           </h3>
@@ -300,10 +300,10 @@ function CalendarPage() {
                     className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${getDotColor(item)}`}
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-800 truncate">
+                    <p className="text-sm font-medium text-foreground truncate">
                       {item.title}
                     </p>
-                    <p className="text-xs text-gray-500 mt-0.5">
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       {item.source === 'event'
                         ? (item.event_time ?? 'All day')
                         : item.subjectName || item.subjectCode || item.type}
@@ -316,7 +316,7 @@ function CalendarPage() {
                         deleteMutation.isPending &&
                         deleteMutation.variables === item.id
                       }
-                      className="text-gray-300 hover:text-red-500 transition-colors shrink-0 disabled:opacity-50"
+                      className="text-muted-foreground/50 hover:text-destructive transition-colors shrink-0 disabled:opacity-50"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -324,16 +324,16 @@ function CalendarPage() {
                 </div>
               ))
             ) : (
-              <p className="text-sm text-gray-400 text-center py-6">
+              <p className="text-sm text-muted-foreground/70 text-center py-6">
                 Nothing scheduled.
               </p>
             )}
           </div>
         </div>
 
-        <div className="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm">
-          <h3 className="font-semibold text-gray-900 flex items-center gap-2 mb-4 text-sm">
-            <AlertCircle size={16} className="text-amber-500" />
+        <div className="bg-card border border-border p-5 rounded-2xl shadow-sm">
+          <h3 className="font-semibold text-foreground flex items-center gap-2 mb-4 text-sm">
+            <AlertCircle size={16} className="text-warning" />
             Upcoming
           </h3>
           <div className="space-y-3">
@@ -344,10 +344,10 @@ function CalendarPage() {
                     className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${getDotColor(item)}`}
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-800 truncate">
+                    <p className="text-sm font-medium text-foreground truncate">
                       {item.title}
                     </p>
-                    <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+                    <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
                       <Clock size={10} />
                       {format(item.dateObj, 'MMM d')}
                       {item.source === 'event' && item.event_time
@@ -358,7 +358,7 @@ function CalendarPage() {
                 </div>
               ))
             ) : (
-              <p className="text-sm text-gray-400 text-center py-4">
+              <p className="text-sm text-muted-foreground/70 text-center py-4">
                 Nothing upcoming.
               </p>
             )}
@@ -391,7 +391,7 @@ function CalendarPage() {
 
 function Legend({ color, label }: { color: string; label: string }) {
   return (
-    <div className="flex items-center gap-1.5 text-xs text-gray-500">
+    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
       <div className={`w-3 h-3 rounded border ${color}`} />
       {label}
     </div>
@@ -400,24 +400,24 @@ function Legend({ color, label }: { color: string; label: string }) {
 
 function getItemColor(item: Item) {
   if (item.source === 'event') {
-    if (item.type === 'holiday') return 'bg-red-50 text-red-700 border-red-100'
+    if (item.type === 'holiday') return 'bg-destructive/8 text-destructive border-destructive/20'
     if (item.type === 'announcement')
-      return 'bg-blue-50 text-blue-700 border-blue-100'
+      return 'bg-info/8 text-info border-info/20'
     return 'bg-classly-green/10 text-classly-green border-classly-green/20'
   }
-  if (item.type === 'exam') return 'bg-red-50 text-red-700 border-red-100'
-  if (item.type === 'quiz') return 'bg-amber-50 text-amber-700 border-amber-100'
+  if (item.type === 'exam') return 'bg-destructive/8 text-destructive border-destructive/20'
+  if (item.type === 'quiz') return 'bg-warning/8 text-warning border-warning/20'
   if (item.type === 'project')
-    return 'bg-purple-50 text-purple-700 border-purple-100'
-  return 'bg-blue-50 text-blue-700 border-blue-100'
+    return 'bg-chart-4/10 text-chart-4 border-chart-4/20'
+  return 'bg-info/8 text-info border-info/20'
 }
 
 function getDotColor(item: Item) {
   if (item.source === 'event') return 'bg-classly-green'
-  if (item.type === 'exam') return 'bg-red-500'
-  if (item.type === 'quiz') return 'bg-amber-500'
-  if (item.type === 'project') return 'bg-purple-500'
-  return 'bg-blue-500'
+  if (item.type === 'exam') return 'bg-destructive'
+  if (item.type === 'quiz') return 'bg-warning'
+  if (item.type === 'project') return 'bg-chart-4'
+  return 'bg-info'
 }
 
 function ImportEventsModal({
@@ -476,12 +476,12 @@ function ImportEventsModal({
 
         <div className="space-y-4 overflow-y-auto p-6">
           <div>
-            <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-200 rounded-xl p-6 cursor-pointer hover:border-classly-green/40 hover:bg-classly-green/5 transition-colors">
-              <UploadCloud size={24} className="text-gray-400" />
-              <span className="text-sm font-medium text-gray-700">
+            <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border rounded-xl p-6 cursor-pointer hover:border-classly-green/40 hover:bg-classly-green/5 transition-colors">
+              <UploadCloud size={24} className="text-muted-foreground/70" />
+              <span className="text-sm font-medium text-foreground/80">
                 {fileName ?? 'Choose a .csv or .xlsx file'}
               </span>
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-muted-foreground/70">
                 Columns: title, date, time, type, description
               </span>
               <input
@@ -497,7 +497,7 @@ function ImportEventsModal({
           </div>
 
           {isParsing && (
-            <div className="flex items-center justify-center gap-2 text-sm text-gray-500 py-4">
+            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-4">
               <Loader2 size={16} className="animate-spin" />
               Reading file...
             </div>
@@ -505,24 +505,24 @@ function ImportEventsModal({
 
           {!isParsing && rows.length > 0 && (
             <div>
-              <p className="text-sm font-medium text-gray-700 mb-2">
+              <p className="text-sm font-medium text-foreground/80 mb-2">
                 {rows.length} event{rows.length === 1 ? '' : 's'} ready to
                 import
               </p>
-              <div className="border border-gray-200 rounded-lg divide-y divide-gray-100 max-h-48 overflow-y-auto">
+              <div className="border border-border rounded-lg divide-y divide-border/60 max-h-48 overflow-y-auto">
                 {rows.slice(0, 20).map((row, i) => (
                   <div
                     key={i}
                     className="px-3 py-2 text-sm flex items-center justify-between gap-3"
                   >
-                    <span className="truncate text-gray-800">{row.title}</span>
-                    <span className="text-xs text-gray-400 shrink-0">
+                    <span className="truncate text-foreground">{row.title}</span>
+                    <span className="text-xs text-muted-foreground/70 shrink-0">
                       {row.eventDate}
                     </span>
                   </div>
                 ))}
                 {rows.length > 20 && (
-                  <div className="px-3 py-2 text-xs text-gray-400 text-center">
+                  <div className="px-3 py-2 text-xs text-muted-foreground/70 text-center">
                     +{rows.length - 20} more
                   </div>
                 )}
@@ -531,12 +531,12 @@ function ImportEventsModal({
           )}
 
           {parseErrors.length > 0 && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
-              <p className="text-xs font-medium text-amber-800 mb-1">
+            <div className="bg-warning/8 border border-warning/30 rounded-lg p-3">
+              <p className="text-xs font-medium text-warning mb-1">
                 {parseErrors.length} row
                 {parseErrors.length === 1 ? '' : 's'} skipped
               </p>
-              <ul className="text-xs text-amber-700 space-y-0.5 max-h-24 overflow-y-auto">
+              <ul className="text-xs text-warning space-y-0.5 max-h-24 overflow-y-auto">
                 {parseErrors.map((err, i) => (
                   <li key={i}>{err}</li>
                 ))}

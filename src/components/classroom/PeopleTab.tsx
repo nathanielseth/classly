@@ -74,8 +74,8 @@ export function PeopleTab({
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 mb-3">Instructor</h2>
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm">
+        <h2 className="text-lg font-semibold text-foreground mb-3">Instructor</h2>
+        <div className="bg-card border border-border rounded-xl shadow-sm">
           {subject.instructor ? (
             <StudentCard
               name={subject.instructor.full_name}
@@ -87,16 +87,16 @@ export function PeopleTab({
               }
             />
           ) : (
-            <div className="p-4 text-sm text-gray-500">Unknown instructor</div>
+            <div className="p-4 text-sm text-muted-foreground">Unknown instructor</div>
           )}
         </div>
       </div>
 
       <div>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
             {studentsLabel}
-            <span className="text-xs font-normal text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+            <span className="text-xs font-normal text-muted-foreground/70 bg-muted px-2 py-0.5 rounded-full">
               {enrollments.length}
             </span>
           </h2>
@@ -109,38 +109,38 @@ export function PeopleTab({
         </div>
 
         {enrollmentsQuery.data?.truncated && (
-          <div className="mb-3 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          <div className="mb-3 text-xs text-warning bg-warning/8 border border-warning/30 rounded-lg px-3 py-2">
             Showing the first {enrollments.length} students. This class has
             more than that enrolled - contact support if that's unexpected.
           </div>
         )}
 
         {enrollmentsQuery.isError ? (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-6">
-            <h3 className="font-semibold text-red-900 mb-1">
+          <div className="bg-destructive/8 border border-destructive/30 rounded-xl p-6">
+            <h3 className="font-semibold text-destructive mb-1">
               Failed to load roster
             </h3>
-            <p className="text-sm text-red-700">
+            <p className="text-sm text-destructive">
               {enrollmentsQuery.error.message}
             </p>
           </div>
         ) : enrollmentsQuery.isPending ? (
-          <div className="bg-white border border-gray-200 rounded-xl p-8 flex items-center justify-center">
-            <Loader2 size={20} className="animate-spin text-gray-400" />
+          <div className="bg-card border border-border rounded-xl p-8 flex items-center justify-center">
+            <Loader2 size={20} className="animate-spin text-muted-foreground/70" />
           </div>
         ) : enrollments.length === 0 ? (
-          <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-12 text-center">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Users size={28} className="text-gray-400" />
+          <div className="bg-card border-2 border-dashed border-border rounded-xl p-12 text-center">
+            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+              <Users size={28} className="text-muted-foreground/70" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <h3 className="text-lg font-semibold text-foreground mb-2">
               {canManage
                 ? 'No students enrolled yet'
                 : 'No other students enrolled yet'}
             </h3>
           </div>
         ) : (
-          <div className="bg-white border border-gray-200 rounded-xl shadow-sm divide-y divide-gray-100">
+          <div className="bg-card border border-border rounded-xl shadow-sm divide-y divide-border/60">
             {enrollments.map((enrollment) => (
               <StudentCard
                 key={enrollment.id}

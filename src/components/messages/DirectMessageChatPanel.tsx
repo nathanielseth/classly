@@ -123,17 +123,17 @@ export function ChatPanel({
   const messages = messagesQuery.data?.messages ?? []
 
   return (
-    <div className="flex flex-col flex-1 bg-white min-w-0">
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-200 shrink-0">
+    <div className="flex flex-col flex-1 bg-card min-w-0">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-border shrink-0">
         <button
           onClick={onBack}
-          className="md:hidden p-2 hover:bg-gray-100 rounded-lg text-gray-500"
+          className="md:hidden p-2 hover:bg-muted rounded-lg text-muted-foreground"
         >
           <ArrowLeft size={18} />
         </button>
         <div
-          className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold shrink-0 ${
-            isGroup ? 'bg-purple-500' : 'bg-classly-green'
+          className={`w-9 h-9 rounded-full flex items-center justify-center font-semibold shrink-0 ${
+            isGroup ? 'bg-chart-4 text-background' : 'bg-primary text-primary-foreground'
           }`}
         >
           {isGroup
@@ -141,13 +141,13 @@ export function ChatPanel({
             : getInitial(thread.otherUser.full_name)}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-gray-900">{chatName}</p>
-          <p className="text-xs text-gray-500">{chatSub}</p>
+          <p className="text-sm font-semibold text-foreground">{chatName}</p>
+          <p className="text-xs text-muted-foreground">{chatSub}</p>
         </div>
         {isGroup && (
           <button
             onClick={() => setShowMembers((v) => !v)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-muted-foreground hover:bg-muted rounded-lg transition-colors"
           >
             <Users size={14} />
             {members.length}
@@ -166,18 +166,18 @@ export function ChatPanel({
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
           {messagesQuery.isPending ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 size={20} className="animate-spin text-gray-400" />
+              <Loader2 size={20} className="animate-spin text-muted-foreground/70" />
             </div>
           ) : messagesQuery.isError ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
-              <p className="text-sm text-red-600">
+              <p className="text-sm text-destructive">
                 {messagesQuery.error.message}
               </p>
             </div>
           ) : messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
-              <MessageSquare size={28} className="text-gray-300 mb-2" />
-              <p className="text-sm text-gray-400">
+              <MessageSquare size={28} className="text-muted-foreground/50 mb-2" />
+              <p className="text-sm text-muted-foreground/70">
                 {isGroup ? `Welcome to ${chatName}!` : `Say hi to ${chatName}`}
               </p>
             </div>
@@ -190,28 +190,28 @@ export function ChatPanel({
                   className={`flex items-end gap-2 ${isMe ? 'justify-end' : 'justify-start'}`}
                 >
                   {!isMe && (
-                    <div className="w-7 h-7 rounded-full bg-classly-green flex items-center justify-center text-white text-xs font-semibold shrink-0">
+                    <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-semibold shrink-0">
                       {getInitial(msg.sender?.full_name)}
                     </div>
                   )}
                   <div className="max-w-xs lg:max-w-md">
                     {!isMe && isGroup && (
-                      <p className="text-xs text-gray-500 mb-1 ml-1">
+                      <p className="text-xs text-muted-foreground mb-1 ml-1">
                         {msg.sender?.full_name}
                       </p>
                     )}
                     <div
                       className={`px-4 py-2.5 rounded-2xl text-sm ${
                         isMe
-                          ? 'bg-classly-green text-white rounded-br-sm'
-                          : 'bg-gray-100 text-gray-900 rounded-bl-sm'
+                          ? 'bg-primary text-primary-foreground rounded-br-sm'
+                          : 'bg-muted text-foreground rounded-bl-sm'
                       }`}
                     >
                       <p className="leading-relaxed wrap-break-word">
                         {msg.content}
                       </p>
                       <p
-                        className={`text-xs mt-1 ${isMe ? 'text-white/70' : 'text-gray-400'}`}
+                        className={`text-xs mt-1 ${isMe ? 'text-primary-foreground/70' : 'text-muted-foreground/70'}`}
                       >
                         {formatTime(msg.created_at)}
                       </p>
@@ -227,9 +227,9 @@ export function ChatPanel({
         {showMembers && isGroup && <MembersPanel members={members} />}
       </div>
 
-      <div className="px-4 py-3 border-t border-gray-200 shrink-0">
+      <div className="px-4 py-3 border-t border-border shrink-0">
         {sendMutation.isError && (
-          <p className="text-xs text-red-600 mb-2">
+          <p className="text-xs text-destructive mb-2">
             {sendMutation.error.message}
           </p>
         )}
@@ -241,7 +241,7 @@ export function ChatPanel({
             onKeyDown={handleKeyDown}
             placeholder="Type a message... (Enter to send)"
             rows={1}
-            className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-classly-green focus:ring-2 focus:ring-classly-green/20 resize-none transition-all"
+            className="flex-1 px-4 py-2.5 border border-border rounded-xl text-sm focus:outline-none focus:border-classly-green focus:ring-2 focus:ring-classly-green/20 resize-none transition-all"
             style={{ minHeight: '42px', maxHeight: '120px' }}
             onInput={(e) => {
               const el = e.currentTarget
@@ -252,7 +252,7 @@ export function ChatPanel({
           <button
             onClick={handleSend}
             disabled={!draft.trim() || sendMutation.isPending}
-            className="p-2.5 bg-classly-green text-white rounded-xl hover:bg-classly-green/90 transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+            className="p-2.5 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
           >
             {sendMutation.isPending ? (
               <Loader2 size={18} className="animate-spin" />

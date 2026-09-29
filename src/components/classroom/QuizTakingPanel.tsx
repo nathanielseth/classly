@@ -260,9 +260,9 @@ export function QuizTakingPanel({ materialId }: QuizTakingPanelProps) {
                     }`}
                   >
                     {isCorrect ? (
-                      <Check size={12} className="text-white" />
+                      <Check size={12} className="text-primary-foreground" />
                     ) : (
-                      <X size={12} className="text-white" />
+                      <X size={12} className="text-destructive-foreground" />
                     )}
                   </div>
                   <p className="text-sm font-medium text-foreground">
@@ -324,7 +324,7 @@ export function QuizTakingPanel({ materialId }: QuizTakingPanelProps) {
             onClick={() => setCurrentIndex(i)}
             className={`h-7 w-7 rounded-full text-xs font-medium transition-all ${
               i === currentIndex
-                ? 'bg-classly-green text-white'
+                ? 'bg-primary text-primary-foreground'
                 :
                   selectedAnswers[i] !== undefined
                   ? 'bg-classly-green/20 text-classly-green'
@@ -358,7 +358,7 @@ export function QuizTakingPanel({ materialId }: QuizTakingPanelProps) {
                   <span
                     className={`mr-3 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs ${
                       isSelected
-                        ? 'bg-classly-green text-white'
+                        ? 'bg-primary text-primary-foreground'
                         : 'bg-secondary text-muted-foreground'
                     }`}
                   >

@@ -8,6 +8,7 @@ import {
   EyeOff,
   KeyRound,
   Loader2,
+  Palette,
   ShieldCheck,
   Trash2,
   UserRound,
@@ -33,6 +34,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { ThemePicker } from '@/components/settings/ThemePicker'
 
 export const Route = createFileRoute('/_authenticated/settings')({
   component: SettingsPage,
@@ -182,6 +184,7 @@ function SettingsForm({
 
   const sections = [
     { id: 'profile', label: 'Profile', icon: UserRound },
+    { id: 'appearance', label: 'Appearance', icon: Palette },
     { id: 'password', label: 'Password', icon: KeyRound },
     { id: 'danger', label: 'Danger zone', icon: AlertTriangle },
   ] as const
@@ -352,6 +355,23 @@ function SettingsForm({
                     Save changes
                   </Button>
                 </div>
+              </div>
+            </section>
+          )}
+
+          {activeSection === 'appearance' && (
+            <section>
+              <div className="border-b border-border p-6">
+                <h2 className="text-base font-semibold text-foreground">
+                  Appearance
+                </h2>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  Choose how Classly looks on this device.
+                </p>
+              </div>
+
+              <div className="p-6">
+                <ThemePicker />
               </div>
             </section>
           )}

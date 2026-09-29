@@ -103,7 +103,7 @@ function CommentThread({
   return (
     <div className="p-4 space-y-4">
       <div className="flex gap-3">
-        <div className="w-8 h-8 bg-classly-green rounded-full flex items-center justify-center text-white font-semibold text-sm shrink-0">
+        <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-semibold text-sm shrink-0">
           {'U'}
         </div>
         <div className="flex-1">
@@ -112,16 +112,16 @@ function CommentThread({
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            className="w-full px-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:border-classly-green focus:ring-2 focus:ring-classly-green/20 resize-none text-sm"
+            className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:border-classly-green focus:ring-2 focus:ring-classly-green/20 resize-none text-sm"
             rows={3}
             disabled={submitting}
           />
           <div className="flex items-center justify-between mt-2">
-            <span className="text-xs text-gray-500">Ctrl+Enter to post</span>
+            <span className="text-xs text-muted-foreground">Ctrl+Enter to post</span>
             <button
               onClick={handleSubmit}
               disabled={submitting || !draft.trim()}
-              className="flex items-center gap-2 px-4 py-2 bg-classly-green text-white rounded-lg hover:bg-classly-green/90 font-medium text-sm transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-medium text-sm transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? (
                 <>
@@ -140,20 +140,20 @@ function CommentThread({
       </div>
 
       {errorMessage && (
-        <p className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded-lg">
+        <p className="text-sm text-destructive bg-destructive/8 px-3 py-2 rounded-lg">
           {errorMessage}
         </p>
       )}
 
       {loading ? (
         <div className="flex items-center justify-center py-8">
-          <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+          <Loader2 className="w-6 h-6 text-muted-foreground/70 animate-spin" />
         </div>
       ) : comments.length === 0 ? (
         <div className="text-center py-8">
-          <MessageSquare className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-          <p className="text-sm text-gray-500">{emptyTitle}</p>
-          <p className="text-xs text-gray-400 mt-1">{emptySubtitle}</p>
+          <MessageSquare className="w-10 h-10 text-muted-foreground/50 mx-auto mb-2" />
+          <p className="text-sm text-muted-foreground">{emptyTitle}</p>
+          <p className="text-xs text-muted-foreground/70 mt-1">{emptySubtitle}</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -165,40 +165,40 @@ function CommentThread({
             return (
               <div key={comment.id} className="flex gap-3 group">
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold text-sm shrink-0 ${
-                    authorIsInstructor ? 'bg-purple-500' : 'bg-blue-500'
+                  className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold text-sm shrink-0 ${
+                    authorIsInstructor ? 'bg-chart-4 text-background' : 'bg-info text-info-foreground'
                   }`}
                 >
                   {comment.author.full_name[0].toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="bg-gray-50 rounded-lg p-3">
+                  <div className="bg-secondary rounded-lg p-3">
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-sm text-gray-900">
+                      <span className="font-medium text-sm text-foreground">
                         {comment.author.full_name}
                       </span>
                       {authorIsInstructor && (
-                        <span className="text-xs font-medium text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded">
+                        <span className="text-xs font-medium text-chart-4 bg-chart-4/10 px-1.5 py-0.5 rounded">
                           Instructor
                         </span>
                       )}
                       {isOwnComment && (
-                        <span className="text-xs text-gray-500">(You)</span>
+                        <span className="text-xs text-muted-foreground">(You)</span>
                       )}
                     </div>
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                    <p className="text-sm text-foreground/80 whitespace-pre-wrap">
                       {comment.content}
                     </p>
                   </div>
                   <div className="flex items-center gap-3 ml-3 mt-1">
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-muted-foreground">
                       {formatTimestamp(comment.created_at)}
                     </span>
                     {canDelete && (
                       <button
                         onClick={() => onDelete(comment.id)}
                         disabled={deletingId === comment.id}
-                        className="text-xs text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 disabled:opacity-50"
+                        className="text-xs text-muted-foreground/70 hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 disabled:opacity-50"
                       >
                         {deletingId === comment.id ? (
                           <Loader2 size={11} className="animate-spin" />
@@ -379,26 +379,26 @@ function PrivateCommentsTab({
           <div className="relative">
             <button
               onClick={() => setPickerOpen((open) => !open)}
-              className="w-full flex items-center justify-between gap-2 px-3 py-2 border border-gray-200 rounded-lg text-sm text-left hover:border-gray-300 transition-colors"
+              className="w-full flex items-center justify-between gap-2 px-3 py-2 border border-border rounded-lg text-sm text-left hover:border-input transition-colors"
             >
               <span
-                className={selectedStudent ? 'text-gray-900' : 'text-gray-500'}
+                className={selectedStudent ? 'text-foreground' : 'text-muted-foreground'}
               >
                 {selectedStudent
                   ? selectedStudent.full_name
                   : 'Select a student to view their private thread'}
               </span>
-              <ChevronDown size={16} className="text-gray-400 shrink-0" />
+              <ChevronDown size={16} className="text-muted-foreground/70 shrink-0" />
             </button>
 
             {pickerOpen && (
-              <div className="absolute z-10 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-y-auto">
+              <div className="absolute z-10 mt-1 w-full bg-card border border-border rounded-lg shadow-lg max-h-64 overflow-y-auto">
                 {rosterQuery.isPending ? (
                   <div className="flex items-center justify-center py-6">
-                    <Loader2 size={16} className="animate-spin text-gray-400" />
+                    <Loader2 size={16} className="animate-spin text-muted-foreground/70" />
                   </div>
                 ) : enrollments.length === 0 ? (
-                  <p className="text-sm text-gray-500 px-3 py-3">
+                  <p className="text-sm text-muted-foreground px-3 py-3">
                     No students enrolled yet.
                   </p>
                 ) : (
@@ -412,11 +412,11 @@ function PrivateCommentsTab({
                           setSelectedStudentId(e.student!.id)
                           setPickerOpen(false)
                         }}
-                        className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-left hover:bg-gray-50 transition-colors ${
-                          e.student.id === selectedStudentId ? 'bg-gray-50' : ''
+                        className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-sm text-left hover:bg-secondary transition-colors ${
+                          e.student.id === selectedStudentId ? 'bg-secondary' : ''
                         }`}
                       >
-                        <span className="text-gray-900">
+                        <span className="text-foreground">
                           {e.student.full_name}
                         </span>
                         {hasThread && (
@@ -453,8 +453,8 @@ function PrivateCommentsTab({
           />
         ) : (
           <div className="text-center py-10 px-4">
-            <Lock className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-            <p className="text-sm text-gray-500">
+            <Lock className="w-10 h-10 text-muted-foreground/50 mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">
               Choose a student above to see or send private comments.
             </p>
           </div>
@@ -493,14 +493,14 @@ export function CommentsPanel({
   const [tab, setTab] = useState<'class' | 'private'>('class')
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200">
-      <div className="flex border-b border-gray-100">
+    <div className="bg-card rounded-lg border border-border">
+      <div className="flex border-b border-border/60">
         <button
           onClick={() => setTab('class')}
           className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
             tab === 'class'
               ? 'border-classly-green text-classly-green'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              : 'border-transparent text-muted-foreground hover:text-foreground/80'
           }`}
         >
           <MessageSquare size={15} />
@@ -511,7 +511,7 @@ export function CommentsPanel({
           className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
             tab === 'private'
               ? 'border-classly-green text-classly-green'
-              : 'border-transparent text-gray-500 hover:text-gray-700'
+              : 'border-transparent text-muted-foreground hover:text-foreground/80'
           }`}
         >
           <Lock size={15} />

@@ -20,6 +20,7 @@ import {
   getInitials,
 } from '@/components/ui/avatar'
 import { useClickOutside } from '@/hooks/useClickOutside'
+import { ThemeToggle } from '@/components/shared/ThemeToggle'
 
 interface NavbarProps {
   profile: {
@@ -32,7 +33,7 @@ interface NavbarProps {
 
 const NOTIF_DOT_COLOR: Record<string, string> = {
   announcement: 'bg-primary',
-  submission: 'bg-blue-500',
+  submission: 'bg-info',
   pending: 'bg-warning',
 }
 
@@ -94,7 +95,9 @@ export function Navbar({ profile }: NavbarProps) {
         </Link>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1">
+        <ThemeToggle />
+
         <div className="relative" ref={notifRef}>
           <button
             type="button"

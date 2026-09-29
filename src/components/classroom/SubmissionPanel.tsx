@@ -74,7 +74,7 @@ function SubmissionFileLink({
     <button
       onClick={handleClick}
       disabled={loading}
-      className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-2 rounded-lg transition-colors w-fit disabled:opacity-60"
+      className="flex items-center gap-2 text-sm text-info hover:brightness-110 bg-info/8 hover:bg-info/12 px-3 py-2 rounded-lg transition-colors w-fit disabled:opacity-60"
     >
       <Paperclip size={16} />
       <span>{fileName || 'Download file'}</span>
@@ -210,19 +210,19 @@ export function SubmissionPanel({
 
   if (submissionQuery.isPending) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6 flex items-center justify-center">
-        <Loader2 size={20} className="animate-spin text-gray-400" />
+      <div className="bg-card rounded-lg border border-border p-6 flex items-center justify-center">
+        <Loader2 size={20} className="animate-spin text-muted-foreground/70" />
       </div>
     )
   }
 
   if (submissionQuery.isError) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-        <h3 className="font-semibold text-red-900 mb-1">
+      <div className="bg-destructive/8 border border-destructive/30 rounded-lg p-6">
+        <h3 className="font-semibold text-destructive mb-1">
           Failed to load your submission
         </h3>
-        <p className="text-sm text-red-700">
+        <p className="text-sm text-destructive">
           {submissionQuery.error.message}
         </p>
       </div>
@@ -230,14 +230,14 @@ export function SubmissionPanel({
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200">
-      <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-900">Your Work</h2>
+    <div className="bg-card rounded-lg border border-border">
+      <div className="p-6 border-b border-border/60 flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-foreground">Your Work</h2>
         {isSubmitted && !isGraded && canSubmit && (
           <button
             onClick={handleUnsubmit}
             disabled={busy}
-            className="text-sm text-gray-600 hover:text-gray-900 underline disabled:opacity-50"
+            className="text-sm text-muted-foreground hover:text-foreground underline disabled:opacity-50"
           >
             Unsubmit
           </button>
@@ -249,10 +249,10 @@ export function SubmissionPanel({
           <div
             className={`flex items-center gap-2 text-sm font-medium px-4 py-3 rounded-lg ${
               isGraded
-                ? 'bg-green-50 text-green-700'
+                ? 'bg-success/8 text-success'
                 : submission.is_late
-                  ? 'bg-orange-50 text-orange-700'
-                  : 'bg-blue-50 text-blue-700'
+                  ? 'bg-warning/8 text-warning'
+                  : 'bg-info/8 text-info'
             }`}
           >
             {submission.is_late && !isGraded ? (
@@ -276,21 +276,21 @@ export function SubmissionPanel({
         )}
 
         {isGraded && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="bg-success/8 border border-success/30 rounded-lg p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-green-900">
+              <span className="text-sm font-medium text-success">
                 Grade
               </span>
-              <span className="text-2xl font-bold text-green-700">
+              <span className="text-2xl font-bold text-success">
                 {submission.grade} / {maxPoints}
               </span>
             </div>
             {submission.feedback && (
-              <div className="mt-3 pt-3 border-t border-green-200">
-                <p className="text-sm font-medium text-green-900 mb-1">
+              <div className="mt-3 pt-3 border-t border-success/30">
+                <p className="text-sm font-medium text-success mb-1">
                   Feedback
                 </p>
-                <p className="text-sm text-green-800 whitespace-pre-wrap">
+                <p className="text-sm text-success whitespace-pre-wrap">
                   {submission.feedback}
                 </p>
               </div>
@@ -301,7 +301,7 @@ export function SubmissionPanel({
         {!isGraded && (
           <>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground/80 mb-2">
                 Your answer
               </label>
               <textarea
@@ -310,7 +310,7 @@ export function SubmissionPanel({
                   setContentDirty(true)
                   setContent(e.target.value)
                 }}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:border-classly-green focus:ring-2 focus:ring-classly-green/20 resize-none"
+                className="w-full px-4 py-3 border border-border rounded-lg focus:outline-none focus:border-classly-green focus:ring-2 focus:ring-classly-green/20 resize-none"
                 rows={6}
                 placeholder="Type your answer here..."
                 disabled={busy}
@@ -318,12 +318,12 @@ export function SubmissionPanel({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-foreground/80 mb-2">
                 Attach file (optional)
               </label>
 
               {!submission?.file_url ? (
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-classly-green transition-colors">
+                <div className="border-2 border-dashed border-input rounded-lg p-6 text-center hover:border-classly-green transition-colors">
                   <input
                     type="file"
                     id="submission-file-upload"
@@ -337,32 +337,32 @@ export function SubmissionPanel({
                     className="cursor-pointer flex flex-col items-center gap-2"
                   >
                     {uploadFileMutation.isPending ? (
-                      <Loader2 className="w-8 h-8 text-gray-400 animate-spin" />
+                      <Loader2 className="w-8 h-8 text-muted-foreground/70 animate-spin" />
                     ) : (
-                      <Upload className="w-8 h-8 text-gray-400" />
+                      <Upload className="w-8 h-8 text-muted-foreground/70" />
                     )}
                     <div>
-                      <p className="text-sm font-medium text-gray-700">
+                      <p className="text-sm font-medium text-foreground/80">
                         Click to upload
                       </p>
-                      <p className="text-xs text-gray-500 mt-1">
+                      <p className="text-xs text-muted-foreground mt-1">
                         PDF, DOC, PPT, Images (Max 10MB)
                       </p>
                     </div>
                   </label>
                 </div>
               ) : (
-                <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <div className="border border-border rounded-lg p-4 bg-secondary">
                   <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-50 rounded-lg">
-                      <FileText className="w-5 h-5 text-blue-600" />
+                    <div className="p-2 bg-info/8 rounded-lg">
+                      <FileText className="w-5 h-5 text-info" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
+                      <p className="text-sm font-medium text-foreground truncate">
                         {submission.file_name}
                       </p>
                       {submission.file_size !== null && (
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-muted-foreground">
                           {formatFileSize(submission.file_size)}
                         </p>
                       )}
@@ -370,7 +370,7 @@ export function SubmissionPanel({
                     {!busy && (
                       <button
                         onClick={() => removeFileMutation.mutate(submission.id)}
-                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className="p-2 text-muted-foreground/70 hover:text-destructive hover:bg-destructive/8 rounded-lg transition-colors"
                       >
                         <X size={16} />
                       </button>
@@ -381,7 +381,7 @@ export function SubmissionPanel({
             </div>
 
             {error && (
-              <div className="flex items-start gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-lg">
+              <div className="flex items-start gap-2 text-sm text-destructive bg-destructive/8 p-3 rounded-lg">
                 <AlertCircle size={16} className="shrink-0 mt-0.5" />
                 <span>{error}</span>
               </div>
@@ -391,7 +391,7 @@ export function SubmissionPanel({
               <button
                 onClick={handleTurnIn}
                 disabled={busy || !canSubmit}
-                className="px-6 py-2.5 bg-classly-green text-white rounded-lg hover:bg-classly-green/90 font-medium transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                className="px-6 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-medium transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
                 {submitMutation.isPending ? (
                   <>
@@ -407,19 +407,19 @@ export function SubmissionPanel({
         )}
 
         {isGraded && submission.content && (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <p className="text-sm font-medium text-gray-900 mb-2">
+          <div className="bg-secondary border border-border rounded-lg p-4">
+            <p className="text-sm font-medium text-foreground mb-2">
               Your submitted answer
             </p>
-            <p className="text-sm text-gray-700 whitespace-pre-wrap">
+            <p className="text-sm text-foreground/80 whitespace-pre-wrap">
               {submission.content}
             </p>
           </div>
         )}
 
         {isGraded && submission.file_url && (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <p className="text-sm font-medium text-gray-900 mb-2">
+          <div className="bg-secondary border border-border rounded-lg p-4">
+            <p className="text-sm font-medium text-foreground mb-2">
               Your submitted file
             </p>
             <SubmissionFileLink

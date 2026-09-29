@@ -42,8 +42,8 @@ export function MaterialPicker({
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
       <div className="space-y-2">
-        <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-          <BookOpen size={16} className="text-gray-400" />
+        <label className="flex items-center gap-2 text-sm font-medium text-foreground/80">
+          <BookOpen size={16} className="text-muted-foreground/70" />
           Select Subject
         </label>
         <div className="relative">
@@ -54,7 +54,7 @@ export function MaterialPicker({
               onSelectMaterial(null)
             }}
             disabled={disabled}
-            className="w-full pl-4 pr-10 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 focus:ring-2 focus:ring-classly-green focus:border-transparent outline-none appearance-none transition-all disabled:bg-gray-50 disabled:text-gray-400"
+            className="w-full pl-4 pr-10 py-3 bg-card border border-border rounded-xl text-foreground focus:ring-2 focus:ring-classly-green focus:border-transparent outline-none appearance-none transition-all disabled:bg-secondary disabled:text-muted-foreground/70"
           >
             <option value="">Choose a subject...</option>
             {subjects.map((subject) => (
@@ -64,15 +64,15 @@ export function MaterialPicker({
             ))}
           </select>
           <ChevronRight
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 rotate-90 pointer-events-none"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/70 rotate-90 pointer-events-none"
             size={16}
           />
         </div>
       </div>
 
       <div className="space-y-2">
-        <label className="flex items-center gap-2 text-sm font-medium text-gray-700">
-          <GraduationCap size={16} className="text-gray-400" />
+        <label className="flex items-center gap-2 text-sm font-medium text-foreground/80">
+          <GraduationCap size={16} className="text-muted-foreground/70" />
           Select Material
         </label>
         <div className="relative">
@@ -83,7 +83,7 @@ export function MaterialPicker({
               onSelectMaterial(material)
             }}
             disabled={!selectedSubjectId || disabled || materialsQuery.isFetching}
-            className="w-full pl-4 pr-10 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 focus:ring-2 focus:ring-classly-green focus:border-transparent outline-none appearance-none transition-all disabled:bg-gray-50 disabled:text-gray-400"
+            className="w-full pl-4 pr-10 py-3 bg-card border border-border rounded-xl text-foreground focus:ring-2 focus:ring-classly-green focus:border-transparent outline-none appearance-none transition-all disabled:bg-secondary disabled:text-muted-foreground/70"
           >
             <option value="">
               {materialsQuery.isFetching
@@ -99,14 +99,14 @@ export function MaterialPicker({
             ))}
           </select>
           <ChevronRight
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 rotate-90 pointer-events-none"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/70 rotate-90 pointer-events-none"
             size={16}
           />
         </div>
         {selectedSubjectId &&
           !materialsQuery.isFetching &&
           materials.length === 0 && (
-            <p className="text-xs text-amber-600">
+            <p className="text-xs text-warning">
               No materials with content found in this subject.
             </p>
           )}

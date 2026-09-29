@@ -196,14 +196,14 @@ function AdminUsersPage() {
     <div className="p-6 md:p-8 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">User Management</h1>
-          <p className="text-sm text-gray-500 mt-0.5">
+          <h1 className="text-xl font-bold text-foreground">User Management</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
             {data?.total ?? 0} total users
           </p>
         </div>
         <button
           onClick={() => setCreateOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-classly-green text-white text-sm font-medium rounded-lg hover:bg-classly-green/90 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors"
         >
           <Plus size={16} strokeWidth={2.5} />
           Create User
@@ -211,12 +211,12 @@ function AdminUsersPage() {
       </div>
 
       {actionError && (
-        <div className="mb-4 flex items-start gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3">
+        <div className="mb-4 flex items-start gap-2 text-sm text-destructive bg-destructive/8 border border-destructive/30 rounded-lg p-3">
           <AlertCircle size={16} className="shrink-0 mt-0.5" />
           <span className="flex-1">{actionError}</span>
           <button
             onClick={() => setActionError(null)}
-            className="text-red-400 hover:text-red-600"
+            className="text-destructive hover:brightness-110"
           >
             <X size={14} />
           </button>
@@ -229,7 +229,7 @@ function AdminUsersPage() {
           placeholder="Search by name or email..."
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
-          className="flex-1 px-4 py-2 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-classly-green"
+          className="flex-1 px-4 py-2 border border-border rounded-xl outline-none focus:ring-2 focus:ring-classly-green"
         />
         <select
           value={search.role}
@@ -242,7 +242,7 @@ function AdminUsersPage() {
               }),
             })
           }
-          className="px-4 py-2 border border-gray-200 rounded-xl"
+          className="px-4 py-2 border border-border rounded-xl"
         >
           <option value="all">All roles</option>
           <option value="student">Student</option>
@@ -260,7 +260,7 @@ function AdminUsersPage() {
               }),
             })
           }
-          className="px-4 py-2 border border-gray-200 rounded-xl"
+          className="px-4 py-2 border border-border rounded-xl"
         >
           <option value="all">All status</option>
           <option value="pending">Pending</option>
@@ -269,9 +269,9 @@ function AdminUsersPage() {
         </select>
       </div>
 
-      <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-200">
+      <div className="bg-card border border-border rounded-xl divide-y divide-border">
         {data?.users.length === 0 && (
-          <div className="p-8 text-center text-sm text-gray-500">
+          <div className="p-8 text-center text-sm text-muted-foreground">
             No users found.
           </div>
         )}
@@ -324,7 +324,7 @@ function AdminUsersPage() {
       {/* Pagination reads/writes `page` the same way - it's just another
           search param, so browser back/forward and refresh both work
           correctly for free. */}
-      <div className="flex justify-between items-center mt-6 text-sm text-gray-500">
+      <div className="flex justify-between items-center mt-6 text-sm text-muted-foreground">
         <span>
           Page {data?.page} · {data?.total ?? 0} total users
         </span>
@@ -382,16 +382,16 @@ function AdminUsersPage() {
 }
 
 const roleColors: Record<string, string> = {
-  student: 'bg-blue-50 text-blue-700 border-blue-200',
-  instructor: 'bg-purple-50 text-purple-700 border-purple-200',
-  admin: 'bg-red-50 text-red-700 border-red-200',
+  student: 'bg-info/8 text-info border-info/30',
+  instructor: 'bg-chart-4/10 text-chart-4 border-chart-4/30',
+  admin: 'bg-destructive/8 text-destructive border-destructive/30',
 }
 
 function statusColor(status: string | null) {
   if (status === 'approved')
-    return 'bg-green-50 text-green-700 border-green-200'
-  if (status === 'rejected') return 'bg-red-50 text-red-700 border-red-200'
-  return 'bg-amber-50 text-amber-700 border-amber-200'
+    return 'bg-success/8 text-success border-success/30'
+  if (status === 'rejected') return 'bg-destructive/8 text-destructive border-destructive/30'
+  return 'bg-warning/8 text-warning border-warning/30'
 }
 
 function UserRowItem({
@@ -412,22 +412,22 @@ function UserRowItem({
   busy: boolean
 }) {
   return (
-    <div className="p-4 hover:bg-gray-50 transition-colors">
+    <div className="p-4 hover:bg-secondary transition-colors">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 flex-1 min-w-0">
-          <div className="w-10 h-10 bg-linear-to-br from-classly-green to-green-600 rounded-full flex items-center justify-center text-white font-semibold shrink-0">
+          <div className="w-10 h-10 bg-linear-to-br from-primary to-primary/80 rounded-full flex items-center justify-center text-primary-foreground font-semibold shrink-0">
             {user.full_name.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-medium text-gray-900 truncate">
+            <p className="font-medium text-foreground truncate">
               {user.full_name}
             </p>
-            <p className="text-sm text-gray-500 truncate">{user.email}</p>
+            <p className="text-sm text-muted-foreground truncate">{user.email}</p>
           </div>
         </div>
 
         <span
-          className={`px-2.5 py-1 rounded-full text-xs font-medium border shrink-0 ${roleColors[user.role] ?? 'bg-gray-50 text-gray-600 border-gray-200'}`}
+          className={`px-2.5 py-1 rounded-full text-xs font-medium border shrink-0 ${roleColors[user.role] ?? 'bg-secondary text-muted-foreground border-border'}`}
         >
           {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
         </span>
@@ -441,7 +441,7 @@ function UserRowItem({
         <DropdownMenu>
           <DropdownMenuTrigger
             disabled={busy}
-            className="flex shrink-0 items-center gap-1 rounded-lg px-3 py-1.5 text-sm text-gray-600 transition-colors hover:bg-gray-100 disabled:opacity-50"
+            className="flex shrink-0 items-center gap-1 rounded-lg px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted disabled:opacity-50"
           >
             {busy ? <Loader2 size={14} className="animate-spin" /> : 'Actions'}
             {!busy && <ChevronDown size={14} />}
@@ -452,7 +452,7 @@ function UserRowItem({
             {(user.status === 'pending' || user.status === 'rejected') && (
               <DropdownMenuItem
                 onClick={onApprove}
-                className="text-green-600 data-highlighted:bg-green-50"
+                className="text-success data-highlighted:bg-success/8"
               >
                 Approve
               </DropdownMenuItem>
@@ -745,19 +745,19 @@ function ViewUserModal({
       <div className="p-6 space-y-4">
         {isLoading || !user ? (
           <div className="flex justify-center py-8">
-            <Loader2 size={20} className="animate-spin text-gray-400" />
+            <Loader2 size={20} className="animate-spin text-muted-foreground/70" />
           </div>
         ) : (
           <>
-            <div className="flex items-center gap-4 pb-4 border-b border-gray-100">
-              <div className="w-16 h-16 bg-linear-to-br from-classly-green to-green-600 rounded-full flex items-center justify-center text-white text-2xl font-semibold">
+            <div className="flex items-center gap-4 pb-4 border-b border-border/60">
+              <div className="w-16 h-16 bg-linear-to-br from-primary to-primary/80 rounded-full flex items-center justify-center text-primary-foreground text-2xl font-semibold">
                 {user.full_name.charAt(0).toUpperCase()}
               </div>
               <div>
-                <h3 className="text-lg font-bold text-gray-900">
+                <h3 className="text-lg font-bold text-foreground">
                   {user.full_name}
                 </h3>
-                <p className="text-sm text-gray-500">{user.email}</p>
+                <p className="text-sm text-muted-foreground">{user.email}</p>
               </div>
             </div>
 
@@ -779,7 +779,7 @@ function ViewUserModal({
 
             {user.stats && 'enrollmentCount' in user.stats && (
               <div>
-                <label className="text-xs font-medium text-gray-500 uppercase">
+                <label className="text-xs font-medium text-muted-foreground uppercase">
                   Statistics
                 </label>
                 <div className="mt-2 space-y-2">
@@ -796,7 +796,7 @@ function ViewUserModal({
             )}
             {user.stats && 'subjectCount' in user.stats && (
               <div>
-                <label className="text-xs font-medium text-gray-500 uppercase">
+                <label className="text-xs font-medium text-muted-foreground uppercase">
                   Statistics
                 </label>
                 <div className="mt-2 space-y-2">
@@ -831,11 +831,11 @@ function DetailRow({
 }) {
   return (
     <div>
-      <label className="text-xs font-medium text-gray-500 uppercase">
+      <label className="text-xs font-medium text-muted-foreground uppercase">
         {label}
       </label>
       <p
-        className={`text-sm text-gray-900 mt-1 ${capitalize ? 'capitalize' : ''}`}
+        className={`text-sm text-foreground mt-1 ${capitalize ? 'capitalize' : ''}`}
       >
         {value}
       </p>
@@ -846,8 +846,8 @@ function DetailRow({
 function StatLine({ label, value }: { label: string; value: number }) {
   return (
     <div className="flex justify-between text-sm">
-      <span className="text-gray-600">{label}:</span>
-      <span className="font-medium text-gray-900">{value}</span>
+      <span className="text-muted-foreground">{label}:</span>
+      <span className="font-medium text-foreground">{value}</span>
     </div>
   )
 }
@@ -863,8 +863,8 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        {label} {required && <span className="text-red-500">*</span>}
+      <label className="block text-sm font-medium text-foreground/80 mb-2">
+        {label} {required && <span className="text-destructive">*</span>}
       </label>
       {children}
     </div>

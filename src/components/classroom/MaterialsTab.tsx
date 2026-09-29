@@ -310,8 +310,8 @@ export function MaterialsTab({ subjectId, canManage }: MaterialsTabProps) {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold text-gray-900">Classwork</h2>
-          <p className="text-sm text-gray-600 mt-1">
+          <h2 className="text-lg font-semibold text-foreground">Classwork</h2>
+          <p className="text-sm text-muted-foreground mt-1">
             {materials.length} material{materials.length !== 1 ? 's' : ''}
           </p>
         </div>
@@ -319,14 +319,14 @@ export function MaterialsTab({ subjectId, canManage }: MaterialsTabProps) {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setCreatingTopic(true)}
-              className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 border border-input text-foreground/80 text-sm font-medium rounded-lg hover:bg-secondary transition-colors"
             >
               <FolderPlus size={16} />
               Topic
             </button>
             <button
               onClick={() => setCreatingMaterial(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-classly-green text-white text-sm font-medium rounded-lg hover:bg-classly-green/90 transition-colors shadow-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors shadow-sm"
             >
               <Plus size={16} strokeWidth={2.5} />
               Create
@@ -336,15 +336,15 @@ export function MaterialsTab({ subjectId, canManage }: MaterialsTabProps) {
       </div>
 
       <div className="flex items-center gap-2 overflow-x-auto pb-2">
-        <Filter size={16} className="text-gray-400 shrink-0" />
+        <Filter size={16} className="text-muted-foreground/70 shrink-0" />
         {TYPE_FILTER_OPTIONS.map((option) => (
           <button
             key={option.value}
             onClick={() => setTypeFilter(option.value)}
             className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
               typeFilter === option.value
-                ? 'bg-classly-green text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-foreground/80 hover:bg-muted'
             }`}
           >
             {option.label}
@@ -353,30 +353,30 @@ export function MaterialsTab({ subjectId, canManage }: MaterialsTabProps) {
       </div>
 
       {dataQuery.isError ? (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6">
-          <h3 className="font-semibold text-red-900 mb-1">
+        <div className="bg-destructive/8 border border-destructive/30 rounded-xl p-6">
+          <h3 className="font-semibold text-destructive mb-1">
             Failed to load materials
           </h3>
-          <p className="text-sm text-red-700">{dataQuery.error.message}</p>
+          <p className="text-sm text-destructive">{dataQuery.error.message}</p>
         </div>
       ) : dataQuery.isPending ? (
         <div className="space-y-4">
           {Array.from({ length: 2 }).map((_, i) => (
             <div
               key={i}
-              className="h-28 bg-gray-100 rounded-xl animate-pulse"
+              className="h-28 bg-muted rounded-xl animate-pulse"
             />
           ))}
         </div>
       ) : materials.length === 0 ? (
-        <div className="bg-white border-2 border-dashed border-gray-200 rounded-xl p-12 text-center">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <BookOpen size={28} className="text-gray-400" />
+        <div className="bg-card border-2 border-dashed border-border rounded-xl p-12 text-center">
+          <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+            <BookOpen size={28} className="text-muted-foreground/70" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+          <h3 className="text-lg font-semibold text-foreground mb-2">
             No materials yet
           </h3>
-          <p className="text-sm text-gray-500 max-w-sm mx-auto mb-4">
+          <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-4">
             {canManage
               ? 'Get started by creating your first course material.'
               : "Your instructor hasn't posted any content yet."}
@@ -384,7 +384,7 @@ export function MaterialsTab({ subjectId, canManage }: MaterialsTabProps) {
           {canManage && (
             <button
               onClick={() => setCreatingMaterial(true)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-classly-green text-white font-medium rounded-lg hover:bg-classly-green/90 transition-all shadow-sm"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground font-medium rounded-lg hover:bg-primary/90 transition-all shadow-sm"
             >
               <Plus size={18} strokeWidth={2.5} />
               Create First Material
@@ -392,12 +392,12 @@ export function MaterialsTab({ subjectId, canManage }: MaterialsTabProps) {
           )}
         </div>
       ) : filteredMaterials.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-          <Filter className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        <div className="bg-card rounded-xl border border-border p-12 text-center">
+          <Filter className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
+          <h3 className="text-lg font-semibold text-foreground mb-2">
             No materials found
           </h3>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Try adjusting your filter
             {canManage ? ' or create a new material' : ''}
           </p>
@@ -410,20 +410,20 @@ export function MaterialsTab({ subjectId, canManage }: MaterialsTabProps) {
             return (
               <div
                 key={topic.id}
-                className="bg-white border-2 border-gray-200 rounded-xl overflow-hidden shadow-sm"
+                className="bg-card border-2 border-border rounded-xl overflow-hidden shadow-sm"
               >
-                <div className="bg-green-50 border-b border-green-100 p-4">
+                <div className="bg-success/8 border-b border-success/20 p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-classly-green rounded-lg flex items-center justify-center">
-                        <BookOpen className="w-4 h-4 text-white" />
+                      <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                        <BookOpen className="w-4 h-4 text-primary-foreground" />
                       </div>
                       <div>
-                        <h3 className="font-semibold text-gray-900">
+                        <h3 className="font-semibold text-foreground">
                           {topic.name}
                         </h3>
                         {topic.description && (
-                          <p className="text-sm text-gray-600 mt-0.5">
+                          <p className="text-sm text-muted-foreground mt-0.5">
                             {topic.description}
                           </p>
                         )}
@@ -431,14 +431,14 @@ export function MaterialsTab({ subjectId, canManage }: MaterialsTabProps) {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-classly-green bg-white px-2 py-1 rounded uppercase tracking-wide">
+                      <span className="text-xs font-bold text-classly-green bg-card px-2 py-1 rounded uppercase tracking-wide">
                         {topicMaterials.length} Material
                         {topicMaterials.length !== 1 ? 's' : ''}
                       </span>
 
                       {canManage && isRealTopic(topic) && (
                         <DropdownMenu>
-                          <DropdownMenuTrigger className="p-1.5 text-gray-600 hover:bg-white rounded-lg transition-colors">
+                          <DropdownMenuTrigger className="p-1.5 text-muted-foreground hover:bg-card rounded-lg transition-colors">
                             <MoreVertical size={16} />
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
@@ -462,7 +462,7 @@ export function MaterialsTab({ subjectId, canManage }: MaterialsTabProps) {
                   </div>
                 </div>
 
-                <div className="divide-y divide-gray-100">
+                <div className="divide-y divide-border/60">
                   {topicMaterials.map((material) => (
                     <MaterialCard
                       key={material.id}

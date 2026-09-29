@@ -1,6 +1,11 @@
 import { useState } from 'react'
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { Bot, ChevronDown, Mail, MessageCircle } from 'lucide-react'
+import {
+  Bot,
+  ChevronDown,
+  Mail,
+  MessageCircle,
+} from 'lucide-react'
 
 import { cn } from '@/lib/utils'
 
@@ -117,7 +122,9 @@ function HelpView({ role }: { role: Role }) {
           <Mail size={16} />
         </span>
         <div className="flex-1">
-          <p className="text-sm font-medium text-foreground">Still stuck?</p>
+          <p className="text-sm font-medium text-foreground">
+            Still stuck?
+          </p>
           <p className="text-sm text-muted-foreground">
             Email{' '}
             <a
@@ -158,7 +165,7 @@ function getFaqsForRole(role: Role): Faq[] {
       id: 'password',
       question: 'How do I change my password?',
       answer:
-        'Go to Settings → Password. Enter your current password, then your new one twice to confirm.',
+        "Go to Settings → Password. Enter your current password, then your new one twice to confirm.",
     },
   ]
 

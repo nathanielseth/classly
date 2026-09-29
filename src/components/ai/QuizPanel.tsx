@@ -143,17 +143,17 @@ export function QuizPanel({
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
         <div className="p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-foreground mb-6 flex items-center gap-2">
             <Brain className="text-classly-green" size={20} />
             Quiz Generator
           </h3>
 
           {generateMutation.isError && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3">
-              <AlertCircle className="text-red-600 shrink-0 mt-0.5" size={18} />
-              <p className="text-sm text-red-600 font-medium">
+            <div className="mb-6 p-4 bg-destructive/8 border border-destructive/20 rounded-xl flex items-start gap-3">
+              <AlertCircle className="text-destructive shrink-0 mt-0.5" size={18} />
+              <p className="text-sm text-destructive font-medium">
                 {generateMutation.error.message}
               </p>
             </div>
@@ -172,7 +172,7 @@ export function QuizPanel({
               selectedMaterial && generateMutation.mutate(selectedMaterial)
             }
             disabled={!selectedMaterial || generateMutation.isPending}
-            className="w-full py-3.5 bg-classly-green text-white rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-2 transition-all shadow-sm"
+            className="w-full py-3.5 bg-primary text-primary-foreground rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-2 transition-all shadow-sm"
           >
             {generateMutation.isPending ? (
               <>
@@ -193,10 +193,10 @@ export function QuizPanel({
         <div>
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h4 className="font-bold text-gray-900 text-xl">
+              <h4 className="font-bold text-foreground text-xl">
                 {selectedMaterial.title}
               </h4>
-              <p className="text-sm text-gray-500 mt-1">
+              <p className="text-sm text-muted-foreground mt-1">
                 {quiz.length} Questions •{' '}
                 {isInstructor ? 'Preview Mode' : 'Practice Mode'}
               </p>
@@ -205,7 +205,7 @@ export function QuizPanel({
             {isSubmitted && !isInstructor && (
               <button
                 onClick={handleRetry}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-all shadow-sm"
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-muted-foreground bg-card border border-border rounded-lg hover:bg-secondary transition-all shadow-sm"
               >
                 <RefreshCw size={16} />
                 Try Again
@@ -215,23 +215,23 @@ export function QuizPanel({
 
           {isInstructor && (
             <div className="mb-8 bg-classly-green/5 border border-classly-green/20 rounded-xl p-5">
-              <p className="text-sm font-semibold text-gray-900 mb-1">
+              <p className="text-sm font-semibold text-foreground mb-1">
                 Save to Classroom
               </p>
-              <p className="text-xs text-gray-500 mb-4">
+              <p className="text-xs text-muted-foreground mb-4">
                 This will create a draft quiz material — review it in the
                 classroom and publish when you're ready for students to see
                 it.
               </p>
               {saveMutation.isError && (
-                <p className="text-xs text-red-600 mb-3">
+                <p className="text-xs text-destructive mb-3">
                   {saveMutation.error.message}
                 </p>
               )}
               <button
                 onClick={() => saveMutation.mutate()}
                 disabled={saveMutation.isPending || savedToClassroom}
-                className="w-full py-2.5 bg-classly-green text-white rounded-lg font-medium hover:bg-classly-green/90 disabled:opacity-50 flex items-center justify-center gap-2 text-sm transition-all"
+                className="w-full py-2.5 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2 text-sm transition-all"
               >
                 {saveMutation.isPending ? (
                   <>
@@ -251,33 +251,33 @@ export function QuizPanel({
           )}
 
           {isSubmitted && !isInstructor && (
-            <div className="mb-8 p-6 bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div className="mb-8 p-6 bg-card border border-border rounded-xl shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6">
               <div className="flex items-center gap-4">
                 <div
                   className={`w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold ${
                     score.percentage >= 70
-                      ? 'bg-emerald-50 text-emerald-600'
-                      : 'bg-amber-50 text-amber-600'
+                      ? 'bg-success/10 text-success'
+                      : 'bg-warning/8 text-warning'
                   }`}
                 >
                   {score.percentage}%
                 </div>
                 <div>
-                  <h5 className="font-bold text-gray-900 text-lg">
+                  <h5 className="font-bold text-foreground text-lg">
                     Quiz Complete!
                   </h5>
-                  <p className="text-gray-600">
+                  <p className="text-muted-foreground">
                     You answered {score.correct} out of {score.total} correctly
                   </p>
                 </div>
               </div>
               <div className="w-full sm:w-auto">
                 {score.percentage >= 70 ? (
-                  <div className="px-4 py-2 bg-emerald-50 text-emerald-700 rounded-lg text-sm font-medium text-center">
+                  <div className="px-4 py-2 bg-success/10 text-success rounded-lg text-sm font-medium text-center">
                     Great job! You've mastered this material.
                   </div>
                 ) : (
-                  <div className="px-4 py-2 bg-amber-50 text-amber-700 rounded-lg text-sm font-medium text-center">
+                  <div className="px-4 py-2 bg-warning/8 text-warning rounded-lg text-sm font-medium text-center">
                     Review the material and try again.
                   </div>
                 )}
@@ -301,14 +301,14 @@ export function QuizPanel({
 
           {!isSubmitted && !isInstructor && (
             <div className="mt-8 sticky bottom-6 z-10">
-              <div className="bg-white/80 backdrop-blur-md p-4 rounded-2xl border border-gray-200 shadow-lg max-w-2xl mx-auto flex items-center justify-between gap-4">
-                <div className="text-sm text-gray-600 font-medium pl-2">
+              <div className="bg-card/80 backdrop-blur-md p-4 rounded-2xl border border-border shadow-lg max-w-2xl mx-auto flex items-center justify-between gap-4">
+                <div className="text-sm text-muted-foreground font-medium pl-2">
                   {Object.keys(userAnswers).length} of {quiz.length} Answered
                 </div>
                 <button
                   onClick={handleSubmitQuiz}
                   disabled={Object.keys(userAnswers).length !== quiz.length}
-                  className="px-8 py-3 bg-classly-green text-white rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-all shadow-md"
+                  className="px-8 py-3 bg-primary text-primary-foreground rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed font-medium transition-all shadow-md"
                 >
                   Submit Quiz
                 </button>
@@ -337,13 +337,13 @@ function QuizQuestionCard({
   isSubmitted: boolean
 }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden transition-all hover:shadow-md">
+    <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden transition-all hover:shadow-md">
       <div className="p-6">
         <div className="flex gap-4">
-          <span className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-gray-50 text-gray-500 font-medium text-sm">
+          <span className="shrink-0 w-8 h-8 flex items-center justify-center rounded-lg bg-secondary text-muted-foreground font-medium text-sm">
             {index + 1}
           </span>
-          <p className="font-medium text-gray-900 text-lg flex-1 pt-0.5">
+          <p className="font-medium text-foreground text-lg flex-1 pt-0.5">
             {question.question}
           </p>
         </div>
@@ -357,25 +357,25 @@ function QuizQuestionCard({
             const showWrong = showAnswer && isSelected && !isCorrect
             const isDimmed = showAnswer && !isCorrect && !isSelected
 
-            let borderClass = 'border-gray-200'
-            let bgClass = 'bg-white'
-            let textClass = 'text-gray-700'
+            let borderClass = 'border-border'
+            let bgClass = 'bg-card'
+            let textClass = 'text-foreground/80'
             let icon: ReactNode = null
 
             if (showCorrect) {
-              borderClass = 'border-emerald-500 ring-1 ring-emerald-500'
-              bgClass = 'bg-emerald-50/30'
-              textClass = 'text-emerald-700 font-medium'
-              icon = <Check size={18} className="text-emerald-600" />
+              borderClass = 'border-success ring-1 ring-success'
+              bgClass = 'bg-success/5'
+              textClass = 'text-success font-medium'
+              icon = <Check size={18} className="text-success" />
             } else if (showWrong) {
-              borderClass = 'border-red-500 ring-1 ring-red-500'
-              bgClass = 'bg-red-50/30'
-              textClass = 'text-red-700 font-medium'
-              icon = <X size={18} className="text-red-600" />
+              borderClass = 'border-destructive ring-1 ring-destructive'
+              bgClass = 'bg-destructive/8'
+              textClass = 'text-destructive font-medium'
+              icon = <X size={18} className="text-destructive" />
             } else if (isSelected) {
               borderClass = 'border-classly-green ring-1 ring-classly-green'
-              bgClass = 'bg-gray-50'
-              textClass = 'text-gray-900 font-medium'
+              bgClass = 'bg-secondary'
+              textClass = 'text-foreground font-medium'
             }
 
             return (
@@ -385,7 +385,7 @@ function QuizQuestionCard({
                 disabled={isSubmitted}
                 className={`w-full text-left p-4 rounded-xl border transition-all duration-200 relative group ${borderClass} ${bgClass} ${
                   isDimmed ? 'opacity-50' : 'opacity-100'
-                } ${!isSubmitted && !isSelected ? 'hover:border-classly-green hover:bg-gray-50' : ''}`}
+                } ${!isSubmitted && !isSelected ? 'hover:border-classly-green hover:bg-secondary' : ''}`}
               >
                 <div className="flex items-center justify-between gap-3">
                   <span className={textClass}>{option}</span>
@@ -394,7 +394,7 @@ function QuizQuestionCard({
                     <div className="w-4 h-4 rounded-full bg-classly-green" />
                   )}
                   {!isSubmitted && !isSelected && (
-                    <div className="w-4 h-4 rounded-full border border-gray-300 group-hover:border-classly-green transition-colors" />
+                    <div className="w-4 h-4 rounded-full border border-input group-hover:border-classly-green transition-colors" />
                   )}
                 </div>
               </button>
@@ -404,9 +404,9 @@ function QuizQuestionCard({
       </div>
 
       {showAnswer && question.explanation && (
-        <div className="bg-gray-50 px-6 py-4 border-t border-gray-100 ml-12 border-l border-l-gray-200">
-          <p className="text-sm text-gray-600">
-            <span className="font-semibold text-gray-900">Explanation:</span>{' '}
+        <div className="bg-secondary px-6 py-4 border-t border-border/60 ml-12 border-l border-l-gray-200">
+          <p className="text-sm text-muted-foreground">
+            <span className="font-semibold text-foreground">Explanation:</span>{' '}
             {question.explanation}
           </p>
         </div>

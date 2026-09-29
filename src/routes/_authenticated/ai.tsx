@@ -35,11 +35,11 @@ function AIAssistantPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
           <Sparkles className="text-classly-green" size={28} />
           AI Study Tools
         </h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-sm text-muted-foreground mt-1">
           {userRole === "admin"
             ? "Get AI assistance for managing the platform"
             : userRole === "instructor"
@@ -48,7 +48,7 @@ function AIAssistantPage() {
         </p>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 p-2 flex gap-2 shadow-sm">
+      <div className="bg-card rounded-xl border border-border p-2 flex gap-2 shadow-sm">
         {modes.map((mode) => {
           const Icon = mode.icon;
           const isActive = effectiveMode === mode.id;
@@ -59,8 +59,8 @@ function AIAssistantPage() {
               onClick={() => setActiveMode(mode.id)}
               className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all ${
                 isActive
-                  ? "bg-classly-green text-white shadow-sm"
-                  : "text-gray-600 hover:bg-gray-50"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-secondary"
               }`}
             >
               <Icon size={18} />

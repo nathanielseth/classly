@@ -35,34 +35,34 @@ interface MaterialCardProps {
 const TYPE_COLORS: Record<string, { bg: string; text: string; badge: string }> =
   {
     assignment: {
-      bg: 'bg-blue-50',
-      text: 'text-blue-600',
-      badge: 'bg-blue-50 text-blue-700',
+      bg: 'bg-info/8',
+      text: 'text-info',
+      badge: 'bg-info/8 text-info',
     },
     quiz: {
-      bg: 'bg-purple-50',
-      text: 'text-purple-600',
-      badge: 'bg-purple-50 text-purple-700',
+      bg: 'bg-chart-4/10',
+      text: 'text-chart-4',
+      badge: 'bg-chart-4/10 text-chart-4',
     },
     exam: {
-      bg: 'bg-red-50',
-      text: 'text-red-600',
-      badge: 'bg-red-50 text-red-700',
+      bg: 'bg-destructive/8',
+      text: 'text-destructive',
+      badge: 'bg-destructive/8 text-destructive',
     },
     project: {
-      bg: 'bg-green-50',
-      text: 'text-green-600',
-      badge: 'bg-green-50 text-green-700',
+      bg: 'bg-success/8',
+      text: 'text-success',
+      badge: 'bg-success/8 text-success',
     },
     module: {
-      bg: 'bg-indigo-50',
-      text: 'text-indigo-600',
-      badge: 'bg-indigo-50 text-indigo-700',
+      bg: 'bg-chart-6/10',
+      text: 'text-chart-6',
+      badge: 'bg-chart-6/10 text-chart-6',
     },
     material: {
-      bg: 'bg-gray-50',
-      text: 'text-gray-600',
-      badge: 'bg-gray-50 text-gray-700',
+      bg: 'bg-secondary',
+      text: 'text-muted-foreground',
+      badge: 'bg-secondary text-foreground/80',
     },
   }
 
@@ -77,12 +77,12 @@ function submissionBadge(
     return overdue
       ? {
           label: 'Missing',
-          className: 'text-red-700 bg-red-50',
+          className: 'text-destructive bg-destructive/8',
           icon: AlertCircle,
         }
       : {
           label: 'Not submitted',
-          className: 'text-gray-600 bg-gray-100',
+          className: 'text-muted-foreground bg-muted',
           icon: Clock,
         }
   }
@@ -91,7 +91,7 @@ function submissionBadge(
     return {
       label:
         submission.grade !== null ? `Graded · ${submission.grade}` : 'Graded',
-      className: 'text-green-700 bg-green-50',
+      className: 'text-success bg-success/8',
       icon: CheckCircle2,
     }
   }
@@ -99,12 +99,12 @@ function submissionBadge(
   return submission.is_late
     ? {
         label: 'Turned in late',
-        className: 'text-amber-700 bg-amber-50',
+        className: 'text-warning bg-warning/8',
         icon: CheckCircle2,
       }
     : {
         label: 'Turned in',
-        className: 'text-blue-700 bg-blue-50',
+        className: 'text-info bg-info/8',
         icon: CheckCircle2,
       }
 }
@@ -135,7 +135,7 @@ export function MaterialCard({
   return (
     <div
       onClick={handleCardClick}
-      className="group p-4 hover:bg-gray-50 transition-all cursor-pointer border-l-4 border-transparent hover:border-classly-green"
+      className="group p-4 hover:bg-secondary transition-all cursor-pointer border-l-4 border-transparent hover:border-classly-green"
     >
       <div className="flex items-start gap-3">
         <div
@@ -148,17 +148,17 @@ export function MaterialCard({
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-gray-900 group-hover:text-classly-green transition-colors">
+                <h3 className="text-sm font-semibold text-foreground group-hover:text-classly-green transition-colors">
                   {material.title}
                 </h3>
                 {canManage && !material.published && (
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide text-amber-700 bg-amber-50 shrink-0">
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide text-warning bg-warning/8 shrink-0">
                     Draft
                   </span>
                 )}
               </div>
               {material.description && (
-                <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                   {material.description}
                 </p>
               )}
@@ -171,7 +171,7 @@ export function MaterialCard({
                     e.stopPropagation()
                     onEdit?.()
                   }}
-                  className="p-1.5 text-gray-400 hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
+                  className="p-1.5 text-muted-foreground/70 hover:bg-info/8 hover:text-info rounded-lg transition-colors"
                   title="Edit"
                 >
                   <Edit size={16} />
@@ -181,7 +181,7 @@ export function MaterialCard({
                     e.stopPropagation()
                     onDelete?.()
                   }}
-                  className="p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors"
+                  className="p-1.5 text-muted-foreground/70 hover:bg-destructive/8 hover:text-destructive rounded-lg transition-colors"
                   title="Delete"
                 >
                   <Trash2 size={16} />
@@ -195,8 +195,8 @@ export function MaterialCard({
               <div
                 className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full ${
                   isOverdue
-                    ? 'text-red-700 bg-red-50'
-                    : 'text-orange-700 bg-orange-50'
+                    ? 'text-destructive bg-destructive/8'
+                    : 'text-warning bg-warning/8'
                 }`}
               >
                 <Clock size={12} />
@@ -216,7 +216,7 @@ export function MaterialCard({
             )}
 
             {material.max_points !== null && material.max_points > 0 && (
-              <span className="text-xs text-gray-600 font-medium">
+              <span className="text-xs text-muted-foreground font-medium">
                 {material.max_points} points
               </span>
             )}
@@ -228,7 +228,7 @@ export function MaterialCard({
             </span>
 
             {material.created_at && !dueDate && (
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-muted-foreground">
                 Posted{' '}
                 {new Date(material.created_at).toLocaleDateString('en-US', {
                   month: 'short',
@@ -243,7 +243,7 @@ export function MaterialCard({
                 target="_blank"
                 rel="noreferrer"
                 onClick={(e) => e.stopPropagation()}
-                className="ml-auto flex items-center gap-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-full transition-all"
+                className="ml-auto flex items-center gap-1.5 text-xs font-medium text-info hover:brightness-110 bg-info/8 hover:bg-info/12 px-2.5 py-1 rounded-full transition-all"
               >
                 <Paperclip size={12} />
                 <span>Attachment</span>

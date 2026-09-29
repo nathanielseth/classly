@@ -61,17 +61,17 @@ export function FlashcardPanel() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="bg-card rounded-xl border border-border shadow-sm overflow-hidden">
         <div className="p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-foreground mb-6 flex items-center gap-2">
             <Layers className="text-classly-green" size={20} />
             Flashcard Generator
           </h3>
 
           {generateMutation.isError && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl flex items-start gap-3">
-              <AlertCircle className="text-red-600 shrink-0 mt-0.5" size={18} />
-              <p className="text-sm text-red-600 font-medium">
+            <div className="mb-6 p-4 bg-destructive/8 border border-destructive/20 rounded-xl flex items-start gap-3">
+              <AlertCircle className="text-destructive shrink-0 mt-0.5" size={18} />
+              <p className="text-sm text-destructive font-medium">
                 {generateMutation.error.message}
               </p>
             </div>
@@ -88,7 +88,7 @@ export function FlashcardPanel() {
           <button
             onClick={() => selectedMaterial && generateMutation.mutate(selectedMaterial)}
             disabled={!selectedMaterial || generateMutation.isPending}
-            className="w-full py-3.5 bg-classly-green text-white rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-2 transition-all shadow-sm"
+            className="w-full py-3.5 bg-primary text-primary-foreground rounded-xl hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed font-medium flex items-center justify-center gap-2 transition-all shadow-sm"
           >
             {generateMutation.isPending ? (
               <>
@@ -108,14 +108,14 @@ export function FlashcardPanel() {
       {flashcards && flashcards.length > 0 && selectedMaterial && (
         <div>
           <div className="flex items-center justify-between mb-4 px-1">
-            <h4 className="font-semibold text-gray-900">{selectedMaterial.title}</h4>
-            <div className="flex bg-gray-100 p-1 rounded-lg">
+            <h4 className="font-semibold text-foreground">{selectedMaterial.title}</h4>
+            <div className="flex bg-muted p-1 rounded-lg">
               <button
                 onClick={() => setViewMode('deck')}
                 className={`p-1.5 rounded-md transition-all ${
                   viewMode === 'deck'
-                    ? 'bg-white shadow-xs text-classly-green'
-                    : 'text-gray-500 hover:text-gray-700'
+                    ? 'bg-card shadow-xs text-classly-green'
+                    : 'text-muted-foreground hover:text-foreground/80'
                 }`}
                 title="Deck View"
               >
@@ -125,8 +125,8 @@ export function FlashcardPanel() {
                 onClick={() => setViewMode('grid')}
                 className={`p-1.5 rounded-md transition-all ${
                   viewMode === 'grid'
-                    ? 'bg-white shadow-xs text-classly-green'
-                    : 'text-gray-500 hover:text-gray-700'
+                    ? 'bg-card shadow-xs text-classly-green'
+                    : 'text-muted-foreground hover:text-foreground/80'
                 }`}
                 title="Grid View"
               >
@@ -144,26 +144,26 @@ export function FlashcardPanel() {
                   }`}
                   onClick={() => setIsFlipped(!isFlipped)}
                 >
-                  <div className="absolute inset-0 w-full h-full bg-white rounded-2xl border border-gray-200 shadow-sm backface-hidden flex flex-col items-center justify-center p-8 text-center hover:shadow-md transition-shadow">
-                    <span className="absolute top-4 left-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  <div className="absolute inset-0 w-full h-full bg-card rounded-2xl border border-border shadow-sm backface-hidden flex flex-col items-center justify-center p-8 text-center hover:shadow-md transition-shadow">
+                    <span className="absolute top-4 left-4 text-xs font-semibold text-muted-foreground/70 uppercase tracking-wider">
                       Question
                     </span>
-                    <span className="absolute top-4 right-4 text-xs font-semibold text-gray-400 bg-gray-50 px-2 py-1 rounded-full">
+                    <span className="absolute top-4 right-4 text-xs font-semibold text-muted-foreground/70 bg-secondary px-2 py-1 rounded-full">
                       {currentIndex + 1} / {flashcards.length}
                     </span>
-                    <p className="text-xl font-medium text-gray-800 leading-relaxed">
+                    <p className="text-xl font-medium text-foreground leading-relaxed">
                       {flashcards[currentIndex].question}
                     </p>
-                    <p className="absolute bottom-6 text-sm text-gray-400 flex items-center gap-1.5">
+                    <p className="absolute bottom-6 text-sm text-muted-foreground/70 flex items-center gap-1.5">
                       <RotateCw size={14} /> Click to flip
                     </p>
                   </div>
 
-                  <div className="absolute inset-0 w-full h-full bg-gray-50 rounded-2xl border border-classly-green/30 shadow-sm transform-[rotateY(180deg)] backface-hidden flex flex-col items-center justify-center p-8 text-center">
+                  <div className="absolute inset-0 w-full h-full bg-secondary rounded-2xl border border-classly-green/30 shadow-sm transform-[rotateY(180deg)] backface-hidden flex flex-col items-center justify-center p-8 text-center">
                     <span className="absolute top-4 left-4 text-xs font-semibold text-classly-green uppercase tracking-wider">
                       Answer
                     </span>
-                    <p className="text-lg text-gray-800 leading-relaxed">
+                    <p className="text-lg text-foreground leading-relaxed">
                       {flashcards[currentIndex].answer}
                     </p>
                   </div>
@@ -173,12 +173,12 @@ export function FlashcardPanel() {
               <div className="flex items-center justify-center gap-6">
                 <button
                   onClick={prevCard}
-                  className="p-3 rounded-full hover:bg-gray-100 text-gray-600 transition-colors border border-transparent hover:border-gray-200"
+                  className="p-3 rounded-full hover:bg-muted text-muted-foreground transition-colors border border-transparent hover:border-border"
                 >
                   <ChevronLeft size={24} />
                 </button>
 
-                <div className="w-full max-w-50 bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                <div className="w-full max-w-50 bg-muted h-1.5 rounded-full overflow-hidden">
                   <div
                     className="bg-classly-green h-full transition-all duration-300"
                     style={{ width: `${((currentIndex + 1) / flashcards.length) * 100}%` }}
@@ -187,7 +187,7 @@ export function FlashcardPanel() {
 
                 <button
                   onClick={nextCard}
-                  className="p-3 rounded-full hover:bg-gray-100 text-gray-600 transition-colors border border-transparent hover:border-gray-200"
+                  className="p-3 rounded-full hover:bg-muted text-muted-foreground transition-colors border border-transparent hover:border-border"
                 >
                   <ChevronRight size={24} />
                 </button>
@@ -198,17 +198,17 @@ export function FlashcardPanel() {
               {flashcards.map((card, idx) => (
                 <div
                   key={idx}
-                  className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow"
+                  className="bg-card p-6 rounded-xl border border-border shadow-sm hover:shadow-md transition-shadow"
                 >
-                  <p className="text-sm font-semibold text-gray-400 mb-2 uppercase tracking-wider">
+                  <p className="text-sm font-semibold text-muted-foreground/70 mb-2 uppercase tracking-wider">
                     Question {idx + 1}
                   </p>
-                  <p className="font-medium text-gray-900 mb-4">{card.question}</p>
-                  <hr className="border-gray-100 my-3" />
+                  <p className="font-medium text-foreground mb-4">{card.question}</p>
+                  <hr className="border-border/60 my-3" />
                   <p className="text-sm font-semibold text-classly-green mb-1 uppercase tracking-wider">
                     Answer
                   </p>
-                  <p className="text-gray-700">{card.answer}</p>
+                  <p className="text-foreground/80">{card.answer}</p>
                 </div>
               ))}
             </div>

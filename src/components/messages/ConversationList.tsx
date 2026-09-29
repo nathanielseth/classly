@@ -49,17 +49,17 @@ export function ConversationList({
 
   return (
     <div
-      className={`flex flex-col border-r border-gray-200 bg-white transition-all ${
+      className={`flex flex-col border-r border-border bg-card transition-all ${
         collapsedOnMobile ? 'hidden md:flex w-80 shrink-0' : 'flex w-full md:w-80 md:shrink-0'
       }`}
     >
-      <div className="flex border-b border-gray-100">
+      <div className="flex border-b border-border/60">
         <button
           onClick={() => onTabChange('dms')}
           className={`flex-1 py-3 text-sm font-medium transition-colors ${
             tab === 'dms'
               ? 'text-classly-green border-b-2 border-classly-green'
-              : 'text-gray-500 hover:text-gray-700'
+              : 'text-muted-foreground hover:text-foreground/80'
           }`}
         >
           Direct
@@ -69,7 +69,7 @@ export function ConversationList({
           className={`flex-1 py-3 text-sm font-medium transition-colors ${
             tab === 'groups'
               ? 'text-classly-green border-b-2 border-classly-green'
-              : 'text-gray-500 hover:text-gray-700'
+              : 'text-muted-foreground hover:text-foreground/80'
           }`}
         >
           Groups
@@ -77,14 +77,14 @@ export function ConversationList({
       </div>
 
       {tab === 'dms' && (
-        <div className="p-3 border-b border-gray-50">
+        <div className="p-3 border-b border-border/40">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+            <span className="text-xs font-medium text-muted-foreground/70 uppercase tracking-wide">
               Messages
             </span>
             <button
               onClick={() => setShowSearch((v) => !v)}
-              className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-400 hover:text-gray-600"
+              className="p-1.5 hover:bg-muted rounded-lg text-muted-foreground/70 hover:text-muted-foreground"
               title="New message"
             >
               <Plus size={16} />
@@ -94,7 +94,7 @@ export function ConversationList({
             <div className="relative">
               <Search
                 size={14}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/70"
               />
               <input
                 autoFocus
@@ -102,13 +102,13 @@ export function ConversationList({
                 placeholder="Search people..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-classly-green"
+                className="w-full pl-8 pr-3 py-2 text-sm border border-border rounded-lg focus:outline-none focus:border-classly-green"
               />
               {(searchResults.length > 0 || searchQuery.isFetching) && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-hidden">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg z-50 overflow-hidden">
                   {searchQuery.isFetching ? (
                     <div className="flex items-center justify-center py-4">
-                      <Loader2 size={16} className="animate-spin text-gray-400" />
+                      <Loader2 size={16} className="animate-spin text-muted-foreground/70" />
                     </div>
                   ) : (
                     searchResults.map((user) => (
@@ -119,16 +119,16 @@ export function ConversationList({
                           setQuery('')
                           onStartDirect(user)
                         }}
-                        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 text-left"
+                        className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-secondary text-left"
                       >
-                        <div className="w-8 h-8 rounded-full bg-classly-green flex items-center justify-center text-white text-sm font-semibold shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-semibold shrink-0">
                           {getInitial(user.full_name)}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
+                          <p className="text-sm font-medium text-foreground truncate">
                             {user.full_name}
                           </p>
-                          <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                          <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                         </div>
                         <span
                           className={`text-xs px-2 py-0.5 rounded-full font-medium ${roleColor[user.role]}`}
@@ -148,39 +148,39 @@ export function ConversationList({
       <div className="flex-1 overflow-y-auto">
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 size={20} className="animate-spin text-gray-400" />
+            <Loader2 size={20} className="animate-spin text-muted-foreground/70" />
           </div>
         ) : tab === 'dms' ? (
           directConversations.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-              <MessageSquare size={28} className="text-gray-300 mb-2" />
-              <p className="text-sm text-gray-500">No messages yet</p>
-              <p className="text-xs text-gray-400 mt-1">Press + to start one</p>
+              <MessageSquare size={28} className="text-muted-foreground/50 mb-2" />
+              <p className="text-sm text-muted-foreground">No messages yet</p>
+              <p className="text-xs text-muted-foreground/70 mt-1">Press + to start one</p>
             </div>
           ) : (
             directConversations.map((convo) => (
               <button
                 key={convo.id}
                 onClick={() => onSelectDirect(convo)}
-                className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-left border-b border-gray-50 transition-colors ${
+                className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-secondary text-left border-b border-border/40 transition-colors ${
                   active?.type === 'dm' && active.id === convo.id
                     ? 'bg-classly-green/5 border-l-2 border-l-classly-green'
                     : ''
                 }`}
               >
-                <div className="w-10 h-10 rounded-full bg-classly-green flex items-center justify-center text-white font-semibold shrink-0">
+                <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-semibold shrink-0">
                   {getInitial(convo.otherUser.full_name)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-gray-900 truncate">
+                    <p className="text-sm font-medium text-foreground truncate">
                       {convo.otherUser.full_name}
                     </p>
-                    <span className="text-xs text-gray-400 ml-2">
+                    <span className="text-xs text-muted-foreground/70 ml-2">
                       {formatTime(convo.last_message_at)}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-500 truncate mt-0.5">
+                  <p className="text-xs text-muted-foreground truncate mt-0.5">
                     {convo.preview ?? 'No messages yet'}
                   </p>
                 </div>
@@ -189,9 +189,9 @@ export function ConversationList({
           )
         ) : groupConversations.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-            <Users size={28} className="text-gray-300 mb-2" />
-            <p className="text-sm text-gray-500">No group chats yet</p>
-            <p className="text-xs text-gray-400 mt-1">
+            <Users size={28} className="text-muted-foreground/50 mb-2" />
+            <p className="text-sm text-muted-foreground">No group chats yet</p>
+            <p className="text-xs text-muted-foreground/70 mt-1">
               Groups are created automatically when a subject is made
             </p>
           </div>
@@ -200,27 +200,27 @@ export function ConversationList({
             <button
               key={convo.id}
               onClick={() => onSelectGroup(convo)}
-              className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-left border-b border-gray-50 transition-colors ${
+              className={`w-full flex items-center gap-3 px-4 py-3 hover:bg-secondary text-left border-b border-border/40 transition-colors ${
                 active?.type === 'group' && active.id === convo.id
                   ? 'bg-classly-green/5 border-l-2 border-l-classly-green'
                   : ''
               }`}
             >
-              <div className="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center text-white font-semibold text-sm shrink-0">
+              <div className="w-10 h-10 rounded-full bg-chart-4 flex items-center justify-center text-background font-semibold text-sm shrink-0">
                 {getInitial(convo.subject?.name ?? convo.name)}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <p className="text-sm font-medium text-gray-900 truncate">
+                  <p className="text-sm font-medium text-foreground truncate">
                     {convo.subject?.name ?? convo.name}
                   </p>
-                  <span className="text-xs text-gray-400 ml-2">
+                  <span className="text-xs text-muted-foreground/70 ml-2">
                     {formatTime(convo.last_message_at)}
                   </span>
                 </div>
-                <p className="text-xs text-gray-500 truncate mt-0.5">
+                <p className="text-xs text-muted-foreground truncate mt-0.5">
                   {convo.subject?.code && (
-                    <span className="text-purple-500 font-medium mr-1">
+                    <span className="text-chart-4 font-medium mr-1">
                       {convo.subject.code}
                     </span>
                   )}

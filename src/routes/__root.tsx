@@ -12,6 +12,8 @@ import appCss from '@/styles.css?url'
 import { Button } from '@/components/ui/button'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { Toaster } from '@/components/ui/toast'
+import { ThemeProvider } from '@/lib/theme/ThemeProvider'
+import { themeInitScript } from '@/lib/theme/theme'
 
 export const Route = createRootRouteWithContext<{
   queryClient: QueryClient
@@ -20,6 +22,8 @@ export const Route = createRootRouteWithContext<{
     meta: [
       { charSet: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+      // lets native ui follow the theme before css loads
+      { name: 'color-scheme', content: 'light dark' },
       { title: 'Classly' },
     ],
     links: [
@@ -45,12 +49,14 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <RootDocument>
-          <Outlet />
-          <Toaster />
-        </RootDocument>
-      </TooltipProvider>
+      <ThemeProvider>
+        <TooltipProvider>
+          <RootDocument>
+            <Outlet />
+            <Toaster />
+          </RootDocument>
+        </TooltipProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   )
 }
@@ -59,6 +65,8 @@ function RootDocument({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* must run before first paint to avoid wrong-theme flash */}
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <HeadContent />
       </head>
       <body>

@@ -13,19 +13,19 @@ interface UpcomingMaterialsBannerProps {
 
 const URGENCY_STYLES = {
   today: {
-    wrap: 'bg-red-50 border-red-100 hover:bg-red-100',
-    title: 'group-hover:text-red-700',
-    badge: 'text-red-600 bg-red-100',
+    wrap: 'bg-destructive/8 border-destructive/20 hover:bg-destructive/12',
+    title: 'group-hover:text-destructive',
+    badge: 'text-destructive bg-destructive/12',
   },
   tomorrow: {
-    wrap: 'bg-orange-50 border-orange-100 hover:bg-orange-100',
-    title: 'group-hover:text-orange-700',
-    badge: 'text-orange-600 bg-orange-100',
+    wrap: 'bg-warning/8 border-warning/20 hover:bg-warning/12',
+    title: 'group-hover:text-warning',
+    badge: 'text-warning bg-warning/12',
   },
   upcoming: {
-    wrap: 'bg-yellow-50 border-yellow-100 hover:bg-yellow-100',
-    title: 'group-hover:text-yellow-700',
-    badge: 'text-yellow-600 bg-yellow-100',
+    wrap: 'bg-info/8 border-info/20 hover:bg-info/12',
+    title: 'group-hover:text-info',
+    badge: 'text-info bg-info/12',
   },
 } as const
 
@@ -48,9 +48,9 @@ export function UpcomingMaterialsBanner({
 }: UpcomingMaterialsBannerProps) {
   if (materials.length === 0) {
     return (
-      <div className="bg-green-50 border border-green-100 rounded-lg px-4 py-3 flex items-center gap-2">
-        <Check size={16} className="text-green-600" />
-        <span className="text-sm text-green-700 font-medium">
+      <div className="bg-success/8 border border-success/20 rounded-lg px-4 py-3 flex items-center gap-2">
+        <Check size={16} className="text-success" />
+        <span className="text-sm text-success font-medium">
           All caught up! No upcoming assignments.
         </span>
       </div>
@@ -59,7 +59,7 @@ export function UpcomingMaterialsBanner({
 
   return (
     <div className="flex items-center gap-3 flex-wrap">
-      <div className="flex items-center gap-2 text-sm text-gray-600">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <CheckCircle size={16} className="text-classly-green" />
         <span className="font-medium">Due soon:</span>
       </div>
@@ -78,14 +78,14 @@ export function UpcomingMaterialsBanner({
           >
             <div className="flex items-center gap-2">
               <span
-                className={`text-sm font-semibold text-gray-900 transition-colors ${styles.title}`}
+                className={`text-sm font-semibold text-foreground transition-colors ${styles.title}`}
               >
                 {material.title}
               </span>
               {subjectCode && (
                 <>
-                  <span className="text-xs text-gray-400">•</span>
-                  <span className="text-xs text-gray-500">{subjectCode}</span>
+                  <span className="text-xs text-muted-foreground/70">•</span>
+                  <span className="text-xs text-muted-foreground">{subjectCode}</span>
                 </>
               )}
             </div>

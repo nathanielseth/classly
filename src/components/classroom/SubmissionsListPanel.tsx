@@ -36,7 +36,7 @@ function getStatusBadge(
     return {
       text: 'Assigned',
       icon: Clock,
-      classes: 'bg-gray-100 text-gray-600',
+      classes: 'bg-muted text-muted-foreground',
     }
   }
 
@@ -45,26 +45,26 @@ function getStatusBadge(
       return {
         text: 'Turned in',
         icon: CheckCircle,
-        classes: 'bg-blue-100 text-blue-700',
+        classes: 'bg-info/12 text-info',
       }
     case 'late':
       return {
         text: 'Turned in late',
         icon: AlertCircle,
-        classes: 'bg-orange-100 text-orange-700',
+        classes: 'bg-warning/12 text-warning',
       }
     case 'graded':
     case 'returned':
       return {
         text: `Graded (${submission.grade}/${maxPoints})`,
         icon: CheckCircle,
-        classes: 'bg-green-100 text-green-700',
+        classes: 'bg-success/12 text-success',
       }
     default:
       return {
         text: 'Unknown',
         icon: AlertCircle,
-        classes: 'bg-gray-100 text-gray-600',
+        classes: 'bg-muted text-muted-foreground',
       }
   }
 }
@@ -107,19 +107,19 @@ export function SubmissionsListPanel({
 
   if (rosterQuery.isPending) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-12 flex items-center justify-center">
-        <Loader2 size={20} className="animate-spin text-gray-400" />
+      <div className="bg-card rounded-lg border border-border p-12 flex items-center justify-center">
+        <Loader2 size={20} className="animate-spin text-muted-foreground/70" />
       </div>
     )
   }
 
   if (rosterQuery.isError) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-        <h3 className="font-semibold text-red-900 mb-1">
+      <div className="bg-destructive/8 border border-destructive/30 rounded-lg p-6">
+        <h3 className="font-semibold text-destructive mb-1">
           Failed to load submissions
         </h3>
-        <p className="text-sm text-red-700">{rosterQuery.error.message}</p>
+        <p className="text-sm text-destructive">{rosterQuery.error.message}</p>
       </div>
     )
   }
@@ -172,36 +172,36 @@ export function SubmissionsListPanel({
   })
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-      <div className="p-6 border-b border-gray-100">
+    <div className="bg-card rounded-lg border border-border overflow-hidden">
+      <div className="p-6 border-b border-border/60">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">
+            <h2 className="text-lg font-semibold text-foreground">
               Student Work
             </h2>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               {stats.turnedIn} / {stats.total} turned in
             </p>
           </div>
           <div className="flex items-center gap-6">
             <div className="flex gap-6">
               <div className="text-center">
-                <div className="text-2xl font-bold text-gray-900">
+                <div className="text-2xl font-bold text-foreground">
                   {assigned}
                 </div>
-                <div className="text-xs text-gray-600">Assigned</div>
+                <div className="text-xs text-muted-foreground">Assigned</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600">
+                <div className="text-2xl font-bold text-info">
                   {stats.turnedIn}
                 </div>
-                <div className="text-xs text-gray-600">Turned in</div>
+                <div className="text-xs text-muted-foreground">Turned in</div>
               </div>
               <div className="text-center">
-                <div className="text-2xl font-bold text-green-600">
+                <div className="text-2xl font-bold text-success">
                   {stats.graded}
                 </div>
-                <div className="text-xs text-gray-600">Graded</div>
+                <div className="text-xs text-muted-foreground">Graded</div>
               </div>
             </div>
             <ExportGrades
@@ -212,7 +212,7 @@ export function SubmissionsListPanel({
           </div>
         </div>
 
-        <div className="flex gap-6 mt-4 -mb-6 pt-2 border-t border-gray-100">
+        <div className="flex gap-6 mt-4 -mb-6 pt-2 border-t border-border/60">
           {(
             [
               { key: 'all', label: 'All', count: stats.total },
@@ -227,7 +227,7 @@ export function SubmissionsListPanel({
               className={`py-3 px-1 border-b-2 transition-colors text-sm ${
                 filter === tab.key
                   ? 'border-classly-green text-classly-green font-medium'
-                  : 'border-transparent text-gray-600 hover:text-gray-900'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
               }`}
             >
               {tab.label} ({tab.count})
@@ -238,11 +238,11 @@ export function SubmissionsListPanel({
 
       {sorted.length === 0 ? (
         <div className="p-12 text-center">
-          <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-600">No submissions in this category</p>
+          <FileText className="w-12 h-12 text-muted-foreground/50 mx-auto mb-3" />
+          <p className="text-muted-foreground">No submissions in this category</p>
         </div>
       ) : (
-        <div className="divide-y divide-gray-100">
+        <div className="divide-y divide-border/60">
           {sorted.map((entry) => {
             const badge = getStatusBadge(entry.submission, maxPoints)
             const StatusIcon = badge.icon
@@ -253,18 +253,18 @@ export function SubmissionsListPanel({
             return (
               <div
                 key={entry.student.id}
-                className="p-4 hover:bg-gray-50 transition-colors"
+                className="p-4 hover:bg-secondary transition-colors"
               >
                 <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-classly-green rounded-full flex items-center justify-center text-white font-semibold shrink-0">
+                  <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-semibold shrink-0">
                     {entry.student.full_name[0].toUpperCase()}
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900">
+                    <p className="font-medium text-foreground">
                       {entry.student.full_name}
                     </p>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-muted-foreground">
                       {entry.student.email}
                     </p>
                   </div>
@@ -278,14 +278,14 @@ export function SubmissionsListPanel({
                         {badge.text}
                       </div>
                       {entry.submission?.submitted_at && (
-                        <p className="text-xs text-gray-500 mt-1">
+                        <p className="text-xs text-muted-foreground mt-1">
                           {formatShortDateTime(entry.submission.submitted_at)}
                         </p>
                       )}
                     </div>
 
                     {entry.submission?.file_url && (
-                      <div className="text-gray-400">
+                      <div className="text-muted-foreground/70">
                         <Paperclip size={16} />
                       </div>
                     )}
@@ -296,8 +296,8 @@ export function SubmissionsListPanel({
                         className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
                           entry.submission.status === 'graded' ||
                           entry.submission.status === 'returned'
-                            ? 'border border-gray-300 text-gray-700 hover:bg-gray-50'
-                            : 'bg-classly-green text-white hover:bg-classly-green/90 shadow-sm'
+                            ? 'border border-input text-foreground/80 hover:bg-secondary'
+                            : 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm'
                         }`}
                       >
                         {entry.submission.status === 'graded' ||
@@ -308,7 +308,7 @@ export function SubmissionsListPanel({
                     ) : (
                       <button
                         disabled
-                        className="px-4 py-2 border border-gray-300 text-gray-500 rounded-lg text-sm cursor-not-allowed opacity-60"
+                        className="px-4 py-2 border border-input text-muted-foreground rounded-lg text-sm cursor-not-allowed opacity-60"
                       >
                         Not submitted
                       </button>
@@ -318,7 +318,7 @@ export function SubmissionsListPanel({
 
                 {isSubmitted && entry.submission?.content && (
                   <div className="mt-3 pl-14">
-                    <p className="text-sm text-gray-600 line-clamp-2">
+                    <p className="text-sm text-muted-foreground line-clamp-2">
                       {entry.submission.content}
                     </p>
                   </div>

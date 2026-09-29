@@ -132,14 +132,14 @@ export function MessagesView({
           onMessageSent={refreshLists}
         />
       ) : (
-        <div className="hidden md:flex flex-1 flex-col items-center justify-center bg-white text-center">
-          <MessageSquare size={40} className="text-gray-300 mb-3" />
-          <p className="text-gray-500 font-medium">
+        <div className="hidden md:flex flex-1 flex-col items-center justify-center bg-card text-center">
+          <MessageSquare size={40} className="text-muted-foreground/50 mb-3" />
+          <p className="text-muted-foreground font-medium">
             {startDirectMutation.isPending
               ? 'Opening conversation...'
               : 'Select a conversation'}
           </p>
-          <p className="text-sm text-gray-400 mt-1">
+          <p className="text-sm text-muted-foreground/70 mt-1">
             {tab === 'dms'
               ? 'or press + to start a new one'
               : "Groups appear here when you're enrolled in a subject"}
