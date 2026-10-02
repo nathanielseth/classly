@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { BookOpen, MoreHorizontal, UserMinus } from 'lucide-react'
+import { MoreHorizontal, UserMinus } from 'lucide-react'
 import {
   setEnrollmentAccentColor,
   unenrollStudent,
@@ -25,7 +25,7 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog'
-import { toast } from '@/components/ui/toast'
+import { InlineMessage } from '@/components/ui/inline-message'
 
 interface StudentSubjectCardProps {
   subject: {
@@ -49,46 +49,21 @@ const COLORS = [
   { name: 'Red', value: 'red-500' },
 ] as const
 
-const COLOR_CLASSES: Record<
-  string,
-  { border: string; badge: string; swatch: string }
-> = {
-  'classly-green': {
-    border: 'border-t-classly-green',
-    badge: 'text-classly-green bg-classly-green-light',
-    swatch: 'bg-classly-green',
-  },
-  'classly-gold': {
-    border: 'border-t-classly-gold',
-    badge: 'text-classly-gold bg-classly-gold-light',
-    swatch: 'bg-classly-gold',
-  },
-  'blue-500': {
-    border: 'border-t-blue-500',
-    badge: 'text-info bg-info/8',
-    swatch: 'bg-info',
-  },
-  'purple-500': {
-    border: 'border-t-purple-500',
-    badge: 'text-chart-4 bg-chart-4/10',
-    swatch: 'bg-chart-4',
-  },
-  'pink-500': {
-    border: 'border-t-pink-500',
-    badge: 'text-chart-5 bg-chart-5/10',
-    swatch: 'bg-chart-5',
-  },
-  'red-500': {
-    border: 'border-t-red-500',
-    badge: 'text-destructive bg-destructive/8',
-    swatch: 'bg-destructive',
-  },
+const DOT: Record<string, string> = {
+  'classly-green': 'bg-classly-green',
+  'classly-gold': 'bg-classly-gold',
+  'blue-500': 'bg-info',
+  'purple-500': 'bg-chart-4',
+  'pink-500': 'bg-chart-5',
+  'red-500': 'bg-destructive',
 }
 
-function getColorClasses(color: string | null) {
-  return (
-    COLOR_CLASSES[color ?? 'classly-green'] ?? COLOR_CLASSES['classly-green']
-  )
+function dotClass(color: string | null) {
+  return DOT[color ?? 'classly-green'] ?? DOT['classly-green']
+}
+
+function plural(n: number, one: string, many = `${one}s`) {
+  return `${n} ${n === 1 ? one : many}`
 }
 
 export function StudentSubjectCard({
@@ -115,86 +90,65 @@ export function StudentSubjectCard({
       await queryClient.invalidateQueries({ queryKey: ['subjects', 'list'] })
       setConfirmOpen(false)
     },
-    onError: (error) => {
-      toast({
-        variant: 'destructive',
-        title: "Couldn't unenroll",
-        description: error.message,
-      })
-    },
   })
 
   const currentColor = subject.accentColor ?? 'classly-green'
-  const currentColors = getColorClasses(currentColor)
 
   return (
-    <div
-      className={cn(
-        'relative overflow-hidden rounded-xl border border-border border-t-4 bg-card p-6 shadow-soft transition-shadow duration-300 hover:shadow-float',
-        currentColors.border,
-      )}
-    >
+    <div className="group relative rounded-lg border border-border bg-card transition-colors hover:border-foreground/25">
       <Link
         to="/classroom/$subjectId"
         params={{ subjectId: subject.id }}
-        className="block"
+        className="block rounded-lg p-5 pr-12 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       >
-        <div className="mb-4 flex items-start justify-between">
+        <p className="flex items-center gap-2 text-sm text-muted-foreground">
           <span
-            className={cn(
-              'rounded px-2 py-1 text-[10px] font-bold tracking-wide uppercase',
-              currentColors.badge,
-            )}
-          >
-            {subject.code}
-          </span>
-        </div>
-
-        <h3 className="mb-1 line-clamp-1 font-semibold text-foreground">
-          {subject.name}
-        </h3>
-        <p className="mb-4 text-sm text-muted-foreground">
-          {subject.instructor?.full_name ?? 'Unknown instructor'}
+            aria-hidden
+            className={cn('size-2 shrink-0 rounded-full', dotClass(currentColor))}
+          />
+          {subject.code}
         </p>
 
-        <div className="flex items-center gap-4 border-t border-border pt-3 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <BookOpen size={13} />
-            {subject.materialCount} materials
-          </span>
-          <span>{subject.announcementCount} announcements</span>
-        </div>
+        <h3 className="mt-2 line-clamp-2 text-base leading-snug font-semibold text-foreground">
+          {subject.name}
+        </h3>
+        <p className="mt-1 truncate text-sm text-muted-foreground">
+          {subject.instructor?.full_name ?? 'No instructor assigned'}
+        </p>
+
+        <p className="mt-4 text-sm text-muted-foreground tabular-nums">
+          {plural(subject.materialCount, 'material')}
+          <span aria-hidden> · </span>
+          {plural(subject.announcementCount, 'announcement')}
+        </p>
       </Link>
 
-      <div className="absolute top-4 right-4">
+      <div className="absolute top-3 right-3">
         <DropdownMenu>
           <DropdownMenuTrigger
-            onClick={(e) => e.preventDefault()}
-            className="rounded-lg p-1 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-muted-foreground"
-            aria-label="Card options"
+            className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none data-popup-open:bg-muted"
+            aria-label={`Options for ${subject.name}`}
           >
-            <MoreHorizontal size={18} />
+            <MoreHorizontal className="size-4" aria-hidden />
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" onClick={(e) => e.stopPropagation()}>
+          <DropdownMenuContent className="w-56">
             <DropdownMenuLabel>Accent color</DropdownMenuLabel>
             <div className="grid grid-cols-6 gap-2 px-2.5 pb-2">
-              {COLORS.map((color) => {
-                const colorClasses = getColorClasses(color.value)
-                return (
-                  <button
-                    key={color.value}
-                    type="button"
-                    onClick={() => setColorMutation.mutate(color.value)}
-                    className={cn(
-                      'size-6 rounded-full transition-all hover:ring-2 hover:ring-border',
-                      colorClasses.swatch,
-                      currentColor === color.value &&
-                        'ring-2 ring-foreground/30',
-                    )}
-                    title={color.name}
-                  />
-                )
-              })}
+              {COLORS.map((color) => (
+                <button
+                  key={color.value}
+                  type="button"
+                  onClick={() => setColorMutation.mutate(color.value)}
+                  aria-label={color.name}
+                  aria-pressed={currentColor === color.value}
+                  className={cn(
+                    'size-6 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-popover',
+                    dotClass(color.value),
+                    currentColor === color.value &&
+                      'ring-2 ring-foreground/40 ring-offset-2 ring-offset-popover',
+                  )}
+                />
+              ))}
             </div>
             <DropdownMenuSeparator />
             <DropdownMenuItem
@@ -207,14 +161,27 @@ export function StudentSubjectCard({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-          <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+        <AlertDialog
+          open={confirmOpen}
+          onOpenChange={(open) => {
+            setConfirmOpen(open)
+            if (!open) unenrollMutation.reset()
+          }}
+        >
+          <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Unenroll from {subject.name}?</AlertDialogTitle>
               <AlertDialogDescription>
-                You'll lose access to its materials and grades.
+                You will lose access to its materials and grades. You can rejoin
+                with the subject code.
               </AlertDialogDescription>
             </AlertDialogHeader>
+            {/* The error stays in the dialog, next to the button that caused it. */}
+            {unenrollMutation.isError && (
+              <InlineMessage className="mt-4">
+                {unenrollMutation.error.message}
+              </InlineMessage>
+            )}
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
@@ -222,7 +189,7 @@ export function StudentSubjectCard({
                 onClick={() => unenrollMutation.mutate()}
                 disabled={unenrollMutation.isPending}
               >
-                {unenrollMutation.isPending ? 'Leaving…' : 'Unenroll'}
+                {unenrollMutation.isPending ? 'Unenrolling…' : 'Unenroll'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

@@ -1,5 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { ArrowLeft, Calendar, DoorOpen } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface ClassroomHeaderProps {
   subject: {
@@ -13,58 +14,84 @@ interface ClassroomHeaderProps {
   }
 }
 
+const IDENTITY_COLORS = [
+  'bg-classly-green',
+  'bg-classly-gold',
+  'bg-info',
+  'bg-chart-4',
+  'bg-chart-5',
+  'bg-destructive',
+]
+
+function identityColor(code: string) {
+  let hash = 0
+  for (let i = 0; i < code.length; i++) {
+    hash = (hash * 31 + code.charCodeAt(i)) | 0
+  }
+  return IDENTITY_COLORS[Math.abs(hash) % IDENTITY_COLORS.length]
+}
+
 export function ClassroomHeader({ subject }: ClassroomHeaderProps) {
   return (
-    <div className="bg-card border border-border rounded-xl overflow-hidden">
-      <div className="h-2 bg-classly-green" />
+    <div className="overflow-hidden rounded-lg border border-border bg-card">
+      <div
+        aria-hidden
+        className={cn(
+          'h-2',
+          subject.archived ? 'bg-muted' : identityColor(subject.code),
+        )}
+      />
       <div className="p-6">
         <Link
           to="/dashboard"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground/80 mb-4 transition-colors"
+          className="mb-4 inline-flex items-center gap-1.5 rounded-xs text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         >
-          <ArrowLeft size={15} />
-          Back to Dashboard
+          <ArrowLeft className="size-3.5" aria-hidden />
+          Back to dashboard
         </Link>
 
-        <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wide text-classly-green bg-success/8">
-                {subject.code}
-              </span>
+            <p className="text-sm text-muted-foreground">
+              {subject.code}
               {subject.archived && (
-                <span className="text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wide text-muted-foreground bg-muted">
+                <>
+                  <span aria-hidden> · </span>
                   Archived
-                </span>
+                </>
               )}
-            </div>
-            <h1 className="text-2xl font-bold text-foreground">{subject.name}</h1>
+            </p>
+            <h1 className="mt-1 text-2xl font-semibold text-foreground">
+              {subject.name}
+            </h1>
             {subject.description && (
-              <p className="text-sm text-muted-foreground mt-1 max-w-2xl">
+              <p className="mt-1.5 max-w-2xl text-sm text-muted-foreground">
                 {subject.description}
               </p>
             )}
           </div>
 
-          <div className="text-sm text-muted-foreground space-y-1 shrink-0">
+        {(subject.instructor || subject.schedule || subject.room) && (
+          <div className="shrink-0 space-y-1 text-sm text-muted-foreground">
             {subject.instructor && (
-              <p className="font-medium text-foreground/80">
+              <p className="font-medium text-foreground">
                 {subject.instructor.full_name}
               </p>
             )}
             {subject.schedule && (
-              <p className="flex items-center gap-1.5 justify-end">
-                <Calendar size={13} />
+              <p className="flex items-center justify-end gap-1.5">
+                <Calendar className="size-3.5" aria-hidden />
                 {subject.schedule}
               </p>
             )}
             {subject.room && (
-              <p className="flex items-center gap-1.5 justify-end">
-                <DoorOpen size={13} />
+              <p className="flex items-center justify-end gap-1.5">
+                <DoorOpen className="size-3.5" aria-hidden />
                 {subject.room}
               </p>
             )}
           </div>
+        )}
         </div>
       </div>
     </div>

@@ -35,7 +35,7 @@ function AlertDialogBackdrop({
       data-slot="alert-dialog-backdrop"
       className={cn(
         'fixed inset-0 z-50 bg-foreground/40',
-        'data-starting-style:opacity-0 data-ending-style:opacity-0 transition-opacity duration-200',
+        'transition-opacity duration-150 data-starting-style:opacity-0 data-ending-style:opacity-0',
         className,
       )}
       {...props}
@@ -50,14 +50,13 @@ function AlertDialogContent({
   return (
     <AlertDialogPortal>
       <AlertDialogBackdrop />
-      <AlertDialogPrimitive.Viewport className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <AlertDialogPrimitive.Viewport className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 pt-[max(1rem,10vh)]">
         <AlertDialogPrimitive.Popup
           data-slot="alert-dialog-content"
           className={cn(
-            'relative w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-float',
-            'data-starting-style:scale-95 data-starting-style:opacity-0',
-            'data-ending-style:scale-95 data-ending-style:opacity-0',
-            'transition-all duration-200',
+            'relative w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-float',
+            'transition-[opacity,translate] duration-150 data-starting-style:translate-y-1 data-starting-style:opacity-0',
+            'data-ending-style:opacity-0',
             className,
           )}
           {...props}
@@ -103,7 +102,7 @@ function AlertDialogTitle({
   return (
     <AlertDialogPrimitive.Title
       data-slot="alert-dialog-title"
-      className={cn('text-lg font-bold text-foreground', className)}
+      className={cn('text-lg font-semibold text-foreground', className)}
       {...props}
     />
   )

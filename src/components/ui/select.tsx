@@ -33,10 +33,10 @@ function SelectTrigger({
       data-slot="select-trigger"
       data-size={size}
       className={cn(
-        'flex h-10 w-fit items-center justify-between gap-2 rounded-lg border border-input bg-card px-3.5 py-2 text-sm text-foreground shadow-soft outline-none',
+        'flex h-10 w-fit items-center justify-between gap-2 rounded-md border border-input bg-card px-3 py-2 text-sm text-foreground outline-none transition-colors',
         'data-[size=sm]:h-8',
         'data-placeholder:text-muted-foreground',
-        'focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/20',
+        'focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/25',
         'disabled:cursor-not-allowed disabled:opacity-50',
         '[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-muted-foreground',
         className,
@@ -71,10 +71,9 @@ function SelectContent({
         <SelectPrimitive.Popup
           data-slot="select-content"
           className={cn(
-            'min-w-[var(--anchor-width)] overflow-hidden rounded-xl border border-border bg-popover p-1.5 text-popover-foreground shadow-float',
-            'data-starting-style:scale-95 data-starting-style:opacity-0',
-            'data-ending-style:scale-95 data-ending-style:opacity-0',
-            'origin-[var(--transform-origin)] transition-all duration-150',
+            'min-w-(--anchor-width) overflow-hidden rounded-lg border border-border bg-popover p-1 text-popover-foreground shadow-float',
+            'data-starting-style:opacity-0 data-ending-style:opacity-0',
+            'origin-(--transform-origin) transition-opacity duration-100',
             className,
           )}
           {...props}

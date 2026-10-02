@@ -1,20 +1,13 @@
-import type { ComponentType } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
-import {
-  ArrowRight,
-  BookOpen,
-  GraduationCap,
-  TrendingUp,
-  UserCheck,
-  Users,
-} from 'lucide-react'
+import { ArrowRight, Users } from 'lucide-react'
 import {
   getRecentUsers,
   getSystemStats,
   getWeeklyActivity,
 } from '@/lib/server/functions/admin-dashboard'
 import { Card } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { getInitials } from '@/components/ui/avatar'
 
 export function AdminDashboardView() {
@@ -38,270 +31,188 @@ export function AdminDashboardView() {
   const usersSearch = { role: 'all' as const, status: 'all' as const, page: 1 }
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">System Overview</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Manage users and monitor platform activity
-        </p>
-      </div>
+    <div className="page space-y-6">
+      <h1 className="text-xl font-semibold text-foreground">Overview</h1>
 
-      <div className="grid grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          icon={Users}
-          label="Total Users"
-          value={stats?.totalUsers ?? 0}
+      {/* Plain numbers instead of icon tiles: an admin scans these often enough
+          that the icon adds a beat of decoding, not recognition. */}
+      <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border md:grid-cols-4">
+        <StatCell
+          label="Users"
+          value={stats?.totalUsers}
           loading={statsQuery.isLoading}
-          accent="info"
         />
-        <StatCard
-          icon={GraduationCap}
+        <StatCell
           label="Students"
-          value={stats?.totalStudents ?? 0}
+          value={stats?.totalStudents}
           subtitle={
             stats && stats.totalUsers > 0
               ? `${Math.round((stats.totalStudents / stats.totalUsers) * 100)}% of users`
               : undefined
           }
           loading={statsQuery.isLoading}
-          accent="primary"
         />
-        <StatCard
-          icon={UserCheck}
+        <StatCell
           label="Instructors"
-          value={stats?.totalInstructors ?? 0}
-          subtitle={stats ? `${stats.totalSubjects} subjects` : undefined}
+          value={stats?.totalInstructors}
           loading={statsQuery.isLoading}
-          accent="accent"
         />
-        <StatCard
-          icon={BookOpen}
-          label="Active Subjects"
-          value={stats?.totalSubjects ?? 0}
+        <StatCell
+          label="Subjects"
+          value={stats?.totalSubjects}
           loading={statsQuery.isLoading}
-          accent="muted"
         />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <Card className="p-6 lg:col-span-2">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-foreground">Recent Users</h3>
-              <p className="mt-0.5 text-xs text-muted-foreground">
-                Latest registrations
-              </p>
-            </div>
+        <Card className="p-5 lg:col-span-2">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-foreground">
+              Recent users
+            </h2>
             <Link
               to="/admin/users"
               search={usersSearch}
-              className="flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80"
+              className="flex items-center gap-1 text-sm font-medium text-primary hover:underline"
             >
-              View All
-              <ArrowRight size={14} />
+              View all
+              <ArrowRight className="size-3.5" aria-hidden />
             </Link>
           </div>
 
-          <div className="space-y-1">
-            {recentUsersQuery.isLoading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map((i) => (
-                  <div key={i} className="flex animate-pulse gap-3">
-                    <div className="size-10 rounded-full bg-muted" />
-                    <div className="flex-1 space-y-2 py-1">
-                      <div className="h-4 w-32 rounded bg-muted" />
-                      <div className="h-3 w-48 rounded bg-muted" />
-                    </div>
+          {recentUsersQuery.isLoading ? (
+            <div className="space-y-3 py-1">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex gap-3">
+                  <Skeleton className="size-9 shrink-0 rounded-full" />
+                  <div className="flex-1 space-y-2 py-0.5">
+                    <Skeleton className="h-3.5 w-32" />
+                    <Skeleton className="h-3 w-44" />
                   </div>
-                ))}
-              </div>
-            ) : recentUsers.length === 0 ? (
-              <div className="py-8 text-center text-muted-foreground">
-                <Users size={32} className="mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No users yet</p>
-              </div>
-            ) : (
-              recentUsers.map((user) => (
-                <Link
-                  key={user.id}
-                  to="/admin/users"
-                  search={usersSearch}
-                  className="group flex items-center justify-between rounded-lg p-3 transition-colors hover:bg-muted"
-                >
-                  <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-medium text-primary select-none">
+                </div>
+              ))}
+            </div>
+          ) : recentUsers.length === 0 ? (
+            <p className="py-6 text-sm text-muted-foreground">
+              No users yet.
+            </p>
+          ) : (
+            <ul className="-mx-2">
+              {recentUsers.map((user) => (
+                <li key={user.id}>
+                  <Link
+                    to="/admin/users"
+                    search={usersSearch}
+                    className="group flex items-center gap-3 rounded-md px-2 py-2 transition-colors hover:bg-muted"
+                  >
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-medium text-foreground select-none">
                       {getInitials(user.full_name)}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium text-foreground">
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-medium text-foreground">
                         {user.full_name}
-                      </p>
-                      <p className="truncate text-sm text-muted-foreground">
+                      </span>
+                      <span className="block truncate text-sm text-muted-foreground">
                         {user.email}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex shrink-0 items-center gap-3">
-                    <span className="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground">
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-sm text-muted-foreground capitalize">
                       {user.role}
                     </span>
-                    <ArrowRight
-                      size={16}
-                      className="text-muted-foreground/50 opacity-0 transition-opacity group-hover:opacity-100"
-                    />
-                  </div>
-                </Link>
-              ))
-            )}
-          </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
 
-        <Card className="p-6">
-          <div className="mb-4">
-            <h3 className="font-semibold text-foreground">Quick Actions</h3>
-            <p className="mt-0.5 text-xs text-muted-foreground">Common tasks</p>
-          </div>
-
-          <div className="space-y-2">
-            <Link
-              to="/admin/users"
-              search={usersSearch}
-              className="group flex w-full items-center gap-3 rounded-lg p-3 text-left transition-colors hover:bg-muted"
-            >
-              <div className="rounded-lg bg-primary/10 p-2 text-primary transition-colors group-hover:bg-primary/20">
-                <Users size={18} />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-foreground">
-                  Manage Users
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  View, approve, edit accounts
-                </p>
-              </div>
-              <ArrowRight
-                size={16}
-                className="text-muted-foreground/50 group-hover:text-muted-foreground"
-              />
-            </Link>
-
-            <div className="mt-4 border-t border-border pt-4">
-              <div className="mb-2 text-xs text-muted-foreground">
-                System Health
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="size-2 animate-pulse rounded-full bg-primary" />
-                <span className="text-sm text-foreground">
-                  All systems operational
-                </span>
-              </div>
-            </div>
-          </div>
+        <Card className="p-5">
+          <h2 className="mb-3 text-sm font-semibold text-foreground">
+            Quick actions
+          </h2>
+          <Link
+            to="/admin/users"
+            search={usersSearch}
+            className="group flex items-center gap-3 rounded-md p-2 -mx-2 transition-colors hover:bg-muted"
+          >
+            <Users className="size-4 text-muted-foreground" aria-hidden />
+            <span className="flex-1">
+              <span className="block text-sm font-medium text-foreground">
+                Manage users
+              </span>
+              <span className="block text-sm text-muted-foreground">
+                View, approve, edit accounts
+              </span>
+            </span>
+            <ArrowRight
+              className="size-4 text-muted-foreground/50 group-hover:text-muted-foreground"
+              aria-hidden
+            />
+          </Link>
         </Card>
       </div>
 
       {activity && (
-        <Card className="p-6">
-          <div className="mb-4 flex items-center gap-2">
-            <TrendingUp size={20} className="text-primary" />
-            <div>
-              <h3 className="font-semibold text-foreground">This Week</h3>
-              <p className="text-xs text-muted-foreground">
-                Last {activity.periodDays} days activity
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-            <ActivityStat
-              label="New Users"
-              value={activity.newUsers}
-              accent="info"
-            />
+        <Card className="p-5">
+          <h2 className="mb-3 text-sm font-semibold text-foreground">
+            This week
+          </h2>
+          <dl className="grid grid-cols-2 gap-4 md:grid-cols-4">
+            <ActivityStat label="New users" value={activity.newUsers} />
             <ActivityStat
               label="Enrollments"
               value={activity.newEnrollments}
-              accent="primary"
             />
             <ActivityStat
-              label="New Subjects"
+              label="New subjects"
               value={activity.newSubjects}
-              accent="accent"
             />
             <ActivityStat
               label="Submissions"
               value={activity.newSubmissions}
-              accent="muted"
             />
-          </div>
+          </dl>
         </Card>
       )}
     </div>
   )
 }
 
-type Accent = 'primary' | 'accent' | 'info' | 'muted'
-
-const iconAccentClasses: Record<Accent, string> = {
-  primary: 'bg-primary/10 text-primary',
-  accent: 'bg-accent/10 text-accent',
-  info: 'bg-info/10 text-info',
-  muted: 'bg-muted text-muted-foreground',
-}
-
-function StatCard({
-  icon: Icon,
+function StatCell({
   label,
   value,
   subtitle,
   loading,
-  accent,
 }: {
-  icon: ComponentType<{ size?: number; strokeWidth?: number }>
   label: string
-  value: number
+  value: number | undefined
   subtitle?: string
   loading: boolean
-  accent: Accent
 }) {
   return (
-    <Card className="p-6">
-      <div
-        className={`mb-4 inline-flex rounded-xl p-3 ${iconAccentClasses[accent]}`}
-      >
-        <Icon size={22} strokeWidth={2} />
-      </div>
-      <p className="mb-1 text-sm font-medium text-muted-foreground">{label}</p>
+    <div className="bg-card p-5">
+      <p className="text-sm text-muted-foreground">{label}</p>
       {loading ? (
-        <div className="h-8 w-16 animate-pulse rounded bg-muted" />
+        <Skeleton className="mt-1.5 h-8 w-14" />
       ) : (
-        <p className="mb-1 text-3xl font-bold text-foreground">{value}</p>
+        <p className="mt-0.5 text-2xl font-semibold text-foreground tabular-nums">
+          {value ?? 0}
+        </p>
       )}
-      {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
-    </Card>
+      {subtitle && (
+        <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>
+      )}
+    </div>
   )
 }
 
-const activityAccentClasses: Record<Accent, string> = {
-  primary: 'bg-primary/5 border-primary/15 text-primary',
-  accent: 'bg-accent/5 border-accent/15 text-accent',
-  info: 'bg-info/5 border-info/15 text-info',
-  muted: 'bg-muted border-border text-muted-foreground',
-}
-
-function ActivityStat({
-  label,
-  value,
-  accent,
-}: {
-  label: string
-  value: number
-  accent: Accent
-}) {
+function ActivityStat({ label, value }: { label: string; value: number }) {
   return (
-    <div className={`rounded-lg border p-4 ${activityAccentClasses[accent]}`}>
-      <div className="text-2xl font-bold">+{value}</div>
-      <div className="mt-1 text-sm text-muted-foreground">{label}</div>
+    <div>
+      <dd className="text-xl font-semibold text-foreground tabular-nums">
+        +{value}
+      </dd>
+      <dt className="mt-0.5 text-sm text-muted-foreground">{label}</dt>
     </div>
   )
 }

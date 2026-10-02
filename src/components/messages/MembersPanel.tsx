@@ -9,8 +9,8 @@ export function MembersPanel({ members }: MembersPanelProps) {
   return (
     <div className="w-56 border-l border-border bg-secondary flex flex-col shrink-0">
       <div className="p-3 border-b border-border">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-          Members ({members.length})
+        <p className="text-sm font-medium text-foreground">
+          Members <span className="text-muted-foreground">({members.length})</span>
         </p>
       </div>
       <div className="flex-1 overflow-y-auto p-2 space-y-1">

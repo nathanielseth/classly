@@ -79,7 +79,7 @@ export function ConversationList({
       {tab === 'dms' && (
         <div className="p-3 border-b border-border/40">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-muted-foreground/70 uppercase tracking-wide">
+            <span className="text-sm font-medium text-muted-foreground">
               Messages
             </span>
             <button

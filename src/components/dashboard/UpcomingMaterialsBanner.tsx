@@ -1,5 +1,3 @@
-import { Check, CheckCircle } from 'lucide-react'
-
 interface UpcomingMaterial {
   id: string
   title: string
@@ -11,96 +9,75 @@ interface UpcomingMaterialsBannerProps {
   materials: UpcomingMaterial[]
 }
 
-const URGENCY_STYLES = {
-  today: {
-    wrap: 'bg-destructive/8 border-destructive/20 hover:bg-destructive/12',
-    title: 'group-hover:text-destructive',
-    badge: 'text-destructive bg-destructive/12',
-  },
-  tomorrow: {
-    wrap: 'bg-warning/8 border-warning/20 hover:bg-warning/12',
-    title: 'group-hover:text-warning',
-    badge: 'text-warning bg-warning/12',
-  },
-  upcoming: {
-    wrap: 'bg-info/8 border-info/20 hover:bg-info/12',
-    title: 'group-hover:text-info',
-    badge: 'text-info bg-info/12',
-  },
-} as const
+type Urgency = 'today' | 'tomorrow' | 'later'
 
-function getUrgency(dueDate: Date): keyof typeof URGENCY_STYLES {
+function getUrgency(dueDate: Date): Urgency {
   const today = new Date()
   const tomorrow = new Date(today)
   tomorrow.setDate(tomorrow.getDate() + 1)
 
   if (dueDate.toDateString() === today.toDateString()) return 'today'
   if (dueDate.toDateString() === tomorrow.toDateString()) return 'tomorrow'
-  return 'upcoming'
+  return 'later'
 }
 
-function formatDate(date: Date) {
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+function dueLabel(dueDate: Date, urgency: Urgency) {
+  if (urgency === 'today') return 'Today'
+  if (urgency === 'tomorrow') return 'Tomorrow'
+  return dueDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+}
+
+const URGENCY_TEXT: Record<Urgency, string> = {
+  today: 'text-destructive font-medium',
+  tomorrow: 'text-warning font-medium',
+  later: 'text-muted-foreground',
 }
 
 export function UpcomingMaterialsBanner({
   materials,
 }: UpcomingMaterialsBannerProps) {
-  if (materials.length === 0) {
-    return (
-      <div className="bg-success/8 border border-success/20 rounded-lg px-4 py-3 flex items-center gap-2">
-        <Check size={16} className="text-success" />
-        <span className="text-sm text-success font-medium">
-          All caught up! No upcoming assignments.
-        </span>
-      </div>
-    )
-  }
+  const dated = materials
+    .filter((m): m is UpcomingMaterial & { due_date: string } => !!m.due_date)
+    .slice(0, 3)
+
+  if (dated.length === 0) return null
 
   return (
-    <div className="flex items-center gap-3 flex-wrap">
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <CheckCircle size={16} className="text-classly-green" />
-        <span className="font-medium">Due soon:</span>
-      </div>
-
-      {materials.slice(0, 3).map((material) => {
-        if (!material.due_date) return null
-        const dueDate = new Date(material.due_date)
-        const urgency = getUrgency(dueDate)
-        const styles = URGENCY_STYLES[urgency]
-        const subjectCode = material.subject?.code
-
-        return (
-          <div
-            key={material.id}
-            className={`flex items-center gap-2 px-3 py-2 border rounded-lg transition-colors group ${styles.wrap}`}
-          >
-            <div className="flex items-center gap-2">
-              <span
-                className={`text-sm font-semibold text-foreground transition-colors ${styles.title}`}
-              >
-                {material.title}
-              </span>
-              {subjectCode && (
-                <>
-                  <span className="text-xs text-muted-foreground/70">•</span>
-                  <span className="text-xs text-muted-foreground">{subjectCode}</span>
-                </>
-              )}
-            </div>
-            <span
-              className={`text-xs font-bold px-2 py-0.5 rounded ${styles.badge}`}
+    <section aria-labelledby="due-soon-heading">
+      <h2
+        id="due-soon-heading"
+        className="mb-2 text-sm font-medium text-foreground"
+      >
+        Due soon
+      </h2>
+      <ul className="divide-y divide-border rounded-lg border border-border bg-card">
+        {dated.map((material) => {
+          const dueDate = new Date(material.due_date)
+          const urgency = getUrgency(dueDate)
+          return (
+            <li
+              key={material.id}
+              className="flex items-baseline justify-between gap-4 px-4 py-2.5"
             >
-              {urgency === 'today'
-                ? 'Today'
-                : urgency === 'tomorrow'
-                  ? 'Tomorrow'
-                  : formatDate(dueDate)}
-            </span>
-          </div>
-        )
-      })}
-    </div>
+              <span className="min-w-0 truncate text-sm text-foreground">
+                {material.title}
+                {material.subject?.code && (
+                  <span className="text-muted-foreground">
+                    {' '}
+                    · {material.subject.code}
+                  </span>
+                )}
+              </span>
+              <time
+                dateTime={dueDate.toISOString()}
+                className={`shrink-0 text-sm tabular-nums ${URGENCY_TEXT[urgency]}`}
+              >
+                {dueLabel(dueDate, urgency)}
+              </time>
+            </li>
+          )
+        })}
+      </ul>
+    </section>
   )
 }

@@ -28,8 +28,8 @@ function DialogBackdrop({
     <DialogPrimitive.Backdrop
       data-slot="dialog-backdrop"
       className={cn(
-        "fixed inset-0 z-50 bg-black/50",
-        "data-starting-style:opacity-0 data-ending-style:opacity-0 transition-opacity duration-200",
+        "fixed inset-0 z-50 bg-foreground/40",
+        "transition-opacity duration-150 data-starting-style:opacity-0 data-ending-style:opacity-0",
         className,
       )}
       {...props}
@@ -48,22 +48,21 @@ function DialogContent({
   return (
     <DialogPortal>
       <DialogBackdrop />
-      <DialogPrimitive.Viewport className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <DialogPrimitive.Viewport className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 pt-[max(1rem,10vh)]">
         <DialogPrimitive.Popup
           data-slot="dialog-content"
           className={cn(
-            "relative w-full max-w-md rounded-2xl border border-border bg-card shadow-float",
-            "data-starting-style:scale-95 data-starting-style:opacity-0",
-            "data-ending-style:scale-95 data-ending-style:opacity-0",
-            "transition-all duration-200",
+            "relative w-full max-w-md rounded-xl border border-border bg-card shadow-float",
+            "transition-[opacity,translate] duration-150 data-starting-style:translate-y-1 data-starting-style:opacity-0",
+            "data-ending-style:opacity-0",
             className,
           )}
           {...props}
         >
           {children}
           {showCloseButton && (
-            <DialogPrimitive.Close className="absolute top-6 right-6 rounded-md text-muted-foreground opacity-70 transition-opacity hover:opacity-100 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
-              <X className="size-5" />
+            <DialogPrimitive.Close className="absolute top-4 right-4 flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+              <X className="size-4" />
               <span className="sr-only">Close</span>
             </DialogPrimitive.Close>
           )}
@@ -78,7 +77,7 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="dialog-header"
       className={cn(
-        "flex items-start justify-between gap-4 border-b border-border p-6",
+        "flex items-start justify-between gap-4 border-b border-border px-6 py-5 pr-14",
         className,
       )}
       {...props}
@@ -103,7 +102,7 @@ function DialogTitle({
   return (
     <DialogPrimitive.Title
       data-slot="dialog-title"
-      className={cn("text-xl font-bold text-foreground", className)}
+      className={cn("text-lg leading-snug font-semibold text-foreground", className)}
       {...props}
     />
   );

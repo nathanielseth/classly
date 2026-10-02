@@ -78,21 +78,20 @@ function Toasts() {
             toast={t}
             data-slot="toast"
             className={cn(
-              'relative flex w-full items-start gap-3 rounded-2xl border border-border bg-card p-4 text-card-foreground shadow-float',
-              'data-starting-style:translate-x-(--toast-swipe-movement-x,0) data-starting-style:opacity-0',
+              'relative flex w-full items-start gap-3 rounded-lg border border-border bg-card px-4 py-3 text-card-foreground shadow-float',
+              'transition-[opacity,translate] duration-150 data-starting-style:translate-y-1 data-starting-style:opacity-0',
               'data-ending-style:opacity-0',
-              'transition-all duration-200',
             )}
           >
             <Icon
               className={cn(
-                'mt-0.5 size-4.5 shrink-0',
+                'mt-0.5 size-4 shrink-0',
                 variantIconClass[variant],
               )}
             />
             <div className="flex-1 space-y-0.5">
               {t.title && (
-                <ToastPrimitive.Title className="text-sm font-semibold text-foreground" />
+                <ToastPrimitive.Title className="text-sm font-medium text-foreground" />
               )}
               {t.description && (
                 <ToastPrimitive.Description className="text-sm text-muted-foreground" />

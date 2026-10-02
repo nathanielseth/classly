@@ -1,13 +1,5 @@
-import {
-  FileText,
-  Trash2,
-  Paperclip,
-  Download,
-  Clock,
-  Edit,
-  CheckCircle2,
-  AlertCircle,
-} from 'lucide-react'
+import { FileText, Trash2, Paperclip, Edit } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface MaterialCardProps {
   material: {
@@ -32,82 +24,40 @@ interface MaterialCardProps {
   } | null
 }
 
-const TYPE_COLORS: Record<string, { bg: string; text: string; badge: string }> =
-  {
-    assignment: {
-      bg: 'bg-info/8',
-      text: 'text-info',
-      badge: 'bg-info/8 text-info',
-    },
-    quiz: {
-      bg: 'bg-chart-4/10',
-      text: 'text-chart-4',
-      badge: 'bg-chart-4/10 text-chart-4',
-    },
-    exam: {
-      bg: 'bg-destructive/8',
-      text: 'text-destructive',
-      badge: 'bg-destructive/8 text-destructive',
-    },
-    project: {
-      bg: 'bg-success/8',
-      text: 'text-success',
-      badge: 'bg-success/8 text-success',
-    },
-    module: {
-      bg: 'bg-chart-6/10',
-      text: 'text-chart-6',
-      badge: 'bg-chart-6/10 text-chart-6',
-    },
-    material: {
-      bg: 'bg-secondary',
-      text: 'text-muted-foreground',
-      badge: 'bg-secondary text-foreground/80',
-    },
-  }
-
 const SUBMITTABLE_TYPES = new Set(['assignment', 'quiz', 'exam', 'project'])
 
-function submissionBadge(
+function status(
+  material: MaterialCardProps['material'],
   submission: MaterialCardProps['submission'],
   dueDate: Date | null,
-): { label: string; className: string; icon: typeof CheckCircle2 } {
-  if (!submission) {
-    const overdue = dueDate ? dueDate < new Date() : false
-    return overdue
-      ? {
-          label: 'Missing',
-          className: 'text-destructive bg-destructive/8',
-          icon: AlertCircle,
-        }
-      : {
-          label: 'Not submitted',
-          className: 'text-muted-foreground bg-muted',
-          icon: Clock,
-        }
-  }
+  canManage: boolean,
+): { label: string; tone: 'danger' | 'warning' | 'neutral' } | null {
+  if (canManage) return null
+  if (!material.type || !SUBMITTABLE_TYPES.has(material.type)) return null
 
-  if (submission.status === 'graded' || submission.status === 'returned') {
+  if (submission?.status === 'graded' || submission?.status === 'returned') {
     return {
-      label:
-        submission.grade !== null ? `Graded · ${submission.grade}` : 'Graded',
-      className: 'text-success bg-success/8',
-      icon: CheckCircle2,
+      label: submission.grade !== null ? `Graded · ${submission.grade}` : 'Graded',
+      tone: 'neutral',
     }
   }
-
-  return submission.is_late
-    ? {
-        label: 'Turned in late',
-        className: 'text-warning bg-warning/8',
-        icon: CheckCircle2,
-      }
-    : {
-        label: 'Turned in',
-        className: 'text-info bg-info/8',
-        icon: CheckCircle2,
-      }
+  if (submission) {
+    return {
+      label: submission.is_late ? 'Turned in late' : 'Turned in',
+      tone: submission.is_late ? 'warning' : 'neutral',
+    }
+  }
+  const overdue = dueDate ? dueDate < new Date() : false
+  return overdue
+    ? { label: 'Missing', tone: 'danger' }
+    : { label: 'Not submitted', tone: 'neutral' }
 }
+
+const STATUS_TEXT = {
+  danger: 'text-destructive',
+  warning: 'text-warning',
+  neutral: 'text-muted-foreground',
+} as const
 
 export function MaterialCard({
   material,
@@ -119,140 +69,101 @@ export function MaterialCard({
 }: MaterialCardProps) {
   const dueDate = material.due_date ? new Date(material.due_date) : null
   const isOverdue = dueDate ? dueDate < new Date() : false
-  const colors =
-    TYPE_COLORS[material.type ?? 'assignment'] ?? TYPE_COLORS.assignment
-  const showSubmissionBadge =
-    !canManage && material.type && SUBMITTABLE_TYPES.has(material.type)
-  const badge = showSubmissionBadge
-    ? submissionBadge(submission, dueDate)
-    : null
-
-  const handleCardClick = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('button')) return
-    onClick?.(material)
-  }
+  const materialStatus = status(material, submission, dueDate, canManage)
 
   return (
-    <div
-      onClick={handleCardClick}
-      className="group p-4 hover:bg-secondary transition-all cursor-pointer border-l-4 border-transparent hover:border-classly-green"
-    >
-      <div className="flex items-start gap-3">
-        <div
-          className={`w-10 h-10 rounded-lg ${colors.bg} flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform`}
-        >
-          <FileText size={18} className={colors.text} />
-        </div>
+    <div className="group relative">
+      <button
+        type="button"
+        onClick={() => onClick?.(material)}
+        className="flex w-full items-start gap-3 rounded-md p-3 pr-20 text-left transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
+      >
+        <FileText
+          className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+          aria-hidden
+        />
 
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-foreground group-hover:text-classly-green transition-colors">
-                  {material.title}
-                </h3>
-                {canManage && !material.published && (
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide text-warning bg-warning/8 shrink-0">
-                    Draft
-                  </span>
-                )}
-              </div>
-              {material.description && (
-                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
-                  {material.description}
-                </p>
-              )}
-            </div>
-
-            {canManage && (
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onEdit?.()
-                  }}
-                  className="p-1.5 text-muted-foreground/70 hover:bg-info/8 hover:text-info rounded-lg transition-colors"
-                  title="Edit"
-                >
-                  <Edit size={16} />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onDelete?.()
-                  }}
-                  className="p-1.5 text-muted-foreground/70 hover:bg-destructive/8 hover:text-destructive rounded-lg transition-colors"
-                  title="Delete"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <h3 className="truncate text-sm font-medium text-foreground">
+              {material.title}
+            </h3>
+            {canManage && !material.published && (
+              <span className="shrink-0 text-xs text-muted-foreground">
+                Draft
+              </span>
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 mt-3">
-            {dueDate && (
-              <div
-                className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full ${
-                  isOverdue
-                    ? 'text-destructive bg-destructive/8'
-                    : 'text-warning bg-warning/8'
-                }`}
-              >
-                <Clock size={12} />
-                {isOverdue
-                  ? 'Overdue'
-                  : `Due ${dueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
-              </div>
-            )}
+          {material.description && (
+            <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">
+              {material.description}
+            </p>
+          )}
 
-            {badge && (
-              <div
-                className={`flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full ${badge.className}`}
-              >
-                <badge.icon size={12} />
-                {badge.label}
-              </div>
-            )}
-
+          <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground capitalize">
+            <span>{material.type}</span>
             {material.max_points !== null && material.max_points > 0 && (
-              <span className="text-xs text-muted-foreground font-medium">
-                {material.max_points} points
-              </span>
+              <span>· {material.max_points} pts</span>
             )}
-
-            <span
-              className={`text-xs font-medium px-2 py-0.5 rounded-full ${colors.badge} capitalize`}
-            >
-              {material.type}
-            </span>
-
-            {material.created_at && !dueDate && (
-              <span className="text-xs text-muted-foreground">
-                Posted{' '}
-                {new Date(material.created_at).toLocaleDateString('en-US', {
+            {dueDate && (
+              <span className={isOverdue ? 'text-destructive' : undefined}>
+                · {isOverdue ? 'Overdue' : 'Due'}{' '}
+                {dueDate.toLocaleDateString(undefined, {
                   month: 'short',
                   day: 'numeric',
                 })}
               </span>
             )}
-
-            {material.file_url && (
-              <a
-                href={material.file_url}
-                target="_blank"
-                rel="noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="ml-auto flex items-center gap-1.5 text-xs font-medium text-info hover:brightness-110 bg-info/8 hover:bg-info/12 px-2.5 py-1 rounded-full transition-all"
-              >
-                <Paperclip size={12} />
-                <span>Attachment</span>
-                <Download size={12} />
-              </a>
+            {!dueDate && material.created_at && (
+              <span>
+                · Posted{' '}
+                {new Date(material.created_at).toLocaleDateString(undefined, {
+                  month: 'short',
+                  day: 'numeric',
+                })}
+              </span>
             )}
-          </div>
+            {materialStatus && (
+              <span className={STATUS_TEXT[materialStatus.tone]}>
+                · {materialStatus.label}
+              </span>
+            )}
+            {material.file_url && (
+              <span className="inline-flex items-center gap-1">
+                <Paperclip className="size-3" aria-hidden />
+                Attachment
+              </span>
+            )}
+          </p>
         </div>
-      </div>
+      </button>
+
+      {canManage && (
+        <div
+          className={cn(
+            'absolute top-2 right-2 flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100',
+            'group-focus-within:opacity-100',
+          )}
+        >
+          <button
+            type="button"
+            onClick={onEdit}
+            aria-label={`Edit ${material.title}`}
+            className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          >
+            <Edit className="size-4" aria-hidden />
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            aria-label={`Delete ${material.title}`}
+            className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+          >
+            <Trash2 className="size-4" aria-hidden />
+          </button>
+        </div>
+      )}
     </div>
   )
 }

@@ -8,10 +8,7 @@ import {
   MoreVertical,
   Pencil,
   Trash2,
-  Users,
-  BookOpen,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -29,7 +26,7 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog'
-import { toast } from '@/components/ui/toast'
+import { InlineMessage } from '@/components/ui/inline-message'
 
 interface InstructorSubjectCardProps {
   subject: {
@@ -50,6 +47,10 @@ interface InstructorSubjectCardProps {
   isDeleting: boolean
 }
 
+function plural(n: number, one: string, many = `${one}s`) {
+  return `${n} ${n === 1 ? one : many}`
+}
+
 export function InstructorSubjectCard({
   subject,
   onToggleArchive,
@@ -60,6 +61,7 @@ export function InstructorSubjectCard({
 }: InstructorSubjectCardProps) {
   const [copied, setCopied] = useState(false)
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const handleCopyCode = () => {
     void navigator.clipboard.writeText(subject.code)
@@ -68,39 +70,61 @@ export function InstructorSubjectCard({
   }
 
   const handleDelete = async () => {
+    setDeleteError(null)
     try {
       await onDelete()
       setConfirmOpen(false)
     } catch (err) {
-      toast({
-        variant: 'destructive',
-        title: 'Delete failed',
-        description: err instanceof Error ? err.message : 'Delete failed.',
-      })
+      setDeleteError(err instanceof Error ? err.message : 'Delete failed.')
     }
   }
 
   return (
-    <div
-      className={cn(
-        'relative overflow-hidden rounded-xl border border-border border-t-4 bg-card p-6 shadow-soft transition-shadow duration-300 hover:shadow-float',
-        subject.archived
-          ? 'border-t-muted-foreground/30 opacity-70'
-          : 'border-t-classly-green',
-      )}
-    >
-      <div className="mb-4 flex items-start justify-between">
-        <button
-          onClick={handleCopyCode}
-          className="flex items-center gap-2 rounded bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary transition-colors hover:bg-primary/20"
-        >
+    <div className="group relative rounded-lg border border-border bg-card transition-colors hover:border-foreground/25">
+      <Link
+        to="/classroom/$subjectId"
+        params={{ subjectId: subject.id }}
+        className="block rounded-lg p-5 pr-12 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      >
+        <p className="text-sm text-muted-foreground">
           {subject.code}
-          {copied ? <Check size={12} /> : <Copy size={12} />}
+          {subject.archived && (
+            <>
+              <span aria-hidden> · </span>
+              Archived
+            </>
+          )}
+        </p>
+        <h3 className="mt-2 line-clamp-2 text-base leading-snug font-semibold text-foreground">
+          {subject.name}
+        </h3>
+        <p className="mt-4 text-sm text-muted-foreground tabular-nums">
+          {plural(subject.enrollmentCount, 'student')}
+          <span aria-hidden> · </span>
+          {plural(subject.materialCount, 'material')}
+        </p>
+      </Link>
+
+      <div className="absolute top-3 right-3 flex items-center gap-1">
+        <button
+          type="button"
+          onClick={handleCopyCode}
+          className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+        >
+          {copied ? (
+            <Check className="size-3.5" aria-hidden />
+          ) : (
+            <Copy className="size-3.5" aria-hidden />
+          )}
+          <span className="sr-only">Copy join code</span>
         </button>
 
         <DropdownMenu>
-          <DropdownMenuTrigger className="rounded-lg p-1 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-muted-foreground">
-            <MoreVertical size={18} />
+          <DropdownMenuTrigger
+            className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none data-popup-open:bg-muted"
+            aria-label={`Options for ${subject.name}`}
+          >
+            <MoreVertical className="size-4" aria-hidden />
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-52">
             <DropdownMenuItem onClick={onEdit}>
@@ -110,7 +134,6 @@ export function InstructorSubjectCard({
             <DropdownMenuItem
               onClick={() => onToggleArchive(subject.id, !subject.archived)}
               disabled={isToggling}
-              className="text-warning data-highlighted:bg-warning/10"
             >
               {subject.archived ? <ArchiveRestore /> : <Archive />}
               {subject.archived ? 'Unarchive' : 'Archive'}
@@ -125,52 +148,38 @@ export function InstructorSubjectCard({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-
-        <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                Permanently delete "{subject.name}"?
-              </AlertDialogTitle>
-              <AlertDialogDescription>
-                All materials, announcements, and enrollments will be lost.
-                This can't be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                variant="destructive"
-                onClick={handleDelete}
-                disabled={isDeleting}
-              >
-                {isDeleting ? 'Deleting…' : 'Delete forever'}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
       </div>
 
-      <Link
-        to="/classroom/$subjectId"
-        params={{ subjectId: subject.id }}
-        className="block"
+      <AlertDialog
+        open={confirmOpen}
+        onOpenChange={(open) => {
+          setConfirmOpen(open)
+          if (!open) setDeleteError(null)
+        }}
       >
-        <h3 className="mb-4 line-clamp-1 font-semibold text-foreground transition-colors hover:text-primary">
-          {subject.name}
-        </h3>
-
-        <div className="flex items-center gap-4 border-t border-border pt-3 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <Users size={13} />
-            {subject.enrollmentCount} students
-          </span>
-          <span className="flex items-center gap-1">
-            <BookOpen size={13} />
-            {subject.materialCount} materials
-          </span>
-        </div>
-      </Link>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Permanently delete "{subject.name}"?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              All materials, announcements, and enrollments will be lost. This
+              cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {deleteError && <InlineMessage className="mt-4">{deleteError}</InlineMessage>}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Deleting…' : 'Delete forever'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
