@@ -1,5 +1,3 @@
-import { PDFParse } from 'pdf-parse'
-
 const MAX_CHARS = 8000
 // generous ceiling on how much of the doc we read before truncating
 const MAX_PDF_PAGES = 15
@@ -18,6 +16,7 @@ function truncate(text: string): ExtractedFile {
 }
 
 async function extractPdfText(buffer: ArrayBuffer): Promise<ExtractedFile> {
+  const { PDFParse } = await import('pdf-parse')
   const parser = new PDFParse({ data: new Uint8Array(buffer) })
   try {
     const result = await parser.getText({
