@@ -22,19 +22,18 @@ export type CurrentUserState =
 export const getCurrentUser = createServerFn({ method: 'GET' }).handler(
   async (): Promise<CurrentUserState> => {
     const supabase = getServerSupabase()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    const { data } = await supabase.auth.getClaims()
 
-    if (!user) return { status: 'unauthenticated' }
+    if (!data) return { status: 'unauthenticated' }
+    const { sub: userId, email: userEmail } = data.claims
 
     const { data: profile } = await supabase
       .from('profiles')
       .select('id, email, full_name, role, status, avatar_url, created_at')
-      .eq('id', user.id)
+      .eq('id', userId)
       .single()
     if (!profile) {
-      return { status: 'no-profile', email: user.email ?? '' }
+      return { status: 'no-profile', email: userEmail ?? '' }
     }
 
     const role = profile.role
