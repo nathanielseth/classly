@@ -6,14 +6,13 @@ import { getServerSupabase } from './supabase'
 export const authMiddleware = createMiddleware({ type: 'function' }).server(
   async ({ next }) => {
     const supabase = getServerSupabase()
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser()
+    const { data, error } = await supabase.auth.getClaims()
 
-    if (error || !user) {
+    if (error || !data) {
       throw redirect({ to: '/login' })
     }
+
+    const user = { id: data.claims.sub }
 
     // load profile once so downstream handlers do not each requery it
     const { data: profile } = await supabase
