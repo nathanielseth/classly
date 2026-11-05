@@ -2,6 +2,7 @@ import { createRouter as createTanStackRouter } from '@tanstack/react-router'
 import { QueryClient } from '@tanstack/react-query'
 import { setupRouterSsrQueryIntegration } from '@tanstack/react-router-ssr-query'
 import { routeTree } from './routeTree.gen'
+import { PageSkeleton } from '@/components/shared/PageSkeleton'
 
 export function getRouter() {
   const queryClient = new QueryClient({
@@ -13,6 +14,10 @@ export function getRouter() {
     context: { queryClient },
     scrollRestoration: true,
     defaultPreload: 'intent',
+    defaultPreloadStaleTime: 0,
+    defaultPendingMs: 100,
+    defaultPendingMinMs: 300,
+    defaultPendingComponent: PageSkeleton,
   })
 
   setupRouterSsrQueryIntegration({

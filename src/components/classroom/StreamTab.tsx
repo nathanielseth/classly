@@ -8,6 +8,7 @@ import {
   setAnnouncementPinned,
   updateAnnouncement,
 } from '@/lib/server/functions/announcements'
+import { onMutationError } from '@/lib/mutation-error'
 import { AnnouncementCard } from './AnnouncementCard'
 import { AnnouncementModal } from './AnnouncementModal'
 
@@ -22,6 +23,12 @@ type AnnouncementRow = Awaited<
   ReturnType<typeof listAnnouncements>
 >['announcements'][number]
 
+type AnnouncementsData = Awaited<ReturnType<typeof listAnnouncements>>
+
+interface OptimisticContext {
+  previous: AnnouncementsData | undefined
+}
+
 const ANNOUNCEMENTS_POLL_MS = 15000
 
 export function StreamTab({
@@ -35,16 +42,39 @@ export function StreamTab({
   const [editing, setEditing] = useState<AnnouncementRow | null>(null)
   const [formError, setFormError] = useState<string | null>(null)
 
+  const queryKey = ['announcements', 'list', subjectId]
+
   const announcementsQuery = useQuery({
-    queryKey: ['announcements', 'list', subjectId],
+    queryKey,
     queryFn: () => listAnnouncements({ data: { subjectId } }),
     refetchInterval: ANNOUNCEMENTS_POLL_MS,
   })
 
-  const invalidate = () =>
-    queryClient.invalidateQueries({
-      queryKey: ['announcements', 'list', subjectId],
-    })
+  const invalidate = () => queryClient.invalidateQueries({ queryKey })
+
+  const updateCache = async (
+    update: (rows: AnnouncementRow[]) => AnnouncementRow[],
+  ): Promise<OptimisticContext> => {
+    await queryClient.cancelQueries({ queryKey })
+    const previous = queryClient.getQueryData<AnnouncementsData>(queryKey)
+    queryClient.setQueryData<AnnouncementsData>(
+      queryKey,
+      (old) => old && { ...old, announcements: update(old.announcements) },
+    )
+    return { previous }
+  }
+
+  const rollback =
+    (title: string) =>
+    (
+      error: unknown,
+      _variables: unknown,
+      context: OptimisticContext | undefined,
+    ) => {
+      if (context?.previous)
+        queryClient.setQueryData(queryKey, context.previous)
+      onMutationError(title)(error)
+    }
 
   const createMutation = useMutation({
     mutationFn: (values: { title: string; content: string }) =>
@@ -74,13 +104,29 @@ export function StreamTab({
   const pinMutation = useMutation({
     mutationFn: (values: { announcementId: string; pinned: boolean }) =>
       setAnnouncementPinned({ data: values }),
-    onSuccess: invalidate,
+    onMutate: ({ announcementId, pinned }) =>
+      updateCache((rows) =>
+        rows
+          .map((row) => (row.id === announcementId ? { ...row, pinned } : row))
+          .sort(
+            (a, b) => Number(Boolean(b.pinned)) - Number(Boolean(a.pinned)),
+          ),
+      ),
+    onError: rollback('Failed to update pin'),
+    onSettled: () => {
+      void invalidate()
+    },
   })
 
   const deleteMutation = useMutation({
     mutationFn: (announcementId: string) =>
       deleteAnnouncement({ data: { announcementId } }),
-    onSuccess: invalidate,
+    onMutate: (announcementId) =>
+      updateCache((rows) => rows.filter((row) => row.id !== announcementId)),
+    onError: rollback('Failed to delete announcement'),
+    onSettled: () => {
+      void invalidate()
+    },
   })
 
   const announcements = announcementsQuery.data?.announcements ?? []
@@ -111,10 +157,7 @@ export function StreamTab({
       ) : announcementsQuery.isPending ? (
         <div className="space-y-4">
           {Array.from({ length: 2 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-28 bg-muted rounded-xl animate-pulse"
-            />
+            <div key={i} className="h-28 bg-muted rounded-xl animate-pulse" />
           ))}
         </div>
       ) : announcements.length === 0 ? (

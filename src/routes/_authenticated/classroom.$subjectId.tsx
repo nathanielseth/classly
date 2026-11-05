@@ -1,12 +1,7 @@
 import { useState } from 'react'
-import {
-  createFileRoute,
-  Outlet,
-  useMatches
-  
-} from '@tanstack/react-router'
-import type {ErrorComponentProps} from '@tanstack/react-router';
-import { useQuery } from '@tanstack/react-query'
+import { createFileRoute, Outlet, useMatches } from '@tanstack/react-router'
+import type { ErrorComponentProps } from '@tanstack/react-router'
+import { queryOptions, useQuery } from '@tanstack/react-query'
 import { getSubject } from '@/lib/server/functions/subjects'
 import { listAnnouncements } from '@/lib/server/functions/announcements'
 import { listMaterialsWithTopics } from '@/lib/server/functions/materials'
@@ -17,31 +12,39 @@ import type { ClassroomTab } from '@/components/classroom/ClassroomTabs'
 import { StreamTab } from '@/components/classroom/StreamTab'
 import { MaterialsTab } from '@/components/classroom/MaterialsTab'
 import { PeopleTab } from '@/components/classroom/PeopleTab'
+import { PageSkeleton } from '@/components/shared/PageSkeleton'
+
+const subjectOptions = (subjectId: string) =>
+  queryOptions({
+    queryKey: ['subjects', 'detail', subjectId],
+    queryFn: () => getSubject({ data: { subjectId } }),
+  })
+
+const announcementsOptions = (subjectId: string) =>
+  queryOptions({
+    queryKey: ['announcements', 'list', subjectId],
+    queryFn: () => listAnnouncements({ data: { subjectId } }),
+  })
+
+const materialsOptions = (subjectId: string) =>
+  queryOptions({
+    queryKey: ['materials', 'list', subjectId],
+    queryFn: () => listMaterialsWithTopics({ data: { subjectId } }),
+  })
+
+const enrollmentsOptions = (subjectId: string) =>
+  queryOptions({
+    queryKey: ['enrollments', 'list', subjectId],
+    queryFn: () => listEnrollments({ data: { subjectId } }),
+  })
 
 export const Route = createFileRoute('/_authenticated/classroom/$subjectId')({
   loader: async ({ params, context }) => {
     const { queryClient } = context
-    await Promise.all([
-      queryClient.ensureQueryData({
-        queryKey: ['subjects', 'detail', params.subjectId],
-        queryFn: () => getSubject({ data: { subjectId: params.subjectId } }),
-      }),
-      queryClient.ensureQueryData({
-        queryKey: ['announcements', 'list', params.subjectId],
-        queryFn: () =>
-          listAnnouncements({ data: { subjectId: params.subjectId } }),
-      }),
-      queryClient.ensureQueryData({
-        queryKey: ['materials', 'list', params.subjectId],
-        queryFn: () =>
-          listMaterialsWithTopics({ data: { subjectId: params.subjectId } }),
-      }),
-      queryClient.ensureQueryData({
-        queryKey: ['enrollments', 'list', params.subjectId],
-        queryFn: () =>
-          listEnrollments({ data: { subjectId: params.subjectId } }),
-      }),
-    ])
+    void queryClient.prefetchQuery(announcementsOptions(params.subjectId))
+    void queryClient.prefetchQuery(materialsOptions(params.subjectId))
+    void queryClient.prefetchQuery(enrollmentsOptions(params.subjectId))
+    await queryClient.ensureQueryData(subjectOptions(params.subjectId))
   },
   component: ClassroomPage,
   errorComponent: ClassroomError,
@@ -72,10 +75,7 @@ function ClassroomPage() {
       '/_authenticated/classroom/$subjectId/materials/$materialId',
   )
 
-  const subjectQuery = useQuery({
-    queryKey: ['subjects', 'detail', subjectId],
-    queryFn: () => getSubject({ data: { subjectId } }),
-  })
+  const subjectQuery = useQuery(subjectOptions(subjectId))
 
   if (userState.status !== 'approved') return null
 
@@ -83,7 +83,7 @@ function ClassroomPage() {
     return <Outlet />
   }
 
-  if (!subjectQuery.data) return null
+  if (!subjectQuery.data) return <PageSkeleton />
 
   const subject = subjectQuery.data
   const role = userState.profile.role
