@@ -14,6 +14,7 @@ interface SubjectListItem {
   description: string | null
   schedule: string | null
   room: string | null
+  meetingUrl: string | null
   archived: boolean
   instructor: { id: string; full_name: string; email: string } | null
   enrollmentCount: number
@@ -36,7 +37,7 @@ export const listSubjects = createServerFn({ method: 'GET' })
           .from('subjects')
           .select(
             `
-          id, code, name, description, schedule, room, archived,
+          id, code, name, description, schedule, room, meeting_url, archived,
           instructor:profiles!subjects_instructor_id_fkey(id, full_name, email),
           enrollments:enrollments(count),
           materials:materials(count),
@@ -60,6 +61,7 @@ export const listSubjects = createServerFn({ method: 'GET' })
           description: row.description,
           schedule: row.schedule,
           room: row.room,
+          meetingUrl: row.meeting_url,
           archived: row.archived,
           instructor: row.instructor,
           enrollmentCount: row.enrollments[0].count,
@@ -103,6 +105,7 @@ export const listSubjects = createServerFn({ method: 'GET' })
           description: row.description,
           schedule: row.schedule,
           room: row.room,
+          meetingUrl: null,
           archived: row.archived,
           instructor: row.instructor,
           enrollmentCount: 0, // students don't need the class roster size here
@@ -130,7 +133,7 @@ export const getSubject = createServerFn({ method: 'GET' })
       .from('subjects')
       .select(
         `
-        id, code, name, description, schedule, room, archived, created_at,
+        id, code, name, description, schedule, room, meeting_url, archived, created_at,
         instructor_id,
         instructor:profiles!subjects_instructor_id_fkey(id, full_name, email)
       `,
@@ -245,6 +248,15 @@ export const setSubjectArchived = createServerFn({ method: 'POST' })
     return subject
   })
 
+function isEmptyOrHttpsUrl(value: string) {
+  if (value === '') return true
+  try {
+    return new URL(value).protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
 const updateSubjectInput = z.object({
   subjectId: z.uuid(),
   name: z.string().trim().min(1).max(120),
@@ -257,6 +269,12 @@ const updateSubjectInput = z.object({
   description: z.string().trim().max(2000).optional(),
   schedule: z.string().trim().max(120).optional(),
   room: z.string().trim().max(60).optional(),
+  meetingUrl: z
+    .string()
+    .trim()
+    .max(500)
+    .refine(isEmptyOrHttpsUrl, 'Enter a valid link starting with https://')
+    .optional(),
 })
 
 export const updateSubject = createServerFn({ method: 'POST' })
@@ -273,6 +291,9 @@ export const updateSubject = createServerFn({ method: 'POST' })
         description: data.description || null,
         schedule: data.schedule || null,
         room: data.room || null,
+        ...(data.meetingUrl !== undefined && {
+          meeting_url: data.meetingUrl || null,
+        }),
         updated_at: new Date().toISOString(),
       })
       .eq('id', data.subjectId)
@@ -283,7 +304,7 @@ export const updateSubject = createServerFn({ method: 'POST' })
 
     const { data: subject, error } = await query
       .select(
-        'id, code, name, description, schedule, room, archived, created_at',
+        'id, code, name, description, schedule, room, meeting_url, archived, created_at',
       )
       .single()
 

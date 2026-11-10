@@ -661,6 +661,7 @@ export type Database = {
           id: string
           instructor_id: string
           name: string
+          meeting_url: string | null
           room: string | null
           schedule: string | null
           updated_at: string | null
@@ -673,6 +674,7 @@ export type Database = {
           id?: string
           instructor_id: string
           name: string
+          meeting_url?: string | null
           room?: string | null
           schedule?: string | null
           updated_at?: string | null
@@ -685,6 +687,7 @@ export type Database = {
           id?: string
           instructor_id?: string
           name?: string
+          meeting_url?: string | null
           room?: string | null
           schedule?: string | null
           updated_at?: string | null

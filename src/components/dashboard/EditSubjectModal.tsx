@@ -20,6 +20,7 @@ interface EditSubjectModalProps {
     description: string | null
     schedule: string | null
     room: string | null
+    meetingUrl: string | null
   }
   onClose: () => void
   onSubmit: (values: {
@@ -28,6 +29,7 @@ interface EditSubjectModalProps {
     description: string
     schedule: string
     room: string
+    meetingUrl: string
   }) => Promise<unknown>
   submitting: boolean
   error: string | null
@@ -45,6 +47,7 @@ export function EditSubjectModal({
   const [description, setDescription] = useState(subject.description ?? '')
   const [schedule, setSchedule] = useState(subject.schedule ?? '')
   const [room, setRoom] = useState(subject.room ?? '')
+  const [meetingUrl, setMeetingUrl] = useState(subject.meetingUrl ?? '')
 
   const canSubmit =
     name.trim().length > 0 && code.trim().length > 0 && !submitting
@@ -111,6 +114,18 @@ export function EditSubjectModal({
           </div>
 
           <div className="space-y-1.5">
+            <Label htmlFor="edit-subject-meeting-url">Class meeting link</Label>
+            <Input
+              id="edit-subject-meeting-url"
+              type="url"
+              placeholder="https://meet.google.com/abc-defg-hij"
+              value={meetingUrl}
+              onChange={(e) => setMeetingUrl(e.target.value)}
+              disabled={submitting}
+            />
+          </div>
+
+          <div className="space-y-1.5">
             <Label htmlFor="edit-subject-description">Description</Label>
             <Textarea
               id="edit-subject-description"
@@ -146,6 +161,7 @@ export function EditSubjectModal({
                 description: description.trim(),
                 schedule: schedule.trim(),
                 room: room.trim(),
+                meetingUrl: meetingUrl.trim(),
               })
             }
             disabled={!canSubmit}

@@ -1,12 +1,18 @@
 import { useState } from 'react'
-import { createFileRoute, Outlet, useMatches } from '@tanstack/react-router'
-import type { ErrorComponentProps } from '@tanstack/react-router'
+import {
+  createFileRoute,
+  Outlet,
+  useMatches
+  
+} from '@tanstack/react-router'
+import type {ErrorComponentProps} from '@tanstack/react-router';
 import { queryOptions, useQuery } from '@tanstack/react-query'
 import { getSubject } from '@/lib/server/functions/subjects'
 import { listAnnouncements } from '@/lib/server/functions/announcements'
 import { listMaterialsWithTopics } from '@/lib/server/functions/materials'
 import { listEnrollments } from '@/lib/server/functions/enrollments'
 import { ClassroomHeader } from '@/components/classroom/ClassroomHeader'
+import { ClassroomSettingsButton } from '@/components/classroom/ClassroomSettingsButton'
 import { ClassroomTabs } from '@/components/classroom/ClassroomTabs'
 import type { ClassroomTab } from '@/components/classroom/ClassroomTabs'
 import { StreamTab } from '@/components/classroom/StreamTab'
@@ -88,10 +94,16 @@ function ClassroomPage() {
   const subject = subjectQuery.data
   const role = userState.profile.role
   const canPost = role === 'instructor' || role === 'admin'
+  const canEdit = canPost
 
   return (
     <div className="page max-w-5xl space-y-6">
-      <ClassroomHeader subject={subject} />
+      <ClassroomHeader
+        subject={subject}
+        actions={
+          canEdit ? <ClassroomSettingsButton subject={subject} /> : undefined
+        }
+      />
       <ClassroomTabs active={tab} onChange={setTab} />
 
       {tab === 'stream' && (
